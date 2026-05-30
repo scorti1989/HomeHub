@@ -841,9 +841,9 @@ body{
         <div style="font-size:13px;font-weight:600;color:var(--text)">🍳 Rezeptverwaltung</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">Rezepte speichern, filtern &amp; Wochenplan</div>
       </div>
-      <label style="position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0">
+      <label for="s-recipes-enabled" id="s-recipes-toggle-label" style="position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;cursor:pointer">
         <input type="checkbox" id="s-recipes-enabled" style="opacity:0;width:0;height:0;position:absolute">
-        <span id="s-recipes-toggle" style="position:absolute;inset:0;background:var(--border);border-radius:13px;cursor:pointer;transition:background .2s"></span>
+        <span id="s-recipes-toggle" style="position:absolute;inset:0;background:var(--border);border-radius:13px;transition:background .2s;pointer-events:none"></span>
       </label>
     </div>
   </div>
@@ -893,11 +893,14 @@ body{
       <button class="rstar" data-v="5" style="font-size:22px;background:none;border:none;cursor:pointer;padding:4px;min-width:36px;min-height:36px">☆</button>
     </div>
   </div>
-  <div class="fg"><label for="r-note">Meine Notiz (z.B. Änderungen, Tipps)</label>
-    <textarea id="r-note" rows="2" placeholder="z.B. mehr Knoblauch, ohne Zwiebeln…" style="resize:none"></textarea>
-  </div>
   <div class="fg"><label for="r-ingredients">Zutaten (eine pro Zeile, für Einkaufsliste)</label>
     <textarea id="r-ingredients" rows="4" placeholder="200g Spaghetti&#10;3 Eier&#10;100g Speck&#10;50g Parmesan" style="resize:none"></textarea>
+  </div>
+  <div class="fg"><label for="r-steps">Zubereitung (optional)</label>
+    <textarea id="r-steps" rows="4" placeholder="1. Wasser aufsetzen…&#10;2. Speck anbraten…" style="resize:none"></textarea>
+  </div>
+  <div class="fg"><label for="r-note">Meine Notizen (eigene Tipps, Änderungen)</label>
+    <textarea id="r-note" rows="2" placeholder="z.B. mehr Knoblauch, ohne Zwiebeln…" style="resize:none"></textarea>
   </div>
   <div class="fg"><label for="r-imageurl">Bild-URL (optional)</label><input id="r-imageurl" placeholder="https://..." autocomplete="off" type="url"></div>
   <button class="btn-p" id="saveRecipeBtn">Rezept speichern</button>
@@ -4257,71 +4260,146 @@ function parseDuration(iso) {
 
 // ── URL-Import via JSON-LD ─────────────────
 async function fetchRecipeFromUrl(url) {
-  // CORS-Proxy — zwei Fallbacks
+  // Hilfsfunktion: fetch mit Timeout über AbortController (AbortSignal.timeout ist nicht überall verfügbar)
+  async function fetchWithTimeout(resource, ms) {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const r = await fetch(resource, { signal: ctrl.signal });
+      return r;
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
+  // Proxy-Strategie:
+  // 1. allorigins liefert JSON mit .contents
+  // 2. corsproxy.io liefert direkt Text
   const proxies = [
-    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`
+    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, mode: 'json' },
+    { url: `https://corsproxy.io/?${encodeURIComponent(url)}`,              mode: 'text' },
   ];
-  let html = null;
+
+  let pageHtml = null;
+  let lastErr  = '';
+
   for (const proxy of proxies) {
     try {
-      const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) continue;
-      const data = await r.json().catch(() => null);
-      html = data?.contents || (typeof data === 'string' ? data : null);
-      if (!html) {
-        // corsproxy.io gibt reinen Text zurück
-        const r2 = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-        html = await r2.text();
+      const resp = await fetchWithTimeout(proxy.url, 9000);
+      if (!resp.ok) { lastErr = `HTTP ${resp.status}`; continue; }
+      if (proxy.mode === 'json') {
+        const json = await resp.json();
+        pageHtml = (typeof json.contents === 'string' && json.contents.length > 200)
+          ? json.contents : null;
+      } else {
+        const txt = await resp.text();
+        pageHtml = (txt && txt.length > 200) ? txt : null;
       }
-      if (html && html.length > 500) break;
-    } catch { continue; }
+      if (pageHtml) break;
+    } catch(e) {
+      lastErr = e.name === 'AbortError' ? 'Timeout' : (e.message || 'Netzwerkfehler');
+      continue;
+    }
   }
-  if (!html) throw new Error('Seite konnte nicht geladen werden.');
 
-  // JSON-LD parsen
-  const parser = new DOMParser();
-  const doc    = parser.parseFromString(html, 'text/html');
+  if (!pageHtml) {
+    throw new Error(
+      `Automatischer Import nicht möglich – bitte Rezeptdaten manuell einfügen.\n(${lastErr || 'Seite nicht erreichbar'})`
+    );
+  }
+
+  // ── JSON-LD parsen ────────────────────────
+  const parser  = new DOMParser();
+  const doc     = parser.parseFromString(pageHtml, 'text/html');
   const scripts = [...doc.querySelectorAll('script[type="application/ld+json"]')];
   let schema = null;
+
   for (const s of scripts) {
     try {
-      const json = JSON.parse(s.textContent);
-      const arr  = Array.isArray(json) ? json : (json['@graph'] || [json]);
-      schema = arr.find(x => x['@type'] === 'Recipe' ||
-        (Array.isArray(x['@type']) && x['@type'].includes('Recipe')));
+      const raw = JSON.parse(s.textContent);
+      // Mögliche Strukturen: einzelnes Objekt, Array, @graph
+      const candidates = [];
+      if (Array.isArray(raw))           candidates.push(...raw);
+      else if (Array.isArray(raw['@graph'])) candidates.push(...raw['@graph']);
+      else                              candidates.push(raw);
+
+      // Auch verschachtelte @graph innerhalb von Kandidaten prüfen
+      for (const c of candidates) {
+        if (Array.isArray(c['@graph'])) candidates.push(...c['@graph']);
+      }
+
+      schema = candidates.find(x => {
+        const t = x?.['@type'];
+        return t === 'Recipe' || (Array.isArray(t) && t.includes('Recipe'));
+      });
       if (schema) break;
     } catch { continue; }
   }
 
-  // Fallback: OpenGraph
-  const ogTitle = doc.querySelector('meta[property="og:title"]')?.content;
-  const ogImg   = doc.querySelector('meta[property="og:image"]')?.content;
-  const ogDesc  = doc.querySelector('meta[property="og:description"]')?.content;
+  // ── OpenGraph als Fallback ────────────────
+  const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
+  const ogImg   = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+  const ogDesc  = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
 
-  if (!schema && !ogTitle) throw new Error('Kein Rezept-Schema auf dieser Seite gefunden.');
-
-  if (!schema) {
-    // Nur OG-Daten
-    return { title: ogTitle, imageUrl: ogImg, note: ogDesc || '', tags: [], time: null,
-             servings: null, ingredients: [], sourceUrl: url, fromUrl: true };
+  if (!schema && !ogTitle) {
+    throw new Error(
+      'Automatischer Import nicht möglich – bitte Rezeptdaten manuell einfügen.\n(Kein Schema.org/Recipe auf dieser Seite gefunden)'
+    );
   }
 
-  const totalMin = parseDuration(schema.totalTime) || parseDuration(schema.prepTime);
-  const img  = Array.isArray(schema.image) ? schema.image[0] :
-               (typeof schema.image === 'object' ? schema.image?.url : schema.image);
-  const tags = autoTagsFromSchema(schema);
+  if (!schema) {
+    // Nur OpenGraph-Daten verfügbar
+    return {
+      title: ogTitle, imageUrl: ogImg, note: ogDesc,
+      tags: [], time: null, servings: null, ingredients: '',
+      steps: '', sourceUrl: url, fromUrl: true, partial: true,
+    };
+  }
+
+  // ── Vollständige Schema-Extraktion ────────
+  const totalMin = parseDuration(schema.totalTime) || parseDuration(schema.cookTime) || parseDuration(schema.prepTime);
+
+  // Bild: string | {url} | string[] | {url}[]
+  let imgUrl = '';
+  if (schema.image) {
+    const firstImg = Array.isArray(schema.image) ? schema.image[0] : schema.image;
+    imgUrl = (typeof firstImg === 'string') ? firstImg : (firstImg?.url || firstImg?.['@id'] || '');
+  }
+  imgUrl = imgUrl || ogImg;
+
+  // Portionen: "4 Portionen" → 4
+  let servings = null;
+  if (schema.recipeYield) {
+    const yld = Array.isArray(schema.recipeYield) ? schema.recipeYield[0] : schema.recipeYield;
+    servings = parseInt(String(yld)) || null;
+  }
+
+  // Zubereitung: array of HowToStep | string[]
+  let steps = '';
+  if (schema.recipeInstructions) {
+    const instr = schema.recipeInstructions;
+    if (Array.isArray(instr)) {
+      steps = instr.map(s => {
+        if (typeof s === 'string') return s;
+        return s.text || s.name || '';
+      }).filter(Boolean).join('\n');
+    } else if (typeof instr === 'string') {
+      steps = instr;
+    }
+  }
 
   return {
     title:       schema.name || ogTitle || '',
-    imageUrl:    img || ogImg || '',
-    note:        schema.description || '',
-    tags,
+    imageUrl:    imgUrl,
+    note:        schema.description || ogDesc || '',
+    tags:        autoTagsFromSchema(schema),
     time:        totalMin,
-    servings:    parseInt(schema.recipeYield) || null,
+    servings,
     ingredients: (schema.recipeIngredient || []).join('\n'),
+    steps,
     sourceUrl:   url,
     fromUrl:     true,
+    partial:     false,
   };
 }
 
@@ -4368,6 +4446,7 @@ function openRecipeModal(id) {
   document.getElementById('r-servings').value    = r?.servings || '';
   document.getElementById('r-note').value        = r?.note || '';
   document.getElementById('r-ingredients').value = r?.ingredients || '';
+  document.getElementById('r-steps').value       = r?.steps || '';
   document.getElementById('r-imageurl').value    = r?.imageUrl || '';
   document.getElementById('recipeImportStatus').textContent = '';
   document.getElementById('recipeImportStatus').className = 'import-status';
@@ -4390,18 +4469,26 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
 
   try {
     const data = await fetchRecipeFromUrl(url);
-    document.getElementById('r-title').value       = data.title;
-    document.getElementById('r-time').value        = data.time || '';
-    document.getElementById('r-servings').value    = data.servings || '';
-    document.getElementById('r-note').value        = data.note || '';
+    document.getElementById('r-title').value       = data.title       || '';
+    document.getElementById('r-time').value        = data.time        || '';
+    document.getElementById('r-servings').value    = data.servings    || '';
+    document.getElementById('r-note').value        = data.note        || '';
     document.getElementById('r-ingredients').value = data.ingredients || '';
-    document.getElementById('r-imageurl').value    = data.imageUrl || '';
+    document.getElementById('r-steps').value       = data.steps       || '';
+    document.getElementById('r-imageurl').value    = data.imageUrl    || '';
     currentRecipeTags = data.tags || [];
     document.getElementById('recipeTagPicker').innerHTML = renderTagPicker(currentRecipeTags);
-    const autoMsg = data.tags.length ? ` · ${data.tags.length} Tags erkannt` : '';
-    st.textContent = '✅ Importiert' + autoMsg; st.className = 'import-status ok';
+    if (data.partial) {
+      st.textContent = '⚠ Nur Basisdaten importiert – bitte Zutaten & Zubereitung ergänzen.';
+      st.className = 'import-status err';
+    } else {
+      const autoMsg = data.tags.length ? ` · ${data.tags.length} Tags erkannt` : '';
+      st.textContent = '✅ Importiert' + autoMsg; st.className = 'import-status ok';
+    }
   } catch(e) {
-    st.textContent = '❌ ' + (e.message || 'Fehler beim Import.'); st.className = 'import-status err';
+    // Benutzerfreundliche Fehlermeldung — kein Absturz
+    const msg = (e.message || 'Unbekannter Fehler').split('\n')[0];
+    st.textContent = '⚠ ' + msg; st.className = 'import-status err';
   } finally {
     document.getElementById('importRecipeUrlBtn').disabled = false;
   }
@@ -4437,6 +4524,7 @@ document.getElementById('saveRecipeBtn').addEventListener('click', () => {
     servings:    parseInt(document.getElementById('r-servings').value) || null,
     note:        document.getElementById('r-note').value.trim(),
     ingredients: document.getElementById('r-ingredients').value.trim(),
+    steps:       document.getElementById('r-steps').value.trim(),
     imageUrl:    document.getElementById('r-imageurl').value.trim(),
     tags:        [...currentRecipeTags],
     stars:       currentRecipeStar,
@@ -4697,13 +4785,9 @@ function syncRecipeToggleUI() {
   knob.innerHTML = `<span style="position:absolute;top:3px;left:${on?'21':'3'}px;width:20px;height:20px;background:white;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></span>`;
 }
 
-document.getElementById('s-recipes-toggle').addEventListener('click', () => {
-  settings.recipesEnabled = !settings.recipesEnabled;
-  save('vh_settings', settings);      // sofort persistieren
-  syncRecipeToggleUI();
-  applyRecipeModuleState();            // Nav-Tab sofort ein-/ausblenden
-});
-// Checkbox-Fallback (same behaviour)
+// Toggle: einzige Quelle ist der checkbox-change-Event.
+// Der Span hat pointer-events:none, der Label-Klick löst die Checkbox aus.
+// Kein separater Click-Handler auf dem Span → kein doppelter Toggle.
 document.getElementById('s-recipes-enabled').addEventListener('change', function() {
   settings.recipesEnabled = this.checked;
   save('vh_settings', settings);
