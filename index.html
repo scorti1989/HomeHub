@@ -880,11 +880,20 @@ body{
     <div class="rv-meta" id="rvMeta"></div>
     <div id="rvTags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px"></div>
     <div id="rvStars" style="margin-bottom:6px"></div>
-    <!-- Action-Buttons -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <button id="rvShopBtn" class="btn-p" style="flex:1;padding:11px;font-size:13px">🛒 Einkaufsliste</button>
-      <button id="rvEditBtn" style="flex:0 0 auto;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;min-height:44px">✏️ Bearbeiten</button>
-      <a id="rvSourceLink" href="#" target="_blank" rel="noopener" style="display:none;flex:0 0 auto;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;align-items:center;gap:5px;min-height:44px">🔗 Original</a>
+    <!-- Portionen-Scaler -->
+    <div id="rvServingsRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px">Portionen</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button id="rvServMinus" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:inherit;min-width:44px;min-height:44px">−</button>
+        <span id="rvServCount" style="font-size:18px;font-weight:800;color:var(--text);min-width:24px;text-align:center">2</span>
+        <button id="rvServPlus"  style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:inherit;min-width:44px;min-height:44px">＋</button>
+      </div>
+    </div>
+    <!-- Action-Buttons: gleichmäßiges Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px" id="rvActionRow">
+      <button id="rvShopBtn"  style="padding:12px 6px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px;line-height:1.3">🛒<br>Einkaufsliste</button>
+      <button id="rvEditBtn"  style="padding:12px 6px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;min-height:48px;line-height:1.3">✏️<br>Bearbeiten</button>
+      <a id="rvSourceLink" href="#" target="_blank" rel="noopener" style="display:none;padding:12px 6px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:700;color:var(--muted);text-decoration:none;text-align:center;min-height:48px;align-items:center;justify-content:center;line-height:1.3;flex-direction:column">🔗<br>Original</a>
     </div>
     <!-- Zutaten -->
     <div class="rv-section-title">Zutaten <span id="rvServingsNote" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400"></span></div>
@@ -940,10 +949,10 @@ body{
   </div>
   <div class="fg"><label for="r-ingredients">Zutaten (eine pro Zeile, für Einkaufsliste)</label>
     <textarea id="r-ingredients" rows="10" placeholder="200g Spaghetti&#10;3 Eier&#10;100g Speck&#10;50g Parmesan&#10;Salz und Pfeffer&#10;2 EL Olivenöl" style="resize:vertical"></textarea>
-
+  </div>
   <div class="fg"><label for="r-steps">Zubereitung (optional)</label>
     <textarea id="r-steps" rows="12" placeholder="1. Wasser aufsetzen und salzen.&#10;2. Speck in einer Pfanne anbraten.&#10;3. Eier mit Parmesan verquirlen.&#10;4. Pasta al dente kochen.&#10;5. Pfanne vom Herd nehmen, Pasta dazu." style="resize:vertical"></textarea>
-
+  </div>
   <div class="fg"><label for="r-note">Meine Notizen (eigene Tipps, Änderungen)</label>
     <textarea id="r-note" rows="3" placeholder="z.B. mehr Knoblauch, ohne Zwiebeln…" style="resize:vertical"></textarea>
   </div>
@@ -1619,7 +1628,11 @@ function showPage(id) {
   if (id === 'contracts') renderContracts();
   if (id === 'meters') renderMeters();
   if (id === 'analysis') renderAnalysis();
-  if (id === 'recipes') renderRecipes();
+  if (id === 'recipes') {
+    // Delegation einmalig initialisieren
+    if (!showPage._recipesInit) { initRecipesDelegation(); showPage._recipesInit = true; }
+    renderRecipes();
+  }
 }
 document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
   btn.addEventListener('click', () => showPage(btn.dataset.page));
@@ -4539,7 +4552,9 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
   document.getElementById('importRecipeUrlBtn').disabled = true;
 
   try {
-    const data = await fetchRecipeFromUrl(url);
+    const raw  = await fetchRecipeFromUrl(url);
+    // Automatisch auf 2 Portionen normalisieren
+    const data = raw.partial ? raw : normalizeRecipeToServings(raw, 2);
     document.getElementById('r-title').value       = data.title       || '';
     document.getElementById('r-time').value        = data.time        || '';
     document.getElementById('r-servings').value    = data.servings    || '';
@@ -4553,9 +4568,14 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
       st.textContent = '⚠ Nur Basisdaten importiert – bitte Zutaten & Zubereitung ergänzen.';
       st.className = 'import-status err';
     } else {
-      const autoMsg = data.tags.length ? ` · ${data.tags.length} Tags erkannt` : '';
-      st.textContent = '✅ Importiert' + autoMsg; st.className = 'import-status ok';
+      const normMsg = data.originalServings && data.originalServings !== 2
+        ? ` · auf 2 Portionen umgerechnet (Original: ${data.originalServings})` : '';
+      const autoMsg = data.tags?.length ? ` · ${data.tags.length} Tags` : '';
+      st.textContent = '✅ Importiert' + autoMsg + normMsg; st.className = 'import-status ok';
     }
+    // Originale Portionsanzahl für buildRecipeEntry merken
+    document.getElementById('r-servings')._originalServings = data.originalServings;
+    document.getElementById('r-servings')._ingredientsRaw  = data.ingredientsRaw || data.ingredients || '';
   } catch(e) {
     // Benutzerfreundliche Fehlermeldung — kein Absturz
     const msg = (e.message || 'Unbekannter Fehler').split('\n')[0];
@@ -4591,12 +4611,15 @@ document.getElementById('saveRecipeBtn').addEventListener('click', async () => {
   btn.disabled = true; btn.textContent = 'Speichern…';
   try {
     const existing = editRecipeId ? recipes.find(x => x.id === editRecipeId) : null;
+    const sEl = document.getElementById('r-servings');
     const entry = await buildRecipeEntry({
       id:          editRecipeId || uid(),
       title,
       sourceUrl:   document.getElementById('r-url').value.trim(),
       time:        parseInt(document.getElementById('r-time').value) || null,
-      servings:    parseInt(document.getElementById('r-servings').value) || null,
+      servings:    parseInt(sEl.value) || 2,
+      originalServings: sEl._originalServings ?? existing?.originalServings ?? null,
+      ingredientsRaw:   sEl._ingredientsRaw   ?? existing?.ingredientsRaw   ?? null,
       note:        document.getElementById('r-note').value.trim(),
       ingredients: document.getElementById('r-ingredients').value.trim(),
       steps:       document.getElementById('r-steps').value.trim(),
@@ -4666,7 +4689,96 @@ function getRecipeStepLines(r) {
 }
 
 // ════════════════════════════════════════════
-// KOCHANSICHT
+// PORTIONEN-SKALIERUNG
+// ════════════════════════════════════════════
+
+let _rvCurrentServings = 2;  // aktuell angezeigte Portionen in der Kochansicht
+
+// Robuster Mengen-Parser (deutsch, Brüche, Kommazahlen)
+function parseAmount(str) {
+  if (!str) return null;
+  const s = str.trim().replace(',', '.');
+  // Brüche: "½" "1/2" "3/4"
+  if (s === '½' || s === '1/2') return 0.5;
+  if (s === '¼' || s === '1/4') return 0.25;
+  if (s === '¾' || s === '3/4') return 0.75;
+  if (s === '⅓' || s === '1/3') return 1/3;
+  if (s === '⅔' || s === '2/3') return 2/3;
+  const frac = s.match(/^(\d+)\/(\d+)$/);
+  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// Zahl schön formatieren (Komma statt Punkt, keine unnötigen Nachkommastellen)
+function fmtAmount(n) {
+  if (n === null || n === undefined) return '';
+  if (Number.isInteger(n)) return String(n);
+  const s = n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  return s.replace('.', ',');
+}
+
+// Zeile skalieren: "250 g rote Linsen" mit factor 0.5 → "125 g rote Linsen"
+function scaleIngredientLine(line, factor) {
+  if (factor === 1) return line;
+  const trim = line.trim();
+  // Muster: [Menge] [Einheit] [Name] — Menge kann Zahl/Bruch/Kommazahl sein
+  // Einheit optional (g, ml, L, l, EL, TL, Stk, Bund, Prise, Pkg, …)
+  const re = /^([\d½¼¾⅓⅔][,.\d\/½¼¾⅓⅔]*)\s*([a-zA-ZäöüÄÖÜ.]*\.?)?\s+(.+)$/;
+  const m  = trim.match(re);
+  if (!m) return line; // nicht skalierbar → unverändert
+  const origAmt = parseAmount(m[1]);
+  if (origAmt === null) return line;
+  const scaled = origAmt * factor;
+  const unit   = m[2] || '';
+  const name   = m[3];
+  return [fmtAmount(scaled), unit, name].filter(Boolean).join(' ');
+}
+
+// Zutaten eines Rezepts auf targetServings skalieren → Zeilen-Array
+function scaledIngredientLines(r, targetServings) {
+  const base  = r.baseServings || r.servings || 2;
+  const lines = getRecipeIngredientLines(r);
+  if (!base || !targetServings || base === targetServings) return lines;
+  const factor = targetServings / base;
+  return lines.map(l => scaleIngredientLine(l, factor));
+}
+
+// Beim Import auf 2 Portionen normalisieren
+function normalizeRecipeToServings(data, targetServings) {
+  targetServings = targetServings || 2;
+  const origServings = parseInt(data.servings) || 0;
+  if (!origServings || origServings === targetServings) {
+    return { ...data, baseServings: origServings || targetServings,
+             originalServings: origServings || targetServings };
+  }
+  const factor = targetServings / origServings;
+  const lines  = (data.ingredients || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const scaled = lines.map(l => scaleIngredientLine(l, factor)).join('\n');
+  return {
+    ...data,
+    servings:         targetServings,
+    baseServings:     targetServings,
+    originalServings: origServings,
+    ingredientsRaw:   data.ingredients || '',  // Original-Zutaten sichern
+    ingredients:      scaled,
+  };
+}
+
+// Migration: alte Rezepte ohne baseServings erhalten es beim Lesen
+function migrateRecipe(r) {
+  if (!r) return r;
+  return {
+    ...r,
+    baseServings:     r.baseServings     ?? r.servings ?? 2,
+    originalServings: r.originalServings ?? r.servings ?? null,
+    ingredientsRaw:   r.ingredientsRaw   ?? r.ingredients ?? '',
+    updatedAt:        r.updatedAt        ?? r.createdAt ?? today(),
+  };
+}
+
+// ════════════════════════════════════════════
+// KOCHANSICHT (erweitert mit Skalierung)
 // ════════════════════════════════════════════
 let _rvRecipeId = null;
 let _cookSteps  = [];
@@ -4677,63 +4789,80 @@ let _doneSteps  = new Set();
 function openRecipeView(id) {
   const r = recipes.find(x => x.id === id);
   if (!r) return;
+  const rm = migrateRecipe(r);
   _rvRecipeId = id;
   _doneSteps  = new Set();
+  _rvCurrentServings = rm.servings || rm.baseServings || 2;
 
   const imgArea = document.getElementById('rvImageArea');
-  imgArea.innerHTML = r.imageUrl
-    ? `<img class="rv-image" src="${esc(r.imageUrl)}" alt="${esc(r.title)}" onerror="this.style.display='none'">`
+  imgArea.innerHTML = rm.imageUrl
+    ? `<img class="rv-image" src="${esc(rm.imageUrl)}" alt="${esc(rm.title)}" onerror="this.style.display='none'">`
     : `<div class="rv-image-placeholder">🍳</div>`;
 
-  document.getElementById('rvTitle').textContent = r.title || '';
-  const meta = [];
-  if (r.time)     meta.push(`⏱ ${r.time} Min`);
-  if (r.servings) meta.push(`👤 ${r.servings} Portionen`);
-  if (r.stars)    meta.push(renderStars(r.stars));
-  document.getElementById('rvMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  document.getElementById('rvTitle').textContent = rm.title || '';
   document.getElementById('rvTags').innerHTML =
-    (r.tags || []).map(t => TAG_MAP[t] ? `<span class="recipe-tag ${TAG_MAP[t].cls}">${TAG_MAP[t].label}</span>` : '').join('');
+    (rm.tags || []).map(t => TAG_MAP[t] ? `<span class="recipe-tag ${TAG_MAP[t].cls}">${TAG_MAP[t].label}</span>` : '').join('');
 
+  // Portionen-Zeile
+  const base = rm.baseServings || rm.servings || 2;
+  document.getElementById('rvServCount').textContent = _rvCurrentServings;
+  document.getElementById('rvServingsRow').style.display = base ? 'flex' : 'none';
+
+  // Source-Link
   const srcLink = document.getElementById('rvSourceLink');
-  if (r.sourceUrl) { srcLink.href = r.sourceUrl; srcLink.style.display = 'inline-flex'; }
+  if (rm.sourceUrl) { srcLink.href = rm.sourceUrl; srcLink.style.display = 'flex'; }
   else               srcLink.style.display = 'none';
 
-  document.getElementById('rvServingsNote').textContent = r.servings ? `(für ${r.servings} Portionen)` : '';
-
-  const ingLines = getRecipeIngredientLines(r);
-  document.getElementById('rvIngredients').innerHTML = ingLines.length
-    ? ingLines.map(l => {
-        const { name, amount, unit } = parseIngredientLine(l);
-        const qty = [amount, unit].filter(Boolean).join(' ');
-        return `<div class="rv-ingredient">
-          <span style="min-width:80px;font-size:12px;color:var(--muted);font-weight:600">${esc(qty)}</span>
-          <span style="flex:1">${esc(name)}</span>
-        </div>`;
-      }).join('')
-    : `<div style="font-size:13px;color:var(--muted);padding:8px 0">Keine Zutaten eingetragen.</div>`;
-
-  _cookSteps = getRecipeStepLines(r);
-  const stepsTitle  = document.getElementById('rvStepsTitle');
-  const cookModeRow = document.getElementById('rvCookModeRow');
-  if (_cookSteps.length) {
-    stepsTitle.style.display = 'block';
-    cookModeRow.style.display = 'block';
-    renderRvSteps();
-  } else {
-    stepsTitle.style.display = 'none';
-    document.getElementById('rvSteps').innerHTML = '';
-    cookModeRow.style.display = 'none';
-  }
+  renderRvMeta(rm);
+  renderRvIngredients(rm);
+  _cookSteps = getRecipeStepLines(rm);
+  renderRvStepsFull();
 
   const noteSection = document.getElementById('rvNoteSection');
-  if (r.note && r.note.trim()) {
+  if (rm.note && rm.note.trim()) {
     noteSection.style.display = 'block';
-    document.getElementById('rvNote').textContent = r.note;
+    document.getElementById('rvNote').textContent = rm.note;
   } else {
     noteSection.style.display = 'none';
   }
 
   openModal('recipeViewModal');
+}
+
+function renderRvMeta(r) {
+  const meta = [];
+  if (r.time)     meta.push(`⏱ ${r.time} Min`);
+  if (r.stars)    meta.push(renderStars(r.stars));
+  document.getElementById('rvMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  document.getElementById('rvServCount').textContent = _rvCurrentServings;
+}
+
+function renderRvIngredients(r) {
+  const lines = scaledIngredientLines(r, _rvCurrentServings);
+  document.getElementById('rvIngredients').innerHTML = lines.length
+    ? lines.map(l => {
+        const { name, amount, unit } = parseIngredientLine(l);
+        const qty = [amount, unit].filter(Boolean).join('\u202F'); // narrow-space
+        return `<div class="rv-ingredient">
+          <span style="min-width:72px;font-size:12px;color:var(--muted);font-weight:600">${esc(qty)}</span>
+          <span style="flex:1">${esc(name)}</span>
+        </div>`;
+      }).join('')
+    : `<div style="font-size:13px;color:var(--muted);padding:8px 0">Keine Zutaten eingetragen.</div>`;
+}
+
+function renderRvStepsFull() {
+  const stepsTitle  = document.getElementById('rvStepsTitle');
+  const cookModeRow = document.getElementById('rvCookModeRow');
+  if (_cookSteps.length) {
+    stepsTitle.style.display  = 'block';
+    cookModeRow.style.display = 'block';
+    renderRvSteps();
+  } else {
+    stepsTitle.style.display  = 'none';
+    document.getElementById('rvSteps').innerHTML = '';
+    cookModeRow.style.display = 'none';
+  }
 }
 
 function renderRvSteps() {
@@ -4754,8 +4883,24 @@ document.getElementById('rvSteps').addEventListener('click', e => {
   if (_doneSteps.has(i)) _doneSteps.delete(i); else _doneSteps.add(i);
   renderRvSteps();
 });
+
+// Portionen +/−
+document.getElementById('rvServMinus').addEventListener('click', () => {
+  if (_rvCurrentServings <= 1) return;
+  _rvCurrentServings--;
+  document.getElementById('rvServCount').textContent = _rvCurrentServings;
+  const r = recipes.find(x => x.id === _rvRecipeId);
+  if (r) renderRvIngredients(migrateRecipe(r));
+});
+document.getElementById('rvServPlus').addEventListener('click', () => {
+  _rvCurrentServings++;
+  document.getElementById('rvServCount').textContent = _rvCurrentServings;
+  const r = recipes.find(x => x.id === _rvRecipeId);
+  if (r) renderRvIngredients(migrateRecipe(r));
+});
+
 document.getElementById('rvShopBtn').addEventListener('click', () => {
-  if (_rvRecipeId) openRecipeShoppingPicker(_rvRecipeId);
+  if (_rvRecipeId) openRecipeShoppingPicker(_rvRecipeId, _rvCurrentServings);
 });
 document.getElementById('rvEditBtn').addEventListener('click', () => {
   closeModal('recipeViewModal');
@@ -4960,19 +5105,17 @@ function mergeIngredientLines(allLines) {
 
 // ── Einzel-Rezept → Einkaufsliste (mit Auswahldialog) ───────────────────
 // ERSETZT die alte addRecipeToShoppingList(id) ohne Dialog
-function openRecipeShoppingPicker(recipeId, afterFn) {
+function openRecipeShoppingPicker(recipeId, currentServings) {
   const r = recipes.find(x => x.id === recipeId);
   if (!r) return;
-  const lines = ingredientsToLines(r);
+  const rm    = migrateRecipe(r);
+  const lines = scaledIngredientLines(rm, currentServings || rm.servings || rm.baseServings || 2);
   if (!lines.length) { alert('Dieses Rezept hat keine Zutaten eingetragen.'); return; }
+  const portNote = currentServings ? ` (${currentServings} Portionen)` : '';
   openIngredientPicker(
-    `🛒 ${r.title}`,
+    `🛒 ${rm.title}${portNote}`,
     lines,
-    selected => {
-      pushLinesToShoppingList(selected, r.title);
-      renderKasseEinkauf();
-      if (afterFn) afterFn(selected.length);
-    }
+    selected => { pushLinesToShoppingList(selected, rm.title); renderKasseEinkauf(); }
   );
 }
 
@@ -5003,25 +5146,31 @@ function openWeekPlanShoppingPicker() {
 // ── Thumbnail beim Speichern erzeugen ────────────────────────────────────
 async function buildRecipeEntry(formData, existingEntry) {
   let imageUrl = formData.imageUrl;
-  // Nur externe URLs → Thumbnail erzeugen, Data-URLs unverändert lassen
   if (imageUrl && !imageUrl.startsWith('data:')) {
     imageUrl = await makeThumb(imageUrl).catch(() => formData.imageUrl);
   }
+  const servings   = formData.servings || existingEntry?.servings || 2;
+  const base       = formData.baseServings     ?? existingEntry?.baseServings     ?? servings;
+  const origServ   = formData.originalServings ?? existingEntry?.originalServings ?? servings;
+  const ingRaw     = formData.ingredientsRaw   ?? existingEntry?.ingredientsRaw   ?? formData.ingredients ?? '';
   return {
-    id:          formData.id || uid(),
-    title:       formData.title,
-    sourceUrl:   formData.sourceUrl   || '',
-    sourceName:  formData.sourceName  || '',
+    id:               formData.id || uid(),
+    title:            formData.title,
+    sourceUrl:        formData.sourceUrl   || '',
+    sourceName:       formData.sourceName  || '',
     imageUrl,
-    ingredients: formData.ingredients || '',
-    steps:       formData.steps       || '',
-    note:        formData.note        || '',
-    tags:        formData.tags        || [],
-    stars:       formData.stars       || 0,
-    time:        formData.time        || null,
-    servings:    formData.servings    || null,
-    createdAt:   existingEntry?.createdAt || today(),
-    updatedAt:   today(),  // immer aktualisieren
+    ingredients:      formData.ingredients || '',
+    ingredientsRaw:   ingRaw,
+    steps:            formData.steps       || '',
+    note:             formData.note        || '',
+    tags:             formData.tags        || [],
+    stars:            formData.stars       || 0,
+    time:             formData.time        || null,
+    servings,
+    baseServings:     base,
+    originalServings: origServ,
+    createdAt:        existingEntry?.createdAt || today(),
+    updatedAt:        today(),
   };
 }
 
@@ -5123,47 +5272,36 @@ function renderRecipes() {
   }
 
   document.getElementById('recipesContent').innerHTML = html;
+  // Delegation wird permanent beim ersten Render registriert (s. initRecipesDelegation)
+}
 
-  // Event-Delegation
-  const rc = document.getElementById('recipesContent');
-  rc.addEventListener('click', e => {
-    // View-Toggle
+// Permanente Event-Delegation für #recipesContent
+// Einmalig registriert, überlebt alle innerHTML-Neuaufbauten
+function initRecipesDelegation() {
+  document.getElementById('recipesContent').addEventListener('click', e => {
     const vb = e.target.closest('[data-rview]');
     if (vb) { recipeViewMode = vb.dataset.rview; renderRecipes(); return; }
-    // Filter
     const fb = e.target.closest('[data-rfil]');
     if (fb) { activeRecipeFilter = fb.dataset.rfil; renderRecipes(); return; }
-    // Wochenplan Wählen/Löschen
     const wbtn = e.target.closest('[data-wday]');
     if (wbtn) {
-      if (wbtn.dataset.waction === 'clear') {
-        weekPlan[wbtn.dataset.wday] = null;
-        save('vh_weekplan', weekPlan);
-        renderRecipes(); return;
-      }
-      if (wbtn.dataset.waction === 'pick') { openWeekPicker(wbtn.dataset.wday); return; }
+      if (wbtn.dataset.waction === 'clear') { weekPlan[wbtn.dataset.wday] = null; save('vh_weekplan', weekPlan); renderRecipes(); return; }
+      if (wbtn.dataset.waction === 'pick')  { openWeekPicker(wbtn.dataset.wday); return; }
     }
-    // Woche → alle Zutaten (mit Auswahldialog + Zusammenführung)
-    if (e.target.closest('#weekShopBtn')) {
-      openWeekPlanShoppingPicker();
-      return;
-    }
-    // Zufällig
+    if (e.target.closest('#weekShopBtn'))  { openWeekPlanShoppingPicker(); return; }
     if (e.target.closest('#rndRecipeBtn')) {
       const r = randomRecipe(activeRecipeFilter !== 'alle' ? [activeRecipeFilter] : []);
       if (r) openRecipeView(r.id); return;
     }
-    // Neu
     if (e.target.closest('#addRecipeBtn')) { openRecipeModal(null); return; }
-    // Karte antippen → Kochansicht öffnen
     const card = e.target.closest('[data-rid]');
     if (card) {
-      if (e.target.closest('.rcp-link-btn')) return;
-      if (e.target.closest('[data-shopadd]')) { openRecipeShoppingPicker(card.dataset.rid); return; }
-      if (e.target.closest('[data-edit-card]')) { openRecipeModal(card.dataset.rid); return; }
-      openRecipeView(card.dataset.rid);  // ← Kochansicht statt Edit
+      if (e.target.closest('.rcp-link-btn'))   return;
+      if (e.target.closest('[data-shopadd]'))  { openRecipeShoppingPicker(card.dataset.rid, _rvCurrentServings); return; }
+      if (e.target.closest('[data-edit-card]')){ openRecipeModal(card.dataset.rid); return; }
+      openRecipeView(card.dataset.rid);
     }
-  }, { once: true });
+  });
 }
 
 function recipeCardHTML(r, compact) {
