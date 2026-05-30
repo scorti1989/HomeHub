@@ -920,6 +920,23 @@ body{
  </div>
 </div>
 
+<!-- Zutaten-Auswahl Modal (Rezept → Einkaufsliste) -->
+<div class="modal-bg" id="ingredientPickModal" role="dialog" aria-modal="true">
+ <div class="modal">
+  <div class="modal-handle"></div>
+  <button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('ingredientPickModal')">×</button>
+  <h2 id="ingredientPickTitle">Zutaten auswählen</h2>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button id="ipSelectAll"  style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer">Alle ✓</button>
+    <button id="ipSelectNone" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">Keine ✗</button>
+    <button id="ipSelectMissing" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">Fehlende</button>
+  </div>
+  <div id="ingredientPickList" style="max-height:52vh;overflow-y:auto;margin-bottom:12px"></div>
+  <button class="btn-p" id="ipConfirmBtn">Übernehmen</button>
+  <button class="btn-s" onclick="closeModal('ingredientPickModal')">Abbrechen</button>
+ </div>
+</div>
+
 <!-- Transfer Modal -->
 <div class="modal-bg" id="transferModal" role="dialog" aria-modal="true">
  <div class="modal">
@@ -4033,7 +4050,10 @@ document.getElementById('clearDataBtn').addEventListener('click', () => {
 // EXPORT / IMPORT
 // ════════════════════════════════════════════
 document.getElementById('btnExport').addEventListener('click', () => {
-  const data = { contracts, meters, expenses, shopLists, budgets, priceMemory, recurring, settings, transfers, exported: new Date().toISOString() };
+  // recipes und weekPlan vollständig exportieren
+  const data = { contracts, meters, expenses, shopLists, budgets, priceMemory,
+                 recurring, settings, transfers, recipes, weekPlan,
+                 exported: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -4103,6 +4123,10 @@ document.getElementById('importFile').addEventListener('change', function () {
       priceMemory = (data.priceMemory && typeof data.priceMemory === 'object' && !Array.isArray(data.priceMemory)) ? data.priceMemory : {};
       recurring   = Array.isArray(data.recurring)  ? data.recurring  : [];
       transfers   = Array.isArray(data.transfers)  ? data.transfers  : [];
+      // Abwärtskompatibel: ältere Backups ohne recipes/weekPlan
+      recipes     = Array.isArray(data.recipes)    ? data.recipes    : [];
+      weekPlan    = (data.weekPlan && typeof data.weekPlan === 'object' && !Array.isArray(data.weekPlan))
+                     ? data.weekPlan : { Mo:null,Di:null,Mi:null,Do:null,Fr:null,Sa:null,So:null };
 
       if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
         const raw = data.settings;
@@ -4124,6 +4148,8 @@ document.getElementById('importFile').addEventListener('change', function () {
       save('vh_recurring',  recurring);
       save('vh_transfers',  transfers);
       save('vh_settings',   settings);
+      save('vh_recipes',    recipes);
+      save('vh_weekplan',   weekPlan);
 
       st.className = 'alert-box ab-green'; st.style.display = 'block';
       st.textContent = `✅ Import erfolgreich: ${contracts.length} Verträge, ${meters.length} Zähler, ${expenses.length} Ausgaben.`;
@@ -4178,7 +4204,9 @@ function hideBackupSheet() {
 const _backupNowBtn   = document.getElementById('backupNowBtn');
 const _backupLaterBtn = document.getElementById('backupLaterBtn');
 if (_backupNowBtn) _backupNowBtn.addEventListener('click', () => {
-  const data = { contracts, meters, expenses, shopLists, budgets, priceMemory, recurring, settings, transfers, exported: new Date().toISOString() };
+  const data = { contracts, meters, expenses, shopLists, budgets, priceMemory,
+                 recurring, settings, transfers, recipes, weekPlan,
+                 exported: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `homehub-backup-${today()}.json`; a.click();
@@ -4513,28 +4541,34 @@ document.getElementById('recipeStarPicker').addEventListener('click', e => {
 });
 
 // ── Speichern ──────────────────────────────
-document.getElementById('saveRecipeBtn').addEventListener('click', () => {
+document.getElementById('saveRecipeBtn').addEventListener('click', async () => {
   const title = document.getElementById('r-title').value.trim();
   if (!title) { alert('Bitte Titel eingeben.'); return; }
-  const entry = {
-    id:          editRecipeId || uid(),
-    title,
-    sourceUrl:   document.getElementById('r-url').value.trim(),
-    time:        parseInt(document.getElementById('r-time').value) || null,
-    servings:    parseInt(document.getElementById('r-servings').value) || null,
-    note:        document.getElementById('r-note').value.trim(),
-    ingredients: document.getElementById('r-ingredients').value.trim(),
-    steps:       document.getElementById('r-steps').value.trim(),
-    imageUrl:    document.getElementById('r-imageurl').value.trim(),
-    tags:        [...currentRecipeTags],
-    stars:       currentRecipeStar,
-    createdAt:   editRecipeId ? (recipes.find(x => x.id === editRecipeId)?.createdAt || today()) : today(),
-  };
-  if (editRecipeId) recipes = recipes.map(r => r.id === editRecipeId ? entry : r);
-  else recipes.unshift(entry);
-  save('vh_recipes', recipes);
-  closeModal('recipeModal');
-  renderRecipes();
+  const btn = document.getElementById('saveRecipeBtn');
+  btn.disabled = true; btn.textContent = 'Speichern…';
+  try {
+    const existing = editRecipeId ? recipes.find(x => x.id === editRecipeId) : null;
+    const entry = await buildRecipeEntry({
+      id:          editRecipeId || uid(),
+      title,
+      sourceUrl:   document.getElementById('r-url').value.trim(),
+      time:        parseInt(document.getElementById('r-time').value) || null,
+      servings:    parseInt(document.getElementById('r-servings').value) || null,
+      note:        document.getElementById('r-note').value.trim(),
+      ingredients: document.getElementById('r-ingredients').value.trim(),
+      steps:       document.getElementById('r-steps').value.trim(),
+      imageUrl:    document.getElementById('r-imageurl').value.trim(),
+      tags:        [...currentRecipeTags],
+      stars:       currentRecipeStar,
+    }, existing);
+    if (editRecipeId) recipes = recipes.map(r => r.id === editRecipeId ? entry : r);
+    else recipes.unshift(entry);
+    save('vh_recipes', recipes);
+    closeModal('recipeModal');
+    renderRecipes();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Rezept speichern';
+  }
 });
 
 // ── Löschen ────────────────────────────────
@@ -4562,19 +4596,242 @@ function randomRecipe(filterTags) {
 }
 
 // ── Zutaten → Einkaufsliste ────────────────
+// LEGACY-Wrapper: openRecipeShoppingPicker ersetzt addRecipeToShoppingList.
+// Wird noch aus älterem Code-Pfad aufgerufen.
 function addRecipeToShoppingList(recipeId) {
-  const r = recipes.find(x => x.id === recipeId);
-  if (!r || !r.ingredients) return;
-  const lines = r.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
-  lines.forEach(l => {
-    shopLists.items.push({ id: uid(), desc: l, checked: false,
-      store: 'supermarkt', price: '', note: r.title });
-  });
-  save('vh_shoplists', shopLists);
-  return lines.length;
+  openRecipeShoppingPicker(recipeId);
 }
 
-// ── Wochenplan ─────────────────────────────
+// ════════════════════════════════════════════
+// REZEPT-DATENMODELL (einheitlich)
+// ════════════════════════════════════════════
+//
+// ShoppingItem:  { id, name, qty, store, price, checked }   ← name ist das Pflichtfeld
+// Ingredient:    { name, amount, unit }                      ← strukturiert
+// Recipe.ingredients: string (Freitext, eine Zutat pro Zeile) — abwärtskompatibel
+//
+// parseIngredientLine("200g Milch")  → { name:"Milch", amount:"200", unit:"g" }
+// ingredientsToLines(recipe)         → ["200g Milch", "3 Eier", …]
+
+function parseIngredientLine(line) {
+  // Erkennt: "200g Milch", "200 ml Milch", "3 Eier", "1/2 TL Salz", "etwas Butter"
+  const m = line.trim().match(/^(\d[\d.,/]*)\s*([a-zA-ZäöüÄÖÜg]*\.?)\s+(.+)$/);
+  if (m) return { name: m[3].trim(), amount: m[1].trim(), unit: m[2].trim() };
+  // Nur Zahl + Name: "3 Eier"
+  const m2 = line.trim().match(/^(\d+)\s+(.+)$/);
+  if (m2) return { name: m2[2].trim(), amount: m2[1].trim(), unit: '' };
+  return { name: line.trim(), amount: '', unit: '' };
+}
+
+function ingredientsToLines(recipe) {
+  if (!recipe.ingredients) return [];
+  if (typeof recipe.ingredients === 'string') {
+    return recipe.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
+  }
+  // Array von {name, amount, unit} → wieder zu Zeilen
+  if (Array.isArray(recipe.ingredients)) {
+    return recipe.ingredients.map(i => {
+      if (typeof i === 'string') return i;
+      return [i.amount, i.unit, i.name].filter(Boolean).join(' ');
+    });
+  }
+  return [];
+}
+
+// Thumbnail: lädt Bild in Canvas, skaliert auf max. 600px, JPEG 75%
+// Gibt Data-URL zurück oder '' bei Fehler
+async function makeThumb(imageUrl) {
+  if (!imageUrl || imageUrl.startsWith('data:')) return imageUrl || '';
+  try {
+    const img = await new Promise((res, rej) => {
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.onload  = () => res(el);
+      el.onerror = () => rej(new Error('img load fail'));
+      el.src = imageUrl;
+      setTimeout(() => rej(new Error('timeout')), 5000);
+    });
+    const MAX = 600;
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.75);
+  } catch { return imageUrl; } // Fallback: original URL behalten
+}
+
+// ════════════════════════════════════════════
+// ZUTATEN-AUSWAHL-DIALOG
+// ════════════════════════════════════════════
+
+let _ipIngredients  = [];  // { name, amount, unit, selected }
+let _ipOnConfirm    = null; // callback(selectedLines[])
+let _ipExistingNames= new Set();
+
+function openIngredientPicker(title, lines, onConfirm) {
+  // Bestehende Einkaufslisten-Einträge für "Nur Fehlende"
+  _ipExistingNames = new Set(
+    shopLists.items.filter(i => !i.checked).map(i => (i.name || '').toLowerCase())
+  );
+  _ipIngredients = lines.map(l => {
+    const parsed = parseIngredientLine(l);
+    const missing = !_ipExistingNames.has(parsed.name.toLowerCase());
+    return { ...parsed, rawLine: l, selected: missing }; // fehlende vorauswählen
+  });
+  _ipOnConfirm = onConfirm;
+
+  document.getElementById('ingredientPickTitle').textContent = title;
+  renderIngredientPickList();
+  openModal('ingredientPickModal');
+}
+
+function renderIngredientPickList() {
+  document.getElementById('ingredientPickList').innerHTML =
+    _ipIngredients.map((ing, i) => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);cursor:pointer">
+        <input type="checkbox" data-ipidx="${i}" ${ing.selected?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0">
+        <span style="flex:1;font-size:13px;color:var(--text)">${esc(ing.rawLine)}</span>
+        ${_ipExistingNames.has(ing.name.toLowerCase())
+          ? '<span style="font-size:10px;color:var(--muted);flex-shrink:0">bereits vorhanden</span>' : ''}
+      </label>`).join('');
+}
+
+// Delegation für Checkbox-Klicks im Picker
+document.getElementById('ingredientPickList').addEventListener('change', e => {
+  const chk = e.target.closest('[data-ipidx]');
+  if (!chk) return;
+  _ipIngredients[parseInt(chk.dataset.ipidx)].selected = chk.checked;
+});
+document.getElementById('ipSelectAll').addEventListener('click', () => {
+  _ipIngredients.forEach(i => i.selected = true);
+  renderIngredientPickList();
+});
+document.getElementById('ipSelectNone').addEventListener('click', () => {
+  _ipIngredients.forEach(i => i.selected = false);
+  renderIngredientPickList();
+});
+document.getElementById('ipSelectMissing').addEventListener('click', () => {
+  _ipIngredients.forEach(i => { i.selected = !_ipExistingNames.has(i.name.toLowerCase()); });
+  renderIngredientPickList();
+});
+document.getElementById('ipConfirmBtn').addEventListener('click', () => {
+  const selected = _ipIngredients.filter(i => i.selected).map(i => i.rawLine);
+  closeModal('ingredientPickModal');
+  if (_ipOnConfirm) _ipOnConfirm(selected);
+  _ipOnConfirm = null;
+});
+
+// ── Zutaten in Einkaufsliste schreiben (einheitlich) ──────────────────────
+// FIX: nutzt name (nicht desc), qty-Format "200 ml"
+function pushLinesToShoppingList(lines, sourceTitle) {
+  lines.forEach(l => {
+    const { name, amount, unit } = parseIngredientLine(l);
+    if (!name) return;
+    const qty = [amount, unit].filter(Boolean).join(' ');
+    // ShoppingItem mit name (nicht desc) — konsistent mit openEditShopItem
+    shopLists.items.push({
+      id: uid(), name, qty, store: 'supermarkt',
+      price: '', checked: false,
+      note: sourceTitle || ''
+    });
+  });
+  save('vh_shoplists', shopLists);
+}
+
+// ── Zutaten addieren (für Wochenplan: gleiche Zutaten zusammenführen) ────
+function mergeIngredientLines(allLines) {
+  // Versucht Mengen gleichnamiger Zutaten zu addieren
+  const merged = {}; // name.lower → { name, totalNum, unit, rawLines[] }
+  allLines.forEach(line => {
+    const { name, amount, unit } = parseIngredientLine(line);
+    const key = name.toLowerCase();
+    if (!merged[key]) merged[key] = { name, totalNum: 0, hasNum: false, unit, rawLines: [] };
+    const n = parseFloat(amount.replace(',','.'));
+    if (!isNaN(n)) {
+      merged[key].totalNum += n;
+      merged[key].hasNum = true;
+      if (unit) merged[key].unit = unit; // letzten Unit-Wert gewinnt
+    }
+    merged[key].rawLines.push(line);
+  });
+  return Object.values(merged).map(m => {
+    if (m.hasNum && m.totalNum > 0) {
+      const numStr = Number.isInteger(m.totalNum) ? String(m.totalNum) : m.totalNum.toFixed(1);
+      return [numStr, m.unit, m.name].filter(Boolean).join(' ');
+    }
+    // Nicht addierbar → alle Rohzeilen behalten
+    return m.rawLines.join('\n');
+  }).join('\n').split('\n').filter(Boolean);
+}
+
+// ── Einzel-Rezept → Einkaufsliste (mit Auswahldialog) ───────────────────
+// ERSETZT die alte addRecipeToShoppingList(id) ohne Dialog
+function openRecipeShoppingPicker(recipeId, afterFn) {
+  const r = recipes.find(x => x.id === recipeId);
+  if (!r) return;
+  const lines = ingredientsToLines(r);
+  if (!lines.length) { alert('Dieses Rezept hat keine Zutaten eingetragen.'); return; }
+  openIngredientPicker(
+    `🛒 ${r.title}`,
+    lines,
+    selected => {
+      pushLinesToShoppingList(selected, r.title);
+      renderKasseEinkauf();
+      if (afterFn) afterFn(selected.length);
+    }
+  );
+}
+
+// ── Wochenplan → Einkaufsliste (zusammengeführt + Auswahldialog) ─────────
+function openWeekPlanShoppingPicker() {
+  const recipeIds = Object.values(weekPlan).filter(Boolean);
+  if (!recipeIds.length) { alert('Keine Rezepte im Wochenplan.'); return; }
+  const allLines = [];
+  const usedTitles = [];
+  recipeIds.forEach(rid => {
+    const r = recipes.find(x => x.id === rid);
+    if (!r) return;
+    usedTitles.push(r.title);
+    ingredientsToLines(r).forEach(l => allLines.push(l));
+  });
+  const mergedLines = mergeIngredientLines(allLines);
+  const title = `🗓 Wochenplan (${usedTitles.slice(0,2).join(', ')}${usedTitles.length > 2 ? '…' : ''})`;
+  openIngredientPicker(
+    title,
+    mergedLines,
+    selected => {
+      pushLinesToShoppingList(selected, 'Wochenplan');
+      renderKasseEinkauf();
+    }
+  );
+}
+
+// ── Thumbnail beim Speichern erzeugen ────────────────────────────────────
+async function buildRecipeEntry(formData, existingEntry) {
+  let imageUrl = formData.imageUrl;
+  // Nur externe URLs → Thumbnail erzeugen, Data-URLs unverändert lassen
+  if (imageUrl && !imageUrl.startsWith('data:')) {
+    imageUrl = await makeThumb(imageUrl).catch(() => formData.imageUrl);
+  }
+  return {
+    id:          formData.id || uid(),
+    title:       formData.title,
+    sourceUrl:   formData.sourceUrl   || '',
+    sourceName:  formData.sourceName  || '',
+    imageUrl,
+    ingredients: formData.ingredients || '',  // Freitext, eine Zutat/Zeile
+    steps:       formData.steps       || '',
+    note:        formData.note        || '',
+    tags:        formData.tags        || [],
+    stars:       formData.stars       || 0,
+    time:        formData.time        || null,
+    servings:    formData.servings    || null,
+    createdAt:   existingEntry?.createdAt || today(),
+  };
+}
+
+// ════════════════════════════════════════════
 function renderWeekPlan() {
   const days = ['Mo','Di','Mi','Do','Fr','Sa','So'];
   return days.map(d => {
@@ -4692,11 +4949,9 @@ function renderRecipes() {
       }
       if (wbtn.dataset.waction === 'pick') { openWeekPicker(wbtn.dataset.wday); return; }
     }
-    // Woche → alle Zutaten
+    // Woche → alle Zutaten (mit Auswahldialog + Zusammenführung)
     if (e.target.closest('#weekShopBtn')) {
-      let total = 0;
-      Object.values(weekPlan).filter(Boolean).forEach(rid => { total += addRecipeToShoppingList(rid) || 0; });
-      alert(`${total} Zutaten zur Einkaufsliste hinzugefügt.`);
+      openWeekPlanShoppingPicker();
       return;
     }
     // Zufällig
@@ -4713,8 +4968,7 @@ function renderRecipes() {
       if (e.target.closest('.rcp-link-btn')) return;
       // Nicht bei Einkaufslisten-Button
       if (e.target.closest('[data-shopadd]')) {
-        const cnt = addRecipeToShoppingList(card.dataset.rid);
-        if (cnt) { const b = e.target.closest('[data-shopadd]'); b.textContent = `✅ ${cnt} Zutaten`; b.disabled = true; }
+        openRecipeShoppingPicker(card.dataset.rid);
         return;
       }
       openRecipeModal(card.dataset.rid);
