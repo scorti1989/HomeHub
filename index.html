@@ -407,7 +407,30 @@ body{
 .week-slot-empty{flex:1;font-size:12px;color:var(--faint)}
 .week-add-btn{background:none;border:1.5px dashed var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--accent);cursor:pointer;font-family:inherit;min-height:32px}
 
-/* Backup-Sheet */
+/* ── Rezept-Detail / Kochansicht ── */
+.rv-modal{background:white;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:96vh;overflow-y:auto;animation:slideUp .22s ease;padding-bottom:calc(20px + env(safe-area-inset-bottom));position:relative}
+.rv-image{width:100%;height:220px;object-fit:cover;display:block}
+.rv-image-placeholder{width:100%;height:140px;background:linear-gradient(135deg,var(--bg2),var(--mint));display:flex;align-items:center;justify-content:center;font-size:56px}
+.rv-body{padding:18px}
+.rv-title{font-size:22px;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:8px}
+.rv-meta{display:flex;gap:14px;font-size:13px;color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
+.rv-section-title{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin:18px 0 10px;border-top:1px solid var(--border);padding-top:14px}
+.rv-ingredient{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-subtle);font-size:14px}
+.rv-ingredient:last-child{border-bottom:none}
+.rv-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:opacity .15s}
+.rv-step:last-child{border-bottom:none}
+.rv-step.done{opacity:.4}
+.rv-step.done .rv-step-text{text-decoration:line-through}
+.rv-step-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:background .15s}
+.rv-step.done .rv-step-num{background:var(--green)}
+.rv-step-text{font-size:14px;line-height:1.55;color:var(--text);flex:1}
+/* Kochmodus — ein Schritt groß */
+.cook-mode-overlay{position:fixed;inset:0;background:white;z-index:2000;display:flex;flex-direction:column;padding:24px 20px}
+.cook-step-counter{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px}
+.cook-step-text{font-size:22px;font-weight:600;line-height:1.5;color:var(--text);flex:1;display:flex;align-items:center}
+.cook-nav{display:flex;gap:10px;margin-top:auto;padding-top:20px}
+.cook-nav-btn{flex:1;padding:16px;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;min-height:54px;border:none}
+
 .backup-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(115%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.12);padding:22px 20px 36px;z-index:1100;transition:transform .38s cubic-bezier(.34,1.4,.64,1)}
 .backup-sheet.visible{transform:translateX(-50%) translateY(0)}
 .backup-sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
@@ -521,7 +544,7 @@ body{
   <button class="nav-btn" data-page="contracts"><span class="ni">📄</span><span class="nl">Verträge</span><div class="nav-dot"></div></button>
   <button class="nav-btn" data-page="meters"><span class="ni">⚡</span><span class="nl">Zähler</span><div class="nav-dot"></div></button>
   <button class="nav-btn" data-page="analysis"><span class="ni">📊</span><span class="nl">Analyse</span><div class="nav-dot"></div></button>
-  <button class="nav-btn" data-page="recipes" id="navRecipes" style="display:none"><span class="ni">🍳</span><span class="nl">Rezepte</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="recipes" id="navRecipes"><span class="ni">🍳</span><span class="nl">Rezepte</span><div class="nav-dot"></div></button>
 </nav>
 
 <!-- ════ MODALS ════ -->
@@ -833,20 +856,6 @@ body{
   <div class="fg"><label for="s-splitpct">Mein Anteil bei gemeinsamen Ausgaben (%)</label>
     <input id="s-splitpct" type="number" min="1" max="99" placeholder="50" inputmode="numeric">
   </div>
-  <!-- Module -->
-  <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:6px">
-    <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px">Module</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--text)">🍳 Rezeptverwaltung</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Rezepte speichern, filtern &amp; Wochenplan</div>
-      </div>
-      <label for="s-recipes-enabled" id="s-recipes-toggle-label" style="position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;cursor:pointer">
-        <input type="checkbox" id="s-recipes-enabled" style="opacity:0;width:0;height:0;position:absolute">
-        <span id="s-recipes-toggle" style="position:absolute;inset:0;background:var(--border);border-radius:13px;transition:background .2s;pointer-events:none"></span>
-      </label>
-    </div>
-  </div>
   <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:4px">
     <div style="font-weight:600;font-size:13px;color:var(--red);margin-bottom:4px">Alle Daten löschen</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">⚠️ Bitte vorher ein Backup exportieren (⬇️-Button oben rechts).</div>
@@ -861,7 +870,43 @@ body{
  </div>
 </div>
 
-<!-- Rezept Modal -->
+<!-- Rezept-Kochansicht -->
+<div class="modal-bg" id="recipeViewModal" role="dialog" aria-modal="true">
+ <div class="rv-modal">
+  <button class="modal-close-btn" style="top:12px;right:12px;z-index:10" aria-label="Schließen" onclick="closeModal('recipeViewModal')">×</button>
+  <div id="rvImageArea"></div>
+  <div class="rv-body">
+    <div class="rv-title" id="rvTitle"></div>
+    <div class="rv-meta" id="rvMeta"></div>
+    <div id="rvTags" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px"></div>
+    <div id="rvStars" style="margin-bottom:6px"></div>
+    <!-- Action-Buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <button id="rvShopBtn" class="btn-p" style="flex:1;padding:11px;font-size:13px">🛒 Einkaufsliste</button>
+      <button id="rvEditBtn" style="flex:0 0 auto;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;min-height:44px">✏️ Bearbeiten</button>
+      <a id="rvSourceLink" href="#" target="_blank" rel="noopener" style="display:none;flex:0 0 auto;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;align-items:center;gap:5px;min-height:44px">🔗 Original</a>
+    </div>
+    <!-- Zutaten -->
+    <div class="rv-section-title">Zutaten <span id="rvServingsNote" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400"></span></div>
+    <div id="rvIngredients"></div>
+    <!-- Zubereitung -->
+    <div class="rv-section-title" id="rvStepsTitle" style="display:none">Zubereitung</div>
+    <div id="rvSteps"></div>
+    <div id="rvCookModeRow" style="display:none;margin-top:10px">
+      <button id="rvCookModeBtn" style="width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px">👨‍🍳 Kochmodus starten</button>
+    </div>
+    <!-- Notizen -->
+    <div id="rvNoteSection" style="display:none">
+      <div class="rv-section-title">Meine Notizen</div>
+      <div id="rvNote" style="font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;background:var(--bg2);border-radius:var(--radius-sm);padding:12px"></div>
+    </div>
+  </div>
+ </div>
+</div>
+
+<!-- Kochmodus Overlay (wird dynamisch erzeugt) -->
+
+<!-- Rezept-Bearbeiten-Modal -->
 <div class="modal-bg" id="recipeModal" role="dialog" aria-modal="true">
  <div class="modal">
   <div class="modal-handle"></div>
@@ -894,13 +939,13 @@ body{
     </div>
   </div>
   <div class="fg"><label for="r-ingredients">Zutaten (eine pro Zeile, für Einkaufsliste)</label>
-    <textarea id="r-ingredients" rows="4" placeholder="200g Spaghetti&#10;3 Eier&#10;100g Speck&#10;50g Parmesan" style="resize:none"></textarea>
-  </div>
+    <textarea id="r-ingredients" rows="10" placeholder="200g Spaghetti&#10;3 Eier&#10;100g Speck&#10;50g Parmesan&#10;Salz und Pfeffer&#10;2 EL Olivenöl" style="resize:vertical"></textarea>
+
   <div class="fg"><label for="r-steps">Zubereitung (optional)</label>
-    <textarea id="r-steps" rows="4" placeholder="1. Wasser aufsetzen…&#10;2. Speck anbraten…" style="resize:none"></textarea>
-  </div>
+    <textarea id="r-steps" rows="12" placeholder="1. Wasser aufsetzen und salzen.&#10;2. Speck in einer Pfanne anbraten.&#10;3. Eier mit Parmesan verquirlen.&#10;4. Pasta al dente kochen.&#10;5. Pfanne vom Herd nehmen, Pasta dazu." style="resize:vertical"></textarea>
+
   <div class="fg"><label for="r-note">Meine Notizen (eigene Tipps, Änderungen)</label>
-    <textarea id="r-note" rows="2" placeholder="z.B. mehr Knoblauch, ohne Zwiebeln…" style="resize:none"></textarea>
+    <textarea id="r-note" rows="3" placeholder="z.B. mehr Knoblauch, ohne Zwiebeln…" style="resize:vertical"></textarea>
   </div>
   <div class="fg"><label for="r-imageurl">Bild-URL (optional)</label><input id="r-imageurl" placeholder="https://..." autocomplete="off" type="url"></div>
   <button class="btn-p" id="saveRecipeBtn">Rezept speichern</button>
@@ -4012,13 +4057,11 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 document.getElementById('btnSettings').addEventListener('click', () => {
   document.getElementById('s-partnername').value = settings.partnerName || '';
   document.getElementById('s-splitpct').value = settings.splitPct || 50;
-  syncRecipeToggleUI();
   openModal('settingsModal');
 });
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
   settings.partnerName    = document.getElementById('s-partnername').value.trim() || 'Partner';
   settings.splitPct       = Math.min(99, Math.max(1, parseInt(document.getElementById('s-splitpct').value) || 50));
-  settings.recipesEnabled = document.getElementById('s-recipes-enabled').checked;
   save('vh_settings', settings);
   document.getElementById('sharedPill').textContent = '👫 ' + settings.partnerName;
   applyRecipeModuleState();
@@ -4603,6 +4646,156 @@ function addRecipeToShoppingList(recipeId) {
 }
 
 // ════════════════════════════════════════════
+// REZEPT HELPER — robuste Datenleser
+// ════════════════════════════════════════════
+function getRecipeIngredientLines(r) {
+  if (!r) return [];
+  if (typeof r.ingredients === 'string')
+    return r.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
+  if (Array.isArray(r.ingredients))
+    return r.ingredients.map(i => typeof i === 'string' ? i : [i.amount,i.unit,i.name].filter(Boolean).join(' ')).filter(Boolean);
+  return [];
+}
+function getRecipeStepLines(r) {
+  if (!r) return [];
+  if (typeof r.steps === 'string')
+    return r.steps.split('\n').map(l => l.trim()).filter(Boolean);
+  if (Array.isArray(r.steps))
+    return r.steps.map(s => typeof s === 'string' ? s : (s.text || s.name || '')).filter(Boolean);
+  return [];
+}
+
+// ════════════════════════════════════════════
+// KOCHANSICHT
+// ════════════════════════════════════════════
+let _rvRecipeId = null;
+let _cookSteps  = [];
+let _cookIdx    = 0;
+let _cookEl     = null;
+let _doneSteps  = new Set();
+
+function openRecipeView(id) {
+  const r = recipes.find(x => x.id === id);
+  if (!r) return;
+  _rvRecipeId = id;
+  _doneSteps  = new Set();
+
+  const imgArea = document.getElementById('rvImageArea');
+  imgArea.innerHTML = r.imageUrl
+    ? `<img class="rv-image" src="${esc(r.imageUrl)}" alt="${esc(r.title)}" onerror="this.style.display='none'">`
+    : `<div class="rv-image-placeholder">🍳</div>`;
+
+  document.getElementById('rvTitle').textContent = r.title || '';
+  const meta = [];
+  if (r.time)     meta.push(`⏱ ${r.time} Min`);
+  if (r.servings) meta.push(`👤 ${r.servings} Portionen`);
+  if (r.stars)    meta.push(renderStars(r.stars));
+  document.getElementById('rvMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  document.getElementById('rvTags').innerHTML =
+    (r.tags || []).map(t => TAG_MAP[t] ? `<span class="recipe-tag ${TAG_MAP[t].cls}">${TAG_MAP[t].label}</span>` : '').join('');
+
+  const srcLink = document.getElementById('rvSourceLink');
+  if (r.sourceUrl) { srcLink.href = r.sourceUrl; srcLink.style.display = 'inline-flex'; }
+  else               srcLink.style.display = 'none';
+
+  document.getElementById('rvServingsNote').textContent = r.servings ? `(für ${r.servings} Portionen)` : '';
+
+  const ingLines = getRecipeIngredientLines(r);
+  document.getElementById('rvIngredients').innerHTML = ingLines.length
+    ? ingLines.map(l => {
+        const { name, amount, unit } = parseIngredientLine(l);
+        const qty = [amount, unit].filter(Boolean).join(' ');
+        return `<div class="rv-ingredient">
+          <span style="min-width:80px;font-size:12px;color:var(--muted);font-weight:600">${esc(qty)}</span>
+          <span style="flex:1">${esc(name)}</span>
+        </div>`;
+      }).join('')
+    : `<div style="font-size:13px;color:var(--muted);padding:8px 0">Keine Zutaten eingetragen.</div>`;
+
+  _cookSteps = getRecipeStepLines(r);
+  const stepsTitle  = document.getElementById('rvStepsTitle');
+  const cookModeRow = document.getElementById('rvCookModeRow');
+  if (_cookSteps.length) {
+    stepsTitle.style.display = 'block';
+    cookModeRow.style.display = 'block';
+    renderRvSteps();
+  } else {
+    stepsTitle.style.display = 'none';
+    document.getElementById('rvSteps').innerHTML = '';
+    cookModeRow.style.display = 'none';
+  }
+
+  const noteSection = document.getElementById('rvNoteSection');
+  if (r.note && r.note.trim()) {
+    noteSection.style.display = 'block';
+    document.getElementById('rvNote').textContent = r.note;
+  } else {
+    noteSection.style.display = 'none';
+  }
+
+  openModal('recipeViewModal');
+}
+
+function renderRvSteps() {
+  document.getElementById('rvSteps').innerHTML = _cookSteps.map((s, i) => {
+    const done = _doneSteps.has(i);
+    const text = s.replace(/^\d+[\.\)]\s*/, '');
+    return `<div class="rv-step${done?' done':''}" data-stepidx="${i}">
+      <div class="rv-step-num">${done ? '✓' : i+1}</div>
+      <div class="rv-step-text">${esc(text)}</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('rvSteps').addEventListener('click', e => {
+  const step = e.target.closest('[data-stepidx]');
+  if (!step) return;
+  const i = parseInt(step.dataset.stepidx);
+  if (_doneSteps.has(i)) _doneSteps.delete(i); else _doneSteps.add(i);
+  renderRvSteps();
+});
+document.getElementById('rvShopBtn').addEventListener('click', () => {
+  if (_rvRecipeId) openRecipeShoppingPicker(_rvRecipeId);
+});
+document.getElementById('rvEditBtn').addEventListener('click', () => {
+  closeModal('recipeViewModal');
+  openRecipeModal(_rvRecipeId);
+});
+document.getElementById('rvCookModeBtn').addEventListener('click', startCookMode);
+
+function startCookMode() {
+  _cookIdx = 0;
+  if (_cookEl) _cookEl.remove();
+  _cookEl = document.createElement('div');
+  _cookEl.className = 'cook-mode-overlay';
+  _cookEl.innerHTML = `
+    <button id="cmClose" style="align-self:flex-end;background:var(--bg2);border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;margin-bottom:8px">×</button>
+    <div class="cook-step-counter" id="cmCounter"></div>
+    <div class="cook-step-text" id="cmText"></div>
+    <div class="cook-nav">
+      <button class="cook-nav-btn" id="cmPrev" style="background:var(--bg2);color:var(--muted)">◀ Zurück</button>
+      <button class="cook-nav-btn" id="cmNext" style="background:var(--accent);color:white">Weiter ▶</button>
+    </div>`;
+  document.body.appendChild(_cookEl);
+  updateCookMode();
+  _cookEl.querySelector('#cmNext').addEventListener('click', () => {
+    if (_cookIdx < _cookSteps.length - 1) { _cookIdx++; updateCookMode(); }
+    else { _cookEl.remove(); _cookEl = null; }
+  });
+  _cookEl.querySelector('#cmPrev').addEventListener('click', () => {
+    if (_cookIdx > 0) { _cookIdx--; updateCookMode(); }
+  });
+  _cookEl.querySelector('#cmClose').addEventListener('click', () => { _cookEl.remove(); _cookEl = null; });
+}
+function updateCookMode() {
+  if (!_cookEl) return;
+  _cookEl.querySelector('#cmCounter').textContent = `Schritt ${_cookIdx + 1} von ${_cookSteps.length}`;
+  _cookEl.querySelector('#cmText').textContent = _cookSteps[_cookIdx].replace(/^\d+[\.\)]\s*/, '');
+  _cookEl.querySelector('#cmPrev').style.opacity = _cookIdx === 0 ? '.3' : '1';
+  _cookEl.querySelector('#cmNext').textContent = _cookIdx === _cookSteps.length - 1 ? '✅ Fertig' : 'Weiter ▶';
+}
+
+// ════════════════════════════════════════════
 // REZEPT-DATENMODELL (einheitlich)
 // ════════════════════════════════════════════
 //
@@ -4820,7 +5013,7 @@ async function buildRecipeEntry(formData, existingEntry) {
     sourceUrl:   formData.sourceUrl   || '',
     sourceName:  formData.sourceName  || '',
     imageUrl,
-    ingredients: formData.ingredients || '',  // Freitext, eine Zutat/Zeile
+    ingredients: formData.ingredients || '',
     steps:       formData.steps       || '',
     note:        formData.note        || '',
     tags:        formData.tags        || [],
@@ -4828,6 +5021,7 @@ async function buildRecipeEntry(formData, existingEntry) {
     time:        formData.time        || null,
     servings:    formData.servings    || null,
     createdAt:   existingEntry?.createdAt || today(),
+    updatedAt:   today(),  // immer aktualisieren
   };
 }
 
@@ -4957,21 +5151,17 @@ function renderRecipes() {
     // Zufällig
     if (e.target.closest('#rndRecipeBtn')) {
       const r = randomRecipe(activeRecipeFilter !== 'alle' ? [activeRecipeFilter] : []);
-      if (r) openRecipeModal(r.id); return;
+      if (r) openRecipeView(r.id); return;
     }
     // Neu
     if (e.target.closest('#addRecipeBtn')) { openRecipeModal(null); return; }
-    // Karte antippen
+    // Karte antippen → Kochansicht öffnen
     const card = e.target.closest('[data-rid]');
     if (card) {
-      // Nicht bei Link-Button
       if (e.target.closest('.rcp-link-btn')) return;
-      // Nicht bei Einkaufslisten-Button
-      if (e.target.closest('[data-shopadd]')) {
-        openRecipeShoppingPicker(card.dataset.rid);
-        return;
-      }
-      openRecipeModal(card.dataset.rid);
+      if (e.target.closest('[data-shopadd]')) { openRecipeShoppingPicker(card.dataset.rid); return; }
+      if (e.target.closest('[data-edit-card]')) { openRecipeModal(card.dataset.rid); return; }
+      openRecipeView(card.dataset.rid);  // ← Kochansicht statt Edit
     }
   }, { once: true });
 }
@@ -5001,7 +5191,10 @@ function recipeCardHTML(r, compact) {
   return `<div class="recipe-card" data-rid="${r.id}">
     ${img}
     <div class="recipe-body">
-      <div class="recipe-title">${esc(r.title)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
+        <div class="recipe-title" style="flex:1">${esc(r.title)}</div>
+        <button data-edit-card="1" style="background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;padding:2px 4px;flex-shrink:0;min-width:32px;min-height:32px" title="Bearbeiten">✏️</button>
+      </div>
       <div class="recipe-meta">
         ${timeStr ? `<span class="recipe-meta-item">${timeStr}</span>` : ''}
         ${servStr ? `<span class="recipe-meta-item">${servStr}</span>` : ''}
@@ -5010,8 +5203,8 @@ function recipeCardHTML(r, compact) {
       ${r.note ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.4">${esc(r.note.slice(0,80))}${r.note.length>80?'…':''}</div>` : ''}
       <div class="recipe-tags">${tags}</div>
       <div style="display:flex;gap:7px;margin-top:10px">
-        ${r.sourceUrl ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener" class="rcp-link-btn" style="flex:1">🔗 Zum Rezept</a>` : ''}
-        ${r.ingredients ? `<button data-shopadd="1" style="padding:10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;min-height:44px;white-space:nowrap">🛒 Einkaufen</button>` : ''}
+        ${r.ingredients ? `<button data-shopadd="1" style="flex:1;padding:10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;min-height:44px">🛒 Zutaten</button>` : ''}
+        ${r.sourceUrl ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener" class="rcp-link-btn" style="padding:10px 12px;font-size:12px">🔗</a>` : ''}
       </div>
     </div>
   </div>`;
@@ -5020,37 +5213,8 @@ function recipeCardHTML(r, compact) {
 // ══════════════════════════════════════════
 // REZEPTE MODUL-TOGGLE (An/Aus)
 // ══════════════════════════════════════════
-function applyRecipeModuleState() {
-  const enabled = settings.recipesEnabled === true;
-  const navBtn  = document.getElementById('navRecipes');
-  if (navBtn) navBtn.style.display = enabled ? 'flex' : 'none';
-  // Falls Rezepte-Seite gerade aktiv aber deaktiviert → Home
-  if (!enabled && activePage === 'recipes') showPage('home');
-}
-
-// Toggle-Visualisierung synchron halten
-function syncRecipeToggleUI() {
-  const chk = document.getElementById('s-recipes-enabled');
-  const knob = document.getElementById('s-recipes-toggle');
-  if (!chk || !knob) return;
-  const on = settings.recipesEnabled === true;
-  chk.checked = on;
-  knob.style.background = on ? 'var(--accent)' : 'var(--border)';
-  knob.innerHTML = `<span style="position:absolute;top:3px;left:${on?'21':'3'}px;width:20px;height:20px;background:white;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></span>`;
-}
-
-// Toggle: einzige Quelle ist der checkbox-change-Event.
-// Der Span hat pointer-events:none, der Label-Klick löst die Checkbox aus.
-// Kein separater Click-Handler auf dem Span → kein doppelter Toggle.
-document.getElementById('s-recipes-enabled').addEventListener('change', function() {
-  settings.recipesEnabled = this.checked;
-  save('vh_settings', settings);
-  syncRecipeToggleUI();
-  applyRecipeModuleState();
-});
-
 // ════════════════════════════════════════════
-// ════════════════════════════════════════════
+// INIT
 document.getElementById('sharedPill').textContent = '👫 ' + (settings.partnerName || 'Partner');
 if (meters.length) activeMeterType = meters[0].type;
 
@@ -5058,10 +5222,6 @@ if (meters.length) activeMeterType = meters[0].type;
 // setHaushalt ist die einzige autorisierte Stelle für diesen State.
 setHaushalt('wir');
 fillGroupSelects();
-
-// Rezepte-Modul: Status beim Start anwenden
-applyRecipeModuleState();
-syncRecipeToggleUI();
 
 autoBookRecurring();
 renderAmpel();
