@@ -4699,11 +4699,16 @@ function syncRecipeToggleUI() {
 
 document.getElementById('s-recipes-toggle').addEventListener('click', () => {
   settings.recipesEnabled = !settings.recipesEnabled;
+  save('vh_settings', settings);      // sofort persistieren
   syncRecipeToggleUI();
+  applyRecipeModuleState();            // Nav-Tab sofort ein-/ausblenden
 });
+// Checkbox-Fallback (same behaviour)
 document.getElementById('s-recipes-enabled').addEventListener('change', function() {
   settings.recipesEnabled = this.checked;
+  save('vh_settings', settings);
   syncRecipeToggleUI();
+  applyRecipeModuleState();
 });
 
 // ════════════════════════════════════════════
