@@ -4553,8 +4553,9 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
 
   try {
     const raw  = await fetchRecipeFromUrl(url);
-    // Automatisch auf 2 Portionen normalisieren
-    const data = raw.partial ? raw : normalizeRecipeToServings(raw, 2);
+    // Zutatenmengen NICHT verändern — Original-Portionen beibehalten
+    // baseServings = originalServings, damit Skalierung korrekt vom Original ausgeht
+    const data = raw.partial ? raw : setRecipeBaseline(raw);
     document.getElementById('r-title').value       = data.title       || '';
     document.getElementById('r-time').value        = data.time        || '';
     document.getElementById('r-servings').value    = data.servings    || '';
@@ -4568,14 +4569,12 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
       st.textContent = '⚠ Nur Basisdaten importiert – bitte Zutaten & Zubereitung ergänzen.';
       st.className = 'import-status err';
     } else {
-      const normMsg = data.originalServings && data.originalServings !== 2
-        ? ` · auf 2 Portionen umgerechnet (Original: ${data.originalServings})` : '';
+      const portMsg = data.servings ? ` · ${data.servings} Portionen` : '';
       const autoMsg = data.tags?.length ? ` · ${data.tags.length} Tags` : '';
-      st.textContent = '✅ Importiert' + autoMsg + normMsg; st.className = 'import-status ok';
+      st.textContent = '✅ Importiert' + portMsg + autoMsg; st.className = 'import-status ok';
     }
-    // Originale Portionsanzahl für buildRecipeEntry merken
     document.getElementById('r-servings')._originalServings = data.originalServings;
-    document.getElementById('r-servings')._ingredientsRaw  = data.ingredientsRaw || data.ingredients || '';
+    document.getElementById('r-servings')._ingredientsRaw   = data.ingredientsRaw || data.ingredients || '';
   } catch(e) {
     // Benutzerfreundliche Fehlermeldung — kein Absturz
     const msg = (e.message || 'Unbekannter Fehler').split('\n')[0];
@@ -4744,24 +4743,16 @@ function scaledIngredientLines(r, targetServings) {
   return lines.map(l => scaleIngredientLine(l, factor));
 }
 
-// Beim Import auf 2 Portionen normalisieren
-function normalizeRecipeToServings(data, targetServings) {
-  targetServings = targetServings || 2;
-  const origServings = parseInt(data.servings) || 0;
-  if (!origServings || origServings === targetServings) {
-    return { ...data, baseServings: origServings || targetServings,
-             originalServings: origServings || targetServings };
-  }
-  const factor = targetServings / origServings;
-  const lines  = (data.ingredients || '').split('\n').map(l => l.trim()).filter(Boolean);
-  const scaled = lines.map(l => scaleIngredientLine(l, factor)).join('\n');
+// Setzt baseServings/originalServings beim Import — ändert Mengen NICHT.
+// Alle Zutaten bleiben wie von der Quellseite. Skalierung erfolgt erst in der Anzeige.
+function setRecipeBaseline(data) {
+  const origServings = parseInt(data.servings) || null;
   return {
     ...data,
-    servings:         targetServings,
-    baseServings:     targetServings,
+    servings:         origServings,
+    baseServings:     origServings,      // Basis für spätere Skalierung
     originalServings: origServings,
-    ingredientsRaw:   data.ingredients || '',  // Original-Zutaten sichern
-    ingredients:      scaled,
+    ingredientsRaw:   data.ingredients || '',
   };
 }
 
