@@ -4718,10 +4718,12 @@ document.getElementById('clearDataBtn').addEventListener('click', () => {
   settings = { partnerName: 'Partner', splitPct: 50 };
   // LocalStorage vollständig bereinigen inkl. Settings
   ['vh_contracts', 'vh_meters', 'vh_expenses', 'vh_shoplists', 'vh_budgets', 'vh_prices', 'vh_recurring', 'vh_settings', 'vh_transfers'].forEach(k => localStorage.removeItem(k));
-  // HOMEHUB DRAGON – Dragon zurücksetzen
+  // HOMEHUB DRAGON – Dragon zurücksetzen, falls Modul vorhanden
   localStorage.removeItem('vh_dragon');
-  dragon = Object.assign({}, DRAGON_DEFAULTS);
-  saveDragon();
+  if (typeof DRAGON_DEFAULTS !== 'undefined' && typeof saveDragon === 'function') {
+    dragon = Object.assign({}, DRAGON_DEFAULTS);
+    saveDragon();
+  }
   closeModal('settingsModal');
   // Alle Bereiche neu rendern
   document.getElementById('sharedPill').textContent = '👫 Partner';
@@ -4738,11 +4740,12 @@ document.getElementById('clearDataBtn').addEventListener('click', () => {
 // EXPORT / IMPORT
 // ════════════════════════════════════════════
 document.getElementById('btnExport').addEventListener('click', () => {
-  rewardDragon('backup'); // HOMEHUB DRAGON – vor Export, damit XP im Backup enthalten sind
+  // HOMEHUB DRAGON – optional, damit Import/Export auch ohne dragon-game.js funktioniert
+  if (typeof rewardDragon === 'function') rewardDragon('backup');
   // recipes, weekPlan und dragon vollständig exportieren
   const data = { contracts, meters, expenses, shopLists, budgets, priceMemory,
                  recurring, settings, transfers, recipes, weekPlan,
-                 dragon, // HOMEHUB DRAGON
+                 dragon: (typeof dragon !== 'undefined' ? dragon : null), // HOMEHUB DRAGON optional
                  exported: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -4821,7 +4824,9 @@ document.getElementById('importFile').addEventListener('change', function () {
       // Fall A: data.dragon vorhanden → merge
       // Fall B: data.dragon fehlt     → Defaults
       // Fall C: data.dragon unvollständig → merge + Unter-Objekte auffüllen
-      loadDragon(data.dragon);
+      if (typeof loadDragon === 'function') {
+        loadDragon(data.dragon);
+      }
 
       if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
         const raw = data.settings;
@@ -4899,10 +4904,11 @@ function hideBackupSheet() {
 const _backupNowBtn   = document.getElementById('backupNowBtn');
 const _backupLaterBtn = document.getElementById('backupLaterBtn');
 if (_backupNowBtn) _backupNowBtn.addEventListener('click', () => {
-  rewardDragon('backup'); // HOMEHUB DRAGON – vor Export, damit XP im Backup enthalten sind
+  // HOMEHUB DRAGON – optional, damit Import/Export auch ohne dragon-game.js funktioniert
+  if (typeof rewardDragon === 'function') rewardDragon('backup');
   const data = { contracts, meters, expenses, shopLists, budgets, priceMemory,
                  recurring, settings, transfers, recipes, weekPlan,
-                 dragon, // HOMEHUB DRAGON
+                 dragon: (typeof dragon !== 'undefined' ? dragon : null), // HOMEHUB DRAGON optional
                  exported: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
