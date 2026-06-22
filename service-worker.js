@@ -1,12 +1,14 @@
 // HomeHub Service Worker
 // Cache-Strategie: Cache-First mit Netzwerk-Fallback
 
-const CACHE_VERSION = 'hh-v3';
+const CACHE_VERSION = 'hh-v4';  // ← erhöht: löscht alten Cache automatisch
 const CACHE_NAME = `homehub-${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './dragon-game.js',   // ← neu
+  './dragon-game.css',  // ← neu
 ];
 
 // Installation: Assets vorab cachen
