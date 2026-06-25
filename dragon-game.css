@@ -1,167 +1,296 @@
-/* =========================================================================
-   dragon-game.css — HomeHub Drache
-   Pixel-Adventure-Optik (Simon the Sorcerer / Monkey Island):
-   dunkle Höhlen-Töne, gestufte Pixel-Borders (box-shadow), warme Akzente.
-   Alle Klassennamen entsprechen dem Integrations-Kontrakt von index.html.
-   ========================================================================= */
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-:root {
-  --dg-font: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
-  --dg-bg:   #15101f;   /* Card-Hintergrund */
-  --dg-bg2:  #1c1730;   /* Panel/Karte innen */
-  --dg-bg3:  #0f0c1a;   /* tiefster Schatten */
-  --dg-ink:  #ece4ff;   /* Haupttext */
-  --dg-dim:  #9a8cc0;   /* gedämpfter Text */
-  --dg-dim2: #6a5a8a;   /* sehr gedämpft */
-  --dg-gold: #ffcf6a;   /* warmer Akzent / Fackel */
-  --dg-edge: #4a3a6a;   /* helle Pixel-Kante */
-  --dg-edge2:#3a3050;   /* mittlere Pixel-Kante */
-  --dg-rock: #3a2f4d;   /* Höhlenfels */
-  --dg-good: #6ec06a;
-  --dg-warn: #e0b020;
-  --dg-bad:  #d8543a;
-}
-
-/* Gestufte Pixel-Border via box-shadow statt runder Ecken */
-
-/* ---------- Karte ---------- */
-.dragon-card {
-  font-family: var(--dg-font);
-  background: var(--dg-bg);
-  color: var(--dg-ink);
+.egg-sandbox {
+  background: #0e0b18;
+  min-height: 100%;
   padding: 14px;
+  font-family: "Press Start 2P", ui-monospace, monospace;
+  color: #e8e0ff;
+}
+
+.egg-sandbox__inner {
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.egg-title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.egg-subtitle {
+  font-size: 7px;
+  color: #9a8fc0;
+  margin-bottom: 10px;
+}
+
+.pixel-box--canvas {
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #3a3050;
+}
+
+.pixel-box--toast,
+.pixel-box--action {
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #a8842a;
+}
+
+.pixel-box--panel {
+  box-shadow: inset -2px -2px 0 #0c0a16, inset 2px 2px 0 #2a2440;
+}
+
+.pixel-box--clean {
+  box-shadow: inset -2px -2px 0 #5a4410, inset 2px 2px 0 #f4e6a0;
+}
+
+.pixel-box--poke {
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #3a7a9a;
+}
+
+.pixel-box--charge {
+  box-shadow: inset -2px -2px 0 #10301f, inset 2px 2px 0 #4aa074;
+}
+
+.pixel-box--repair {
+  box-shadow: inset -2px -2px 0 #3a1c0e, inset 2px 2px 0 #d88a4a;
+}
+
+.pixel-box--expedition {
+  box-shadow: inset -2px -2px 0 #3a2470, inset 2px 2px 0 #dcd0ff;
+}
+
+.pixel-box--dev {
+  box-shadow: inset -2px -2px 0 #0f0c1a, inset 2px 2px 0 #3a3050;
+}
+
+.egg-canvas-card {
   position: relative;
-  border-radius: 0;
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--dg-edge);
+  background: #000;
+  margin-bottom: 10px;
+}
+
+.egg-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
   image-rendering: pixelated;
-  -webkit-font-smoothing: none;
-}
-.dragon-card * { box-sizing: border-box; }
-.dragon-card button { cursor: pointer; font-family: var(--dg-font); border: none; border-radius: 0; }
-.dragon-card button:disabled { cursor: default; opacity: 0.4; }
-.dragon-card button:focus-visible { outline: 2px solid var(--dg-gold); outline-offset: 2px; }
-
-/* ---------- Header ---------- */
-.dragon-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-}
-.dragon-title {
-  font-size: 12px; color: var(--dg-gold);
-  letter-spacing: 0.5px; text-shadow: 2px 2px 0 #000; line-height: 1.4;
 }
 
-/* ---------- Stimmungs-Badge ---------- */
-.dragon-mood-badge {
-  font-size: 8px; padding: 6px 8px; white-space: nowrap;
-  border-radius: 0; box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--dg-edge2);
-  color: var(--dg-ink); background: #2a2438;
-}
-.dragon-mood-badge.mood-happy  { color:#7ad89a; background:#1a3a2a; box-shadow:0 0 0 2px #000,0 0 0 4px #244a34; }
-.dragon-mood-badge.mood-proud  { color:#d89aff; background:#3a1a4a; box-shadow:0 0 0 2px #000,0 0 0 4px #54246a; }
-.dragon-mood-badge.mood-hungry { color:#e89a5a; background:#4a2a1a; box-shadow:0 0 0 2px #000,0 0 0 4px #6a3a24; }
-.dragon-mood-badge.mood-dirty  { color:#d8b85a; background:#4a3a1a; box-shadow:0 0 0 2px #000,0 0 0 4px #6a5424; }
-.dragon-mood-badge.mood-sad    { color:#8a9ad8; background:#2a2a44; box-shadow:0 0 0 2px #000,0 0 0 4px #3a3a5a; }
-.dragon-mood-badge.mood-ok     { color:#b8a8d8; background:#2a2438; box-shadow:0 0 0 2px #000,0 0 0 4px #3a3050; }
-
-/* ---------- Status-Grid ---------- */
-.dragon-status-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
-}
-.dragon-status-card {
-  background: var(--dg-bg2); padding: 8px 8px 9px;
-  box-shadow: 0 0 0 2px var(--dg-bg3), 0 0 0 4px var(--dg-edge2);
-}
-.dragon-status-label { font-size: 7px; color: var(--dg-dim); letter-spacing: 0.5px; margin-bottom: 5px; }
-.dragon-status-val   { font-size: 11px; color: var(--dg-ink); margin-bottom: 5px; }
-.dragon-status-bar-track {
-  height: 7px; background: var(--dg-bg3); box-shadow: inset 0 0 0 1px #000; overflow: hidden;
-}
-.dragon-status-bar-fill {
-  height: 100%; width: 0%; background: var(--dg-good);
-  transition: width .35s ease, background .35s ease;
-}
-.dragon-stage-name { font-size: 9px; color: var(--dg-gold); line-height: 1.3; margin-bottom: 5px; }
-.dragon-xp { font-size: 7px; color: var(--dg-dim2); }
-
-/* ---------- Body: Szene + Sidebar ---------- */
-.dragon-body { display: grid; grid-template-columns: 1fr 150px; gap: 12px; }
-
-.dragon-scene-wrap {
-  position: relative;
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--dg-rock);
-  line-height: 0;
-}
-#dragonSceneCanvas {
-  width: 100%; height: auto; display: block; image-rendering: pixelated;
+.egg-toast {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #15101f;
+  color: #ffcf6a;
+  font-size: 8px;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
-/* Schmutz-Warnung über der Szene */
-.dragon-dirty-warn {
-  position: absolute; left: 6px; top: 6px;
-  font-size: 7px; color: var(--dg-gold); background: rgba(74,42,20,0.92);
-  padding: 4px 6px; box-shadow: 0 0 0 2px #000, 0 0 0 4px #6a5424; line-height: 1.4;
-}
-.dragon-dirty-warn[hidden] { display: none; }
-
-/* Toast */
-.dragon-toast {
-  position: absolute; left: 50%; bottom: 8px; transform: translate(-50%, 8px);
-  font-size: 7px; color: #fff; background: rgba(20,12,30,0.92);
-  padding: 5px 8px; white-space: nowrap; line-height: 1.4;
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px #6a4f9a;
-  opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
-}
-.dragon-toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-/* ---------- Sidebar / Inventar ---------- */
-.dragon-sidebar { display: flex; flex-direction: column; gap: 8px; }
-.dragon-inv-label { font-size: 7px; color: var(--dg-dim); }
-
-.dragon-inv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.dragon-inv-item {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 6px 2px; background: var(--dg-bg2); position: relative;
-  box-shadow: 0 0 0 2px var(--dg-bg3), 0 0 0 4px var(--dg-edge2);
-}
-.dragon-inv-item.selected {
-  background: #2e2348; box-shadow: 0 0 0 2px var(--dg-bg3), 0 0 0 4px var(--dg-gold);
-}
-.dragon-inv-item.empty { opacity: 0.4; }
-
-.dragon-food-sprite { line-height: 0; }
-.dragon-food-canvas { width: 32px; height: 32px; image-rendering: pixelated; display: block; }
-.dragon-food-emoji  { display: none; font-size: 20px; line-height: 1; }
-/* Fallback: wenn kein Canvas-Kontext, Emoji zeigen */
-.no-canvas .dragon-food-canvas { display: none; }
-.no-canvas .dragon-food-emoji  { display: block; }
-
-.dragon-inv-count { font-size: 7px; color: var(--dg-ink); }
-
-/* ---------- Aktions-Buttons ---------- */
-.dragon-feed-btn {
-  font-size: 8px; padding: 8px 4px; color: var(--dg-bg);
-  background: var(--dg-gold); box-shadow: 0 0 0 2px #000, 0 0 0 4px #a8842a;
-}
-.dragon-feed-btn:active { transform: translateY(1px); }
-
-.dragon-clean-btn {
-  font-size: 8px; padding: 8px 4px; color: #cfeaff;
-  background: #2a4a6a; box-shadow: 0 0 0 2px #000, 0 0 0 4px #3a6a9a;
-}
-.dragon-clean-btn:active { transform: translateY(1px); }
-
-/* ---------- Responsiv: schmal -> Szene über Sidebar ---------- */
-@media (max-width: 520px) {
-  .dragon-status-grid { grid-template-columns: repeat(2, 1fr); }
-  .dragon-body { grid-template-columns: 1fr; }
-  .dragon-sidebar { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
-  .dragon-inv-grid { flex: 1 1 160px; }
+.egg-panel {
+  background: #14101f;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
-/* ---------- Reduzierte Bewegung ---------- */
-@media (prefers-reduced-motion: reduce) {
-  .dragon-status-bar-fill, .dragon-toast { transition: none; }
+.egg-panel--expedition {
+  background: #141022;
 }
+
+.egg-status-head,
+.egg-expedition-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.egg-status-head {
+  font-size: 9px;
+  margin-bottom: 2px;
+}
+
+.egg-expedition-head {
+  font-size: 8px;
+  margin-bottom: 6px;
+}
+
+.egg-accent {
+  color: #ffcf6a;
+}
+
+.egg-muted,
+.egg-label {
+  color: #9a8fc0;
+}
+
+.egg-feel {
+  font-size: 7px;
+  color: #8a80b0;
+  margin-bottom: 8px;
+}
+
+.egg-label {
+  font-size: 7px;
+  margin-bottom: 3px;
+}
+
+.egg-label--spaced {
+  margin-top: 8px;
+}
+
+.egg-bar {
+  height: 8px;
+  box-shadow: inset -2px -2px 0 #0f0c1a, inset 2px 2px 0 #2a2440;
+}
+
+.egg-bar__fill {
+  height: 100%;
+}
+
+.egg-section-label {
+  font-size: 7px;
+  color: #8a80b0;
+  margin-bottom: 5px;
+}
+
+.egg-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.egg-care-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.egg-care-grid--two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.egg-dev-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.egg-button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+.egg-button:disabled {
+  cursor: not-allowed;
+}
+
+.egg-button--clean {
+  font-size: 8.5px;
+  padding: 10px 4px;
+  width: 100%;
+  color: #15101f;
+  background: #e0c060;
+  margin-bottom: 10px;
+}
+
+.egg-button--action,
+.egg-button--poke {
+  font-size: 7.5px;
+  padding: 8px 4px;
+  color: #15101f;
+  border: none;
+  line-height: 1.5;
+}
+
+.egg-button--action {
+  background: #ffcf6a;
+}
+
+.egg-button--poke {
+  background: #9ad8f0;
+}
+
+.egg-button__sub {
+  font-size: 7px;
+  opacity: 0.7;
+}
+
+.egg-button--charge,
+.egg-button--repair,
+.egg-button--expedition {
+  font-size: 8px;
+  padding: 8px 4px;
+}
+
+.egg-button--charge {
+  color: #e8ffe0;
+  background: #2e7a5a;
+}
+
+.egg-button--repair {
+  color: #fff;
+  background: #a85a2a;
+}
+
+.egg-button--expedition {
+  padding: 9px 4px;
+  width: 100%;
+  color: #1a1030;
+  background: #bfa8ff;
+}
+
+.egg-button--expedition:disabled {
+  color: #6a6090;
+  background: #2a2440;
+}
+
+.egg-portal {
+  color: #bfa8ff;
+}
+
+.egg-hint {
+  font-size: 6.5px;
+  color: #8a80b0;
+  margin-top: 5px;
+}
+
+.egg-button--dev {
+  font-size: 7px;
+  padding: 6px 8px;
+  color: #c8bce8;
+  background: #1c1730;
+}
+
+
+/* HomeHub Dragon Card */
+.dragon-card{
+  background:#0e0b18;
+  color:#e8e0ff;
+  border-radius:18px;
+  padding:12px;
+  margin-bottom:12px;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 1px 2px rgba(0,0,0,.03),0 4px 14px rgba(0,0,0,.05);
+  font-family:"Press Start 2P",ui-monospace,monospace;
+}
+.dragon-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.dragon-title{font-size:10px;letter-spacing:1px;margin-bottom:3px;color:#fff1b8}
+.dragon-subtitle{font-size:6.5px;color:#9a8fc0;line-height:1.6}
+.dragon-mini-btn{font:inherit;font-size:7px;padding:7px 8px;color:#e8ffe0;background:#2e7a5a;border:none;box-shadow:inset -2px -2px 0 #10301f,inset 2px 2px 0 #4aa074;cursor:pointer}
+.dragon-canvas-wrap{position:relative;background:#000;box-shadow:inset -2px -2px 0 #000,inset 2px 2px 0 #3a3050;margin-bottom:10px}
+.dragon-canvas-wrap canvas{width:100%;height:auto;display:block;image-rendering:pixelated}
+.dragon-toast{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#15101f;color:#ffcf6a;font-size:7px;padding:5px 8px;box-shadow:inset -2px -2px 0 #000,inset 2px 2px 0 #a8842a;white-space:nowrap;z-index:2}
+.dragon-status-row{display:flex;justify-content:space-between;font-size:8px;margin-bottom:4px;color:#9a8fc0;gap:8px}
+.dragon-name{color:#ffcf6a}
+.dragon-feel{font-size:6.5px;color:#8a80b0;margin-bottom:8px;line-height:1.5}
+.dragon-bar-label{font-size:6.5px;color:#9a8fc0;margin:7px 0 3px}
+.dragon-bar{height:8px;background:#241c38;box-shadow:inset -2px -2px 0 #0f0c1a,inset 2px 2px 0 #2a2440;overflow:hidden}
+.dragon-bar>div{height:100%;background:#ffcf6a}
+.dragon-bar>div.dragon-power{background:#5ad0b0}
+.dragon-exp{font-size:6.5px;color:#bfa8ff;margin-top:7px;line-height:1.5}
+.dragon-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px}
+.dragon-action{font:inherit;font-size:7px;padding:8px 4px;color:#15101f;background:#ffcf6a;border:none;line-height:1.4;box-shadow:inset -2px -2px 0 #000,inset 2px 2px 0 #a8842a;cursor:pointer;min-height:36px}
+.dragon-action:disabled{color:#6a6090;background:#2a2440;box-shadow:inset -2px -2px 0 #3a2470,inset 2px 2px 0 #3a3050;cursor:not-allowed}
+.dragon-clean{width:100%;margin-top:8px;background:#e0c060;box-shadow:inset -2px -2px 0 #5a4410,inset 2px 2px 0 #f4e6a0}
