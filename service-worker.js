@@ -1,7 +1,7 @@
 // HomeHub Service Worker
 // Cache-Strategie: Cache-First mit Netzwerk-Fallback
 
-const CACHE_VERSION = 'hh-v5';  // ← erhöht: löscht alten Cache automatisch
+const CACHE_VERSION = 'hh-v6';  // ← erhöht: löscht alten Cache automatisch
 const CACHE_NAME = `homehub-${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
