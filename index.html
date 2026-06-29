@@ -1203,6 +1203,16 @@ body{
 // PWA SERVICE WORKER REGISTRIERUNG
 // ════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
+  // BUGFIX 8: Übernimmt ein neuer Service Worker nach einem Deploy die Kontrolle,
+  // die Seite EINMAL automatisch neu laden. Sonst läuft alter Code im Speicher
+  // gegen neue Dateien → fast leerer Bildschirm. Flag schützt vor Endlosschleife.
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshing) return;
+    _swRefreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js')
       // BUGFIX 7: SW registration error gives actionable info
