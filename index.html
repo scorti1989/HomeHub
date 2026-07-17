@@ -573,7 +573,7 @@ body{
 
 /* ── HOMEHUB DRAGON ── */
 </style>
-  <link rel="stylesheet" href="dragon-game.css">
+  <link rel="stylesheet" href="dragon-game.css?v=8">
 </head>
 <body>
 
@@ -1195,9 +1195,63 @@ body{
   <button class="btn-s" id="backupLaterBtn">Später</button>
 </div>
 
-<script src="dragon-game.js"></script>
+<script>
+/* ── HOMEHUB RETTUNGSNETZ ─────────────────────────────────────────────
+   1) Fängt JEDEN unbehandelten Fehler ab und zeigt ein Banner statt
+      einer weißen Seite — inkl. Notfall-Backup-Button, der direkt aus
+      localStorage ein normal importierbares Backup baut.
+   2) So gehen nie wieder Daten verloren, selbst wenn die App crasht. */
+(function () {
+  'use strict';
+  var shown = false;
+  function hhNotfallExport() {
+    try {
+      function rd(k, d) { try { var r = localStorage.getItem(k); return r === null ? d : (JSON.parse(r) ?? d); } catch (e) { return d; } }
+      var data = {
+        contracts: rd('vh_contracts', []), meters: rd('vh_meters', []),
+        expenses: rd('vh_expenses', []), shopLists: rd('vh_shoplists', { items: [] }),
+        budgets: rd('vh_budgets', {}), priceMemory: rd('vh_prices', {}),
+        recurring: rd('vh_recurring', []), settings: rd('vh_settings', {}),
+        transfers: rd('vh_transfers', []), recipes: rd('vh_recipes', []),
+        weekPlan: rd('vh_weekplan', { Mo:null,Di:null,Mi:null,Do:null,Fr:null,Sa:null,So:null }),
+        dragon: rd('vh_dragon', undefined),
+        exported: new Date().toISOString(), notfall: true
+      };
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'homehub-notfall-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 800);
+    } catch (e) { alert('Notfall-Export fehlgeschlagen: ' + e.message); }
+  }
+  window.hhNotfallExport = hhNotfallExport;
+  window.addEventListener('error', function (ev) {
+    if (shown) return; shown = true;
+    try {
+      var b = document.createElement('div');
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#7a1f1f;color:#fff;' +
+        'font:12px/1.5 system-ui,sans-serif;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.5)';
+      b.innerHTML = '⚠️ <b>HomeHub-Fehler beim Laden.</b> Deine Daten sind sicher. ' +
+        '<button onclick="location.reload()" style="margin:0 6px;padding:4px 10px;border:0;background:#fff;color:#7a1f1f;font-weight:700">Neu laden</button>' +
+        '<button onclick="hhNotfallExport()" style="padding:4px 10px;border:0;background:#ffd76a;color:#5a3a00;font-weight:700">💾 Notfall-Backup</button>' +
+        '<div style="opacity:.85;font-size:11px;margin-top:4px">' + String(ev && ev.message || 'Unbekannter Fehler').slice(0, 160) + '</div>';
+      (document.body || document.documentElement).appendChild(b);
+    } catch (e2) {}
+  });
+})();
+</script>
+<script src="dragon-game.js?v=8"></script>
 <script>
 'use strict';
+/* ── HOMEHUB DRAGON Guard: Fallbacks, falls dragon-game.js nicht lädt ──
+   Verhindert ReferenceErrors (weiße Seite), die App läuft ohne Spiel weiter. */
+if (typeof window.rewardDragon     !== 'function') window.rewardDragon     = function () {};
+if (typeof window.renderDragonCard !== 'function') window.renderDragonCard = function () {};
+if (typeof window.loadDragon       !== 'function') window.loadDragon       = function () {};
+if (typeof window.saveDragon       !== 'function') window.saveDragon       = function () {};
+if (typeof window.DRAGON_DEFAULTS  !== 'object' || !window.DRAGON_DEFAULTS) window.DRAGON_DEFAULTS = { egg: true };
+if (typeof window.dragon           !== 'object' || !window.dragon)          window.dragon = Object.assign({}, window.DRAGON_DEFAULTS);
 
 // ════════════════════════════════════════════
 // PWA SERVICE WORKER REGISTRIERUNG
