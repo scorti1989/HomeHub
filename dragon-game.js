@@ -250,25 +250,61 @@ function drawHeatLamp(ctx, t, stage, power) {
   }
 }
 function drawPowerTube(ctx, power, t) {
-  const tx = 3, ty = 30, tw = 5, th = 92;
+  const bx = 3, by = 34, bw = 9, bh = 88;                            // vertikale Batterie links
   const pw = Math.max(0, Math.min(100, power));
-  rect(ctx, tx - 1, ty - 3, tw + 2, 2, "#3a3e4c");                   // Kappe oben
-  rect(ctx, tx - 1, ty + th + 1, tw + 2, 2, "#3a3e4c");              // Sockel
-  rect(ctx, tx - 1, ty - 1, 1, th + 2, "#2a2e3a"); rect(ctx, tx + tw, ty - 1, 1, th + 2, "#2a2e3a");   // Glasrand
-  rect(ctx, tx, ty, tw, th, "rgba(16,20,32,0.55)");                  // Röhre
-  const fh = Math.round(th * pw / 100);
-  const col = pw > 50 ? "#4ad0a0" : pw > 25 ? "#e0c040" : "#e05040";
-  const blink = pw <= 12 && Math.floor(t / 400) % 2 === 0;           // Warnblinken bei fast leer
-  ctx.globalAlpha = blink ? 0.45 : 1;
-  rect(ctx, tx, ty + th - fh, tw, fh, col);
-  rect(ctx, tx, ty + th - fh, tw, 1, "#ffffff88");                   // Füllstand-Kante
-  ctx.globalAlpha = 1;
-  rect(ctx, tx + 1, ty + 2, 1, th - 4, "rgba(255,255,255,0.16)");    // Glas-Highlight
-  if (pw > 4) {                                                       // aufsteigende Blase
-    const bq = (t / 1600) % 1;
-    const by2 = ty + th - 2 - bq * (fh - 4);
-    if (fh > 8) rect(ctx, tx + 2, Math.round(by2), 1, 1, "rgba(255,255,255,0.5)");
+  rect(ctx, bx + 2, by - 4, bw - 4, 3, "#8a90a2");                   // Pluspol
+  rect(ctx, bx + 2, by - 4, bw - 4, 1, "#c8ccd8");
+  rect(ctx, bx - 1, by - 1, bw + 2, bh + 2, "#22242e");              // Gehäuse
+  rect(ctx, bx, by, bw, bh, "#3a3e4c");
+  rect(ctx, bx, by, 1, bh, "#565a6a");                                // Kante links hell
+  rect(ctx, bx + bw - 1, by, 1, bh, "#1a1c24");                       // Kante rechts dunkel
+  const SEG = 5, segH = Math.floor((bh - (SEG + 1) * 2) / SEG);       // 5 Segmente
+  const filled = pw <= 0 ? 0 : Math.max(1, Math.round(pw / 100 * SEG));
+  const blink = pw <= 12 && Math.floor(t / 420) % 2 === 0;
+  for (let k = 0; k < SEG; k++) {
+    const sy = by + bh - 2 - (k + 1) * (segH + 2) + 2;
+    const on = k < filled;
+    let col = "#14161e";
+    if (on) col = pw > 50 ? "#3ee08a" : pw > 25 ? "#f0c030" : "#f05040";
+    if (on && k === filled - 1 && blink) col = "#5a2020";
+    rect(ctx, bx + 1, sy, bw - 2, segH, col);
+    if (on) rect(ctx, bx + 1, sy, 2, segH, "rgba(255,255,255,0.25)"); // Segment-Glanz
   }
+  if (pw > 0) {                                                       // kleiner Blitz auf dem Gehäuse
+    const zx = bx + 3, zy = by + Math.floor(bh / 2) - 4;
+    ctx.globalAlpha = 0.9;
+    rect(ctx, zx + 2, zy, 2, 3, "#fff6c0"); rect(ctx, zx + 1, zy + 3, 2, 2, "#fff6c0");
+    rect(ctx, zx + 2, zy + 5, 1, 3, "#fff6c0");
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* ---------- HUD: Status im Laborboden (Tamagotchi-Display) ---------- */
+function drawHud(ctx, S, t) {
+  const hy = CH - 17, hh = 15;
+  ctx.fillStyle = "rgba(10,10,18,0.78)";                              // Panel im Boden
+  ctx.fillRect(2, hy, CW - 4, hh);
+  rect(ctx, 2, hy, CW - 4, 1, "rgba(255,255,255,0.10)");
+  rect(ctx, 2, hy + hh - 1, CW - 4, 1, "rgba(0,0,0,0.5)");
+  ctx.font = '8px "Press Start 2P", monospace';
+  ctx.textBaseline = "top";
+  const segs = (x0, v, col) => {
+    for (let k = 0; k < 5; k++) {
+      const on = v > k * 20;
+      rect(ctx, x0 + k * 8, hy + 4, 7, 7, on ? col : "#232433");
+      if (on) rect(ctx, x0 + k * 8, hy + 4, 7, 1, "rgba(255,255,255,0.3)");
+    }
+  };
+  ctx.fillText(S.stage < 2 ? "💧" : "🍖", 6, hy + 3);
+  segs(19, S.hunger, S.hunger > 50 ? "#8ac83e" : S.hunger > 25 ? "#e0a030" : "#e04040");
+  ctx.fillText("🧼", 66, hy + 3);
+  segs(79, S.sauberkeit, S.krank ? "#7aa040" : "#4ec8c0");
+  ctx.fillText("🔥", 126, hy + 3);
+  ctx.fillStyle = (S.streak || 0) > 0 ? "#ffb050" : "#5a5878";
+  ctx.fillText(String(S.streak || 0), 138, hy + 4);
+  ctx.fillText("✨", 152, hy + 3);
+  ctx.fillStyle = "#cfb8ff";
+  ctx.fillText(String(Math.min(99, S.stardust || 0)), 164, hy + 4);
 }
 function drawDim(ctx, power, t, deko) {
   const pw = Math.max(0, Math.min(100, power));
@@ -1197,7 +1233,53 @@ function playTrackPoint(cx, armY, t) {
   if (idle.toy === "top") return { x: Math.round(topPos.x), y: Math.round(topPos.y) };
   return { x: cx - 22, y: armY - 4 };
 }
+/* ---------- Durchleuchten (Schieren): Blick ins glühende Ei ---------- */
+function drawCandling(ctx, S, t, cx, eb, P, k) {
+  const eCy = eb - Math.round((P.ht + P.rb) / 2);
+  ctx.fillStyle = `rgba(4,4,12,${0.74 * k})`;                        // Raum dunkelt ab
+  ctx.fillRect(0, 0, CW, CH);
+  const g = ctx.createRadialGradient(cx, eCy, 4, cx, eCy, 62);       // warmes Durchlicht
+  g.addColorStop(0, `rgba(255,186,84,${0.55 * k})`);
+  g.addColorStop(1, "rgba(255,186,84,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
+  ctx.globalAlpha = 0.38 * k;                                        // Schale glüht durchscheinend
+  pe(ctx, cx, eCy, P.rb * 0.96, (P.ht + P.rb) / 2 * 0.96, "#ffc060");
+  ctx.globalAlpha = 1;
+  const prog = Math.max(0, Math.min(1, (S.xp || 0) / 1200));         // Silhouette wächst mit (verstecktem) Fortschritt
+  const beat = 1 + Math.sin(t / 300) * 0.06;                          // Herzschlag
+  const col = `rgba(74,40,16,${0.85 * k})`;
+  ctx.fillStyle = col;
+  if (prog < 0.25) {
+    pe(ctx, cx, eCy + 4, 2.5 * beat, 2.5 * beat, col);               // Keimpunkt + Dottersack
+    ctx.globalAlpha = 0.4 * k; pe(ctx, cx + 1, eCy + 6, 5, 4, col); ctx.globalAlpha = 1;
+  } else if (prog < 0.55) {
+    pe(ctx, cx, eCy + 2, 3.5 * beat, 3.5 * beat, col);               // Kopf + Schwänzchen
+    pe(ctx, cx + 3, eCy + 6, 2, 4, col);
+  } else {
+    pe(ctx, cx, eCy + 1, 5 * beat, 6.5 * beat, col);                 // kleines Wesen, rundlich
+    pe(ctx, cx - 2, eCy - 3, 2.2, 2.2, col);
+    if (prog > 0.85) { ctx.globalAlpha = k; rect(ctx, Math.round(cx) - 3, Math.round(eCy) - 4, 1, 1, "#ffdf9a"); rect(ctx, Math.round(cx) - 1, Math.round(eCy) - 4, 1, 1, "#ffdf9a"); ctx.globalAlpha = 1; }   // erste Augen glimmen
+  }
+  if (prog > 0.35) {                                                  // Äderchen
+    ctx.globalAlpha = 0.45 * k;
+    for (const [a1, ln] of [[0.6, 11], [2.4, 9], [4.2, 12]]) {
+      for (let q = 3; q < ln; q++) {
+        rect(ctx, Math.round(cx + Math.cos(a1) * q + Math.sin(q * 1.7) * 1.2), Math.round(eCy + 2 + Math.sin(a1) * q * 0.8), 1, 1, "#8a4020");
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
 let lastT = 0;
+var turnAnim = { on: false, startT: 0 };
+var sprayAnim = { on: false, startT: 0 };
+const BROOD_FOOD = [
+  { id: "spray", label: "💧 Besprühen",  cost: 1, hunger: 25, xp: 0, power: 0, desc: "Hält die Membran feucht" },
+  { id: "broth", label: "🥣 Nährlösung", cost: 3, hunger: 60, xp: 2, power: 0, desc: "+2 XP" },
+];
+var knockAnim = { on: false, startT: 0 };
+var candleAnim = { on: false, startT: 0 };
 function drawEgg(ctx, S, t) {
   lastT = t;
   const floorY = FLOOR - 1, P = EGG_PAL[S.stage], lit = S.power > 0;
@@ -1261,16 +1343,28 @@ function drawEgg(ctx, S, t) {
     const env = Math.min(1, Math.min(wp, 1 - wp) / 0.15);
     if (limbK < 0.5) wobRot = Math.sin(t / 115) * 0.13 * env;     // wackelt am Boden hin und her
   }
-  const walkBob = -hopY;
+  let turnHop = 0, turnSq = 1;
+  if (turnAnim.on) {
+    const tp = (t - turnAnim.startT) / 1100;
+    if (tp >= 1) turnAnim.on = false;
+    else { turnSq = Math.max(0.08, Math.abs(Math.cos(tp * Math.PI * 2))); turnHop = Math.sin(tp * Math.PI) * 4; }   // 360°-Wende
+  }
+  let knockRot = 0;
+  if (knockAnim.on) {
+    const kp = (t - knockAnim.startT) / 900;
+    if (kp >= 1) knockAnim.on = false;
+    else knockRot = Math.sin((t - knockAnim.startT) / 60) * 0.12 * (1 - kp);   // klopft zurück: kurzes Zittern
+  }
+  const walkBob = -hopY - turnHop;
   const breath = Math.sin(t / 700) * 0.5 + walkBob, sway = 0;
-  const rot = wobRot;                                                   // Wackeln um den Bodenkontakt
+  const rot = wobRot + knockRot;
   const ebDrop = wobbling ? Math.round((1 - limbK) * 10) : 0;           // Ei sinkt auf den Boden
   const eyeY = eb + ebDrop - (P.rb + P.ht * 0.34) + breath;
   const armY = eb + ebDrop - P.rb + 1 + Math.round(walkBob);
   ctx.save();
   ctx.translate(cx + sway, eb + ebDrop + breath);
   ctx.rotate(rot + rollAngle);
-  ctx.scale(sqx, sqy);
+  ctx.scale(sqx * turnSq, sqy);
   ctx.drawImage(spr.open, -EGG_CX, -BUF_BASE);
   ctx.restore();
   const ebA = eb + ebDrop + Math.round(breath);
@@ -1327,6 +1421,25 @@ function drawEgg(ctx, S, t) {
   if (onStand) drawStandFront(ctx, cx, floorY - 12);
   if (S.shards > 0) drawShells(ctx, 92, floorY, S.shards);   // abgebrochene Schalenstücke liegen am Boden
   drawFly(ctx, t);
+  if (sprayAnim.on) {
+    const sp = (t - sprayAnim.startT) / 1100;
+    if (sp >= 1) sprayAnim.on = false;
+    else {
+      const topEgg = eb + ebDrop - Math.round(P.ht + P.rb);
+      ctx.globalAlpha = Math.min(1, (1 - sp) * 1.4);
+      for (let i = 0; i < 8; i++) {
+        const dx3 = (i - 3.5) * 4 + Math.sin(i * 2.1 + t / 90) * 2;
+        const dy3 = -10 + sp * (16 + (i % 3) * 5);
+        rect(ctx, Math.round(cx + dx3), Math.round(topEgg + dy3), 1, 1, i % 2 ? "#bfe6ff" : "#8ecfef");
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  if (candleAnim.on) {
+    const cp = (t - candleAnim.startT) / 4200;
+    if (cp >= 1) candleAnim.on = false;
+    else drawCandling(ctx, S, t, cx, eb + ebDrop, P, Math.min(1, cp * 6) * (cp > 0.85 ? (1 - cp) / 0.15 : 1));
+  }
 }
 
 /* =======================================================================
@@ -1452,7 +1565,7 @@ window.DRAGON_DEFAULTS = {
   hunger: 100, sauberkeit: 100, krank: false, krankSeit: 0, mess: [],
   toys: {}, toyCooldown: {}, streak: 0, lastLogin: 0, prestige: 0,
   statLog: { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
-  lastReview: "", lastNudge: "", lastBackupReward: "", costumes: {}, unlocked: {}, lastSeen: 0,
+  lastReview: "", lastNudge: "", lastBackupReward: "", lastTurn: 0, lastKnock: "", costumes: {}, unlocked: {}, lastSeen: 0,
 };
 var dragon = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
 
@@ -1551,6 +1664,37 @@ window.rewardDragon = rewardDragon;
 window.loadDragon = loadDragon;
 window.saveDragon = saveDragon;
 
+
+/* ---------- Brutphase (Stufe 1-2): Wenden, Anklopfen, Durchleuchten ---------- */
+function eggTurn() {
+  const p = dragon, now = Date.now();
+  if (p.stage >= 2) return;
+  const cd = 6 * 3600 * 1000, left = (p.lastTurn || 0) + cd - now;
+  if (left > 0) { flash("⏳ Schon gewendet — in " + Math.ceil(left / 3600000) + "h wieder."); return; }
+  p.lastTurn = now;
+  turnAnim = { on: true, startT: lastT };
+  eggAddXp(2, "Ei gewendet");
+}
+function eggKnock() {
+  const p = dragon;
+  if (p.stage >= 2) return;
+  const today = new Date().toDateString();
+  if (p.lastKnock === today) { flash("Es hat heute schon zurückgeklopft! 👂"); return; }
+  p.lastKnock = today;
+  knockAnim = { on: true, startT: lastT + 450 };                      // klopft mit kleiner Verzögerung zurück
+  if (Math.random() < 0.25) {
+    p.stardust = (p.stardust || 0) + 1;
+    setTimeout(() => flash("👂 Es klopft zurück … ✨ +1 Protein!"), 700);
+  } else {
+    setTimeout(() => flash("👂 … klopf, klopf — es lebt!"), 700);
+  }
+  eggAddXp(3, "Angeklopft");
+}
+function eggCandle() {
+  if (dragon.stage >= 2 || candleAnim.on) return;
+  candleAnim = { on: true, startT: lastT };
+  flash("🔦 Du hältst das Ei vor die Lampe …");
+}
 function eggNudge() {
   const today = new Date().toDateString();
   if (dragon.lastNudge === today) { flash("Schon angestupst heute! Morgen wieder 🥚"); return; }
@@ -1559,7 +1703,7 @@ function eggNudge() {
 }
 
 function eggFeed(id) {
-  const p = dragon, item = FOOD_ITEMS.find(f => f.id === id);
+  const p = dragon, item = FOOD_ITEMS.find(f => f.id === id) || BROOD_FOOD.find(f => f.id === id);
   if (!item) return;
   if ((p.stardust || 0) < item.cost) { flash("Zu wenig ✨!"); return; }
   if (p.krank) { flash("🤒 Krank — erst Medizin!"); return; }
@@ -1568,7 +1712,12 @@ function eggFeed(id) {
   if (item.power) p.power = clampI(p.power + item.power, 0, 100);
   if (item.xp) { p.xp += item.xp; p.stage = Math.max(p.stage, stageForXp(p.xp)); }
   p.statLog = p.statLog || {}; p.statLog.feeds = (p.statLog.feeds || 0) + 1;
-  flash(item.label + " · lecker!" + (item.xp ? " +" + item.xp + " XP" : ""));
+  if (item.id === "spray" || item.id === "broth") {
+    sprayAnim = { on: true, startT: lastT };
+    flash(item.id === "spray" ? "💧 Fein benebelt — die Schale glänzt!" : "🥣 Nährlösung — es gluckert zufrieden! +2 XP");
+  } else {
+    flash(item.label + " · lecker!" + (item.xp ? " +" + item.xp + " XP" : ""));
+  }
   saveDragon(); markDirty();
 }
 
@@ -1750,7 +1899,7 @@ function eggCheckIn() {
   const lost = altS - p.sauberkeit;
   const neu = Math.max(0, Math.min(6 - mess.length, Math.floor(lost / 8)));
   for (let i = 0; i < neu; i++) {
-    const types = p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "poop"];
+    const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "poop"];
     mess.push({ type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) });
   }
   p.mess = mess;
@@ -1779,7 +1928,7 @@ function esc(x) { return String(x).replace(/</g, "&lt;"); }
 function eggStatusRow() {
   const p = dragon;
   const mini = (v, col) => '<span class="eg-mini"><span style="width:' + Math.max(0, Math.min(100, v)) + '%;background:' + col + '"></span></span>';
-  return "🍖" + mini(p.hunger, p.hunger > 50 ? "#a0c840" : p.hunger > 25 ? "#e0a030" : "#e04040") +
+  return (p.stage < 2 ? "💧" : "🍖") + mini(p.hunger, p.hunger > 50 ? "#a0c840" : p.hunger > 25 ? "#e0a030" : "#e04040") +
     "🧼" + mini(p.sauberkeit, p.krank ? "#e04040" : "#5ad0b0") +
     '<span class="eg-chip" style="color:' + (p.streak > 0 ? "#ff9a30" : "#6a5a8a") + '">🔥' + (p.streak || 0) + "</span>" +
     '<span class="eg-chip" style="color:#bfa8ff">✨' + (p.stardust || 0) + "</span>";
@@ -1789,71 +1938,78 @@ function eggSections() {
   const p = dragon, un = p.unlocked || {};
   let h = "";
   // Status
-  h += '<details class="eg-sec"><summary style="color:#ffcf6a">📊 Status ▾</summary><div class="eg-pane">';
+  h += '<details class="eg-sec"><summary style="color:#ffcf6a">📊 Status</summary><div class="eg-pane">';
   h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[p.stage].name) + "</span>" +
        (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
-  h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[p.stage].motto) + '"</div>';
+  if (EGG_PAL[p.stage].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[p.stage].motto) + '"</div>';
   if (p.power <= 0) h += '<div style="color:#e0843a;font-size:7px;margin:5px 0">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
   if (p.krank) h += '<div style="color:#ff4a4a;font-size:7px;margin:5px 0">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
   if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
   if (p.lastReview) h += '<button class="eg-btn eg-wide" data-act="review">📜 Ei-Rückblick herunterladen</button>';
   if (p.xp >= 10000) h += '<button class="eg-btn eg-wide eg-gold" data-act="prestige">' + (prestigeConfirm ? "🌀 Wirklich? Nochmal tippen!" : "🌀 Durchs Portal (neues Ei)") + "</button>";
   h += '<button class="eg-btn eg-wide" data-act="nudge">👉 Anstupsen (+5 XP · 1×/Tag)</button>';
+  if (p.stage < 2) {
+    const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
+    h += '<div class="eg-dim" style="margin:7px 0 4px">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
+    h += '<button class="eg-btn" data-act="turn"' + (tLeft > 0 ? " disabled" : "") + '>🔄 Wenden<br><small>' + (tLeft > 0 ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h") + "</small></button>";
+    h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === new Date().toDateString() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
+    h += '</div><button class="eg-btn eg-wide" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>';
+  }
   h += "</div></details>";
   // Pflege
-  h += '<details class="eg-sec"><summary style="color:#5ad0b0">🍳 Pflege ▾</summary><div class="eg-pane">';
+  h += '<details class="eg-sec"><summary style="color:#5ad0b0">🍳 Pflege</summary><div class="eg-pane">';
   if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
   h += '<div class="eg-grid2">';
   if (p.power < 100) h += '<button class="eg-btn" data-act="charge">🔋 Stromzelle (' + Math.max(1, Math.ceil((100 - p.power) / 35)) + "✨)</button>";
-  if (p.mess.length > 0 || p.sauberkeit < 100)
+  if (p.mess.length > 0 || p.sauberkeit < 85)
     h += '<button class="eg-btn" data-act="clean">' + (p.mess.length > 0 ? "🧹 Haufen weg (" + p.mess.length + " da · 1✨)" : "🧼 Wischen (" + (p.sauberkeit > 60 ? 1 : p.sauberkeit > 30 ? 2 : 3) + "✨)") + "</button>";
   if (p.krank) h += '<button class="eg-btn" data-act="heal">💊 Medizin (5✨)</button>';
   if (p.stage === 4 && p.integrity < 100) h += '<button class="eg-btn" data-act="fix">🩹 Schale flicken (2✨)</button>';
   h += "</div>";
-  h += '<div class="eg-dim" style="margin:7px 0 4px">🍽 FÜTTERN</div><div class="eg-grid4">';
-  for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + "<br><small>" + f.cost + "✨</small></button>";
-  h += "</div></div></details>";
-  // Shop
-  h += '<details class="eg-sec"><summary style="color:#bfa8ff">🎮 Shop & Expedition ▾</summary><div class="eg-pane">';
-  if (p.stage < 2) h += '<div class="eg-dim">🔒 Expedition ab Stufe 3 (Beine)</div>';
-  else if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
-  else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
-  const shopGrid = (items, act, ownedMap, ownTxt) => {
-    let g = '<div class="eg-grid2">';
-    for (const it of items) {
-      const owned = ownedMap && ownedMap[it.id];
-      g += '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (owned && act !== "playtoy" ? " disabled" : "") + ">" +
-        it.label + "<br><small>" + (owned ? ownTxt : it.cost + (act === "costume" ? " XP" : " ✨")) + "</small></button>";
-    }
-    return g + "</div>";
-  };
-  const toysU = TOY_ITEMS.filter(t => un[t.id]);
-  h += '<div class="eg-dim" style="margin:8px 0 4px">🧸 SPIELZEUG</div>';
-  h += toysU.length ? shopGrid(toysU.map(t => p.toys[t.id] ? Object.assign({}, t, { label: t.label }) : t), "toy", p.toys, "▶ Spielen") : '<div class="eg-dim"><small>Nichts entdeckt — Expeditionen!</small></div>';
-  const dekoU = SHOP_ITEMS.filter(it => un[it.id]);
-  h += '<div class="eg-dim" style="margin:8px 0 4px">🛍 DEKO</div>';
-  h += dekoU.length ? shopGrid(dekoU, "deko", p.deko, "✓") : '<div class="eg-dim"><small>Nichts entdeckt — Expeditionen!</small></div>';
-  const seasU = SEASON_ITEMS.filter(it => inSeason(it) && un[it.id]);
-  h += '<div class="eg-dim" style="margin:8px 0 4px">🗓 SAISON</div>';
-  h += seasU.length ? shopGrid(seasU, "deko", p.deko, "✓") : '<div class="eg-dim"><small>Gerade nichts Saisonales entdeckt.</small></div>';
-  const cosU = COSTUMES.filter(it => inSeason(it) && un[it.id]);
-  h += '<div class="eg-dim" style="margin:8px 0 4px">🎭 KOSTÜME <small>· XP, Minus erlaubt</small></div>';
-  h += cosU.length ? shopGrid(cosU, "costume", p.costumes, "✓ getragen") : '<div class="eg-dim"><small>Kein Kostüm entdeckt.</small></div>';
-  h += '<div class="eg-dim" style="margin:8px 0 4px">🖼 WANDDEKO</div>';
-  if ((p.prestige || 0) < 1) h += '<div class="eg-dim"><small>🔒 Schaltet mit dem 2. Ei frei</small></div>';
-  else {
-    const wallU = [...WALL_ITEMS, ...WALL_SEASON_ITEMS.filter(inSeason)].filter(it => un[it.id]);
-    h += wallU.length ? shopGrid(wallU, "deko", p.deko, "✓ hängt") : '<div class="eg-dim"><small>Nichts entdeckt — Expeditionen!</small></div>';
+  if (p.stage < 2) {
+    h += '<div class="eg-dim" style="margin:7px 0 4px">💧 VERSORGUNG</div><div class="eg-grid2">';
+    for (const f of BROOD_FOOD) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label + "<br><small>" + f.cost + "✨ · " + f.desc + "</small></button>";
+  } else {
+    h += '<div class="eg-dim" style="margin:7px 0 4px">🍽 FÜTTERN</div><div class="eg-grid4">';
+    for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + "<br><small>" + f.cost + "✨</small></button>";
   }
-  h += "</div></details>";
+  h += "</div></div></details>";
+  // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
+  if (p.stage >= 2) {
+    h += '<details class="eg-sec"><summary style="color:#bfa8ff">🎮 Shop & Expedition</summary><div class="eg-pane">';
+    if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
+    else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
+    const shopGrid = (items, act, ownedMap, ownTxt) => {
+      let g = '<div class="eg-grid2">';
+      for (const it of items) {
+        const owned = ownedMap && ownedMap[it.id];
+        g += '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (owned && act !== "playtoy" ? " disabled" : "") + ">" +
+          it.label + "<br><small>" + (owned ? ownTxt : it.cost + (act === "costume" ? " XP" : " ✨")) + "</small></button>";
+      }
+      return g + "</div>";
+    };
+    const cat = (title, html2) => '<div class="eg-cat"><div class="eg-dim eg-cattitle">' + title + "</div>" + html2 + "</div>";
+    const toysU = TOY_ITEMS.filter(t2 => un[t2.id]);
+    const dekoU = SHOP_ITEMS.filter(it => un[it.id]);
+    const seasU = SEASON_ITEMS.filter(it => inSeason(it) && un[it.id]);
+    const cosU  = COSTUMES.filter(it => inSeason(it) && un[it.id]);
+    const wallU = (p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS.filter(inSeason)].filter(it => un[it.id]) : [];
+    if (toysU.length) h += cat("🧸 SPIELZEUG", shopGrid(toysU, "toy", p.toys, "▶ Spielen"));
+    if (dekoU.length) h += cat("🛍 DEKO", shopGrid(dekoU, "deko", p.deko, "✓"));
+    if (seasU.length) h += cat("🗓 SAISON", shopGrid(seasU, "deko", p.deko, "✓"));
+    if (cosU.length)  h += cat("🎭 KOSTÜME <small>· XP, Minus erlaubt</small>", shopGrid(cosU, "costume", p.costumes, "✓ getragen"));
+    if (wallU.length) h += cat("🖼 WANDDEKO", shopGrid(wallU, "deko", p.deko, "✓ hängt"));
+    if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
+      h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
+    h += "</div></details>";
+  }
   return h;
 }
 
 function updateEggUI() {
-  const st = document.getElementById("eggStatusRow"), se = document.getElementById("eggSections");
-  if (!st || !se) return;
+  const se = document.getElementById("eggSections");
+  if (!se) return;
   const open = Array.from(se.querySelectorAll("details")).map(d => d.open);
-  st.innerHTML = eggStatusRow();
   se.innerHTML = eggSections();
   se.querySelectorAll("details").forEach((d, i) => { if (open[i] !== undefined) d.open = open[i]; });
   uiDirty = false;
@@ -1864,6 +2020,9 @@ function eggHandleClick(e) {
   if (!b) return;
   const act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
   if (act === "nudge") eggNudge();
+  else if (act === "turn") eggTurn();
+  else if (act === "knock") eggKnock();
+  else if (act === "candle") eggCandle();
   else if (act === "charge") eggCharge();
   else if (act === "clean") eggClean();
   else if (act === "heal") eggHeal();
@@ -1884,7 +2043,7 @@ function renderDragonCard() {
   card.innerHTML =
     '<div class="eg-head">HomeHub · <span style="color:#ffcf6a">EI-EVOLUTION</span></div>' +
     '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas><div id="eggToast" class="eg-toast"></div></div>' +
-    '<div id="eggStatusRow" class="eg-status"></div>' +
+    '' +
     '<div id="eggSections"></div>';
   card.removeEventListener("click", eggHandleClick);
   card.addEventListener("click", eggHandleClick);
@@ -1911,9 +2070,11 @@ function eggLoop() {
     drawEgg(eggCtx, St, t);
     drawDim(eggCtx, St.power, t, St.deko);
     drawPowerTube(eggCtx, St.power, t);
+    drawHud(eggCtx, St, t);
   } else {
     drawPowerOff(eggCtx, St, t);
     drawPowerTube(eggCtx, St.power, t);
+    drawHud(eggCtx, St, t);
   }
   if (uiDirty) updateEggUI();
 }
@@ -1938,7 +2099,7 @@ setInterval(() => {                                        // Sauberkeit (~4 Tag
   const p = dragon;
   p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
   if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
-    const types = p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "shell"];
+    const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "shell"];
     p.mess = [...p.mess, { type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) }];
   }
   saveDragon(); markDirty();

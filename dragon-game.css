@@ -68,9 +68,15 @@
 .eg-sec { margin-bottom: 6px; }
 .eg-sec summary {
   font-family: var(--eg-font); font-size: 8px;
-  cursor: pointer; padding: 6px 0; list-style: none; user-select: none;
+  cursor: pointer; padding: 8px 9px; list-style: none; user-select: none;
+  background: var(--eg-bg2);
+  box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
+  display: flex; justify-content: space-between; align-items: center;
 }
 .eg-sec summary::-webkit-details-marker { display: none; }
+.eg-sec summary::after { content: '▸'; color: var(--eg-dim2); font-size: 8px; }
+.eg-sec[open] summary::after { content: '▾'; color: var(--eg-gold); }
+.eg-sec[open] summary { margin-bottom: 2px; }
 .eg-pane {
   background: var(--eg-bg2); padding: 9px;
   box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
@@ -94,4 +100,6 @@
 .eg-wide { display: block; margin: 6px 0; }
 
 .eg-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.eg-cat { border-top: 1px dashed #2e2848; margin-top: 9px; padding-top: 7px; }
+.eg-cattitle { margin-bottom: 5px; letter-spacing: 0.5px; }
 .eg-grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
