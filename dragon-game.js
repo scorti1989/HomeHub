@@ -355,6 +355,10 @@ function drawRoom(ctx, t, stage, power) {
 }
 // Strom AUS: ganzer Bildschirm schwarz, nur die Augen glimmen & blinzeln
 function drawPowerOff(ctx, S, t) {
+  if (expAnim.st === "away" || expAnim.st === "leaving") {           // Ei ist unterwegs: nur dunkler Raum
+    ctx.fillStyle = "#050508"; ctx.fillRect(0, 0, CW, CH);
+    return;
+  }
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, CW, CH);
   const P = EGG_PAL[S.stage]; if (!P.eyes) return;                         // Ur-Ei hat noch keine Augen -> komplett dunkel
   const cx = 92, floorY = FLOOR - 1, eb = S.stage < 2 ? floorY - 12 : floorY, breath = Math.sin(t / 900) * 0.4;
@@ -1538,7 +1542,7 @@ function applyKrankDevolve(p, now) {
   setTimeout(() => flash("💔 Zu lange krank — das Ei ist eine Stufe zurückgefallen!"), 60);
   return { ...p, stage, xp, krankSeit: seit };
 }
-const DECAY_PS = { power: 1/1300, hunger: 1/2160, sauberkeit: 1/3456 };   // Strom ~36h, Hunger ~2,5 Tage, Sauberkeit ~4 Tage
+const DECAY_PS = { power: 1/432, hunger: 1/3456, sauberkeit: 1/4320 };   // Strom 12h (!), Hunger ~4 Tage, Sauberkeit ~5 Tage
 
 
 /* =========================================================================
@@ -1616,12 +1620,10 @@ function eggAddXp(n, label) {
   if (p.krank) {
     flash("🤒 Krank! Erst Medizin geben.");
     if (p.expActive) p.expProgress += 1;
-    p.power = clampI(p.power + 6, 0, 100);
     checkExpDone(); saveDragon(); markDirty(); return;
   }
   let xp = p.xp + n, stardust = p.stardust || 0, luckyDust = 0;
-  if (Math.random() < 0.12) { luckyDust = 1; setTimeout(() => flash("✨ Glücksfund! +1 Protein"), 1400); }
-  p.power = clampI(p.power + 6, 0, 100);
+  if (Math.random() < 0.15) { luckyDust = 1; setTimeout(() => flash("✨ Glücksfund! +1 Protein"), 1400); }
   if (p.expActive) p.expProgress += 1;
   const L0 = p.statLog || { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 };
   L0.acts = (L0.acts || 0) + 1;
@@ -1642,12 +1644,13 @@ function eggAddXp(n, label) {
 function checkExpDone() {
   const p = dragon;
   if (!p.expActive || p.expProgress < p.expGoal) return;
-  const ds = 6 + p.stage, found = nextExpItem(p);
+  const ds = 6 + p.stage, xpB = 15 + p.stage * 5, found = nextExpItem(p);
   p.stardust = (p.stardust || 0) + ds;
+  p.xp += xpB; p.stage = Math.max(p.stage, stageForXp(p.xp));
   p.expActive = false; p.expProgress = 0;
   if (found) { p.unlocked = Object.assign({}, p.unlocked, { [found.id]: true }); }
   p.statLog = p.statLog || {}; p.statLog.exps = (p.statLog.exps || 0) + 1;
-  setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! Jetzt im Shop · +" + ds + " ✨" : "🎁 Expedition zurück! +" + ds + " ✨"), 60);
+  setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! Jetzt im Shop · +" + xpB + " XP · +" + ds + " ✨" : "🎁 Expedition zurück! +" + xpB + " XP · +" + ds + " ✨"), 60);
 }
 
 function rewardDragon(action) {
@@ -1667,6 +1670,7 @@ window.saveDragon = saveDragon;
 
 /* ---------- Brutphase (Stufe 1-2): Wenden, Anklopfen, Durchleuchten ---------- */
 function eggTurn() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, now = Date.now();
   if (p.stage >= 2) return;
   const cd = 6 * 3600 * 1000, left = (p.lastTurn || 0) + cd - now;
@@ -1676,13 +1680,14 @@ function eggTurn() {
   eggAddXp(2, "Ei gewendet");
 }
 function eggKnock() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (p.stage >= 2) return;
   const today = new Date().toDateString();
   if (p.lastKnock === today) { flash("Es hat heute schon zurückgeklopft! 👂"); return; }
   p.lastKnock = today;
   knockAnim = { on: true, startT: lastT + 450 };                      // klopft mit kleiner Verzögerung zurück
-  if (Math.random() < 0.25) {
+  if (Math.random() < 0.5) {
     p.stardust = (p.stardust || 0) + 1;
     setTimeout(() => flash("👂 Es klopft zurück … ✨ +1 Protein!"), 700);
   } else {
@@ -1691,6 +1696,7 @@ function eggKnock() {
   eggAddXp(3, "Angeklopft");
 }
 function eggCandle() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   if (dragon.stage >= 2 || candleAnim.on) return;
   candleAnim = { on: true, startT: lastT };
   flash("🔦 Du hältst das Ei vor die Lampe …");
@@ -1703,6 +1709,7 @@ function eggNudge() {
 }
 
 function eggFeed(id) {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, item = FOOD_ITEMS.find(f => f.id === id) || BROOD_FOOD.find(f => f.id === id);
   if (!item) return;
   if ((p.stardust || 0) < item.cost) { flash("Zu wenig ✨!"); return; }
@@ -1724,7 +1731,7 @@ function eggFeed(id) {
 function eggCharge() {
   const p = dragon;
   if (p.power >= 100) return;
-  const cost = Math.max(1, Math.ceil((100 - p.power) / 35));
+  const cost = Math.max(1, Math.ceil((100 - p.power) / 50));
   if ((p.stardust || 0) < cost) {
     if (p.power <= 5) { p.power = 30; flash("⚡ Notstrom aktiviert — lädt auf 30%"); saveDragon(); markDirty(); return; }
     flash("Zu wenig ✨! Laden kostet " + cost + " ✨"); return;
@@ -1735,6 +1742,7 @@ function eggCharge() {
 }
 
 function eggClean() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   p.statLog = p.statLog || {};
   if (p.mess.length > 0) {
@@ -1755,6 +1763,7 @@ function eggClean() {
 }
 
 function eggHeal() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (!p.krank) return;
   if ((p.stardust || 0) < 5) { flash("Zu wenig ✨ für Medizin! (5 ✨)"); return; }
@@ -1764,6 +1773,7 @@ function eggHeal() {
 }
 
 function eggFix() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (p.stage !== 4 || p.integrity >= 100) return;
   if ((p.stardust || 0) < 2) { flash("Zu wenig ✨! (2 ✨)"); return; }
@@ -1773,6 +1783,7 @@ function eggFix() {
 }
 
 function eggCleanShells() {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (p.shards <= 0) return;
   p.shards = 0; p.power = clampI(p.power + 8, 0, 100); p.xp += 2;
@@ -1781,6 +1792,7 @@ function eggCleanShells() {
 }
 
 function eggBuyDeko(id, cost) {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if ((p.stardust || 0) < cost || (p.deko && p.deko[id])) return;
   const it = SHOP_ITEMS.find(x => x.id === id) || SEASON_ITEMS.find(x => x.id === id) || WALL_ITEMS.find(x => x.id === id) || WALL_SEASON_ITEMS.find(x => x.id === id);
@@ -1791,6 +1803,7 @@ function eggBuyDeko(id, cost) {
 }
 
 function eggBuyToy(id) {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, toy = TOY_ITEMS.find(t => t.id === id);
   if (!toy || (p.toys && p.toys[id])) return;
   if ((p.stardust || 0) < toy.cost) { flash("Zu wenig ✨!"); return; }
@@ -1801,6 +1814,7 @@ function eggBuyToy(id) {
 }
 
 function eggBuyCostume(id) {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, it = COSTUMES.find(x => x.id === id);
   if (!it || (p.costumes && p.costumes[id])) return;
   p.xp -= it.cost;                                     // Minus erlaubt, Stufe bleibt
@@ -1810,6 +1824,7 @@ function eggBuyCostume(id) {
 }
 
 function eggPlay(id) {
+  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, toy = TOY_ITEMS.find(t => t.id === id);
   if (!toy || !p.toys || !p.toys[id]) return;
   if (p.krank) { flash("🤒 Zu krank zum Spielen."); return; }
@@ -1888,7 +1903,7 @@ function eggCheckIn() {
   const p = dragon, now = Date.now();
   const last = p.lastSeen || now;
   const elapsed = Math.max(0, (now - last) / 1000);
-  p.power = clampI(p.power - DECAY_PS.power * elapsed * Math.max(0.4, 1 - Math.min(p.prestige || 0, 3) * 0.2), 0, 100);
+  p.power = clampI(p.power - DECAY_PS.power * elapsed, 0, 100);
   p.hunger = clampI(p.hunger - DECAY_PS.hunger * elapsed, 0, 100);
   const altS = p.sauberkeit;
   p.sauberkeit = clampI(p.sauberkeit - DECAY_PS.sauberkeit * elapsed, 0, 100);
@@ -1897,7 +1912,7 @@ function eggCheckIn() {
   p.krankSeit = p.krank ? (p.krankSeit || now) : 0;
   const mess = Array.isArray(p.mess) ? p.mess.slice() : [];
   const lost = altS - p.sauberkeit;
-  const neu = Math.max(0, Math.min(6 - mess.length, Math.floor(lost / 8)));
+  const neu = Math.max(0, Math.min(6 - mess.length, Math.floor(lost / 10)));
   for (let i = 0; i < neu; i++) {
     const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "poop"];
     mess.push({ type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) });
@@ -1909,7 +1924,7 @@ function eggCheckIn() {
   if (lastDate !== today) {
     const yesterday = new Date(Date.now() - 86400000).toDateString();
     p.streak = lastDate === yesterday ? (p.streak || 0) + 1 : 1;
-    const starBonus = p.streak >= 7 ? 2 : 1, xpBonus = p.streak >= 7 ? 5 : 3;
+    const starBonus = p.streak >= 7 ? 3 : 2, xpBonus = p.streak >= 7 ? 5 : 3;
     p.stardust = (p.stardust || 0) + starBonus;
     p.xp += xpBonus; p.stage = Math.max(p.stage, stageForXp(p.xp));
     p.lastLogin = now;
@@ -1958,9 +1973,15 @@ function eggSections() {
   h += "</div></details>";
   // Pflege
   h += '<details class="eg-sec"><summary style="color:#5ad0b0">🍳 Pflege</summary><div class="eg-pane">';
+  if (p.power <= 0) {
+    h += '<div class="eg-dim" style="margin:2px 0 6px">🔌 Stromausfall — im Dunkeln geht nichts. Zuerst laden!</div>';
+    h += '<button class="eg-btn eg-wide eg-gold" data-act="charge">🔋 Stromzelle (2✨)</button>';
+    h += "</div></details>";
+    return h;
+  }
   if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
   h += '<div class="eg-grid2">';
-  if (p.power < 100) h += '<button class="eg-btn" data-act="charge">🔋 Stromzelle (' + Math.max(1, Math.ceil((100 - p.power) / 35)) + "✨)</button>";
+  if (p.power < 100) h += '<button class="eg-btn" data-act="charge">🔋 Stromzelle (' + Math.max(1, Math.ceil((100 - p.power) / 50)) + "✨)</button>";
   if (p.mess.length > 0 || p.sauberkeit < 85)
     h += '<button class="eg-btn" data-act="clean">' + (p.mess.length > 0 ? "🧹 Haufen weg (" + p.mess.length + " da · 1✨)" : "🧼 Wischen (" + (p.sauberkeit > 60 ? 1 : p.sauberkeit > 30 ? 2 : 3) + "✨)") + "</button>";
   if (p.krank) h += '<button class="eg-btn" data-act="heal">💊 Medizin (5✨)</button>';
@@ -2080,21 +2101,21 @@ function eggLoop() {
 }
 
 /* ---------- Intervalle & Lifecycle ---------- */
-setInterval(() => {                                        // Strom (~36h voll->leer) + Integrität
-  const p = dragon, pr = Math.min(p.prestige || 0, 3);
-  p.power = clampI(p.power - Math.max(0.4, 1 - pr * 0.2), 0, 100);
-  if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
+setInterval(() => {                                        // Strom: nach 12h komplett leer
+  const p = dragon;
+  p.power = clampI(p.power - 1, 0, 100);
   saveDragon(); markDirty();
-}, 1300000);
+}, 432000);
 setInterval(() => {                                        // Hunger (~2,5 Tage)
   const p = dragon;
   p.hunger = clampI(p.hunger - 1, 0, 100);
+  if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
   const krank = p.krank || p.sauberkeit <= 0 || p.hunger <= 1;
   p.krankSeit = krank ? (p.krankSeit || Date.now()) : 0;
   p.krank = krank;
   Object.assign(p, applyKrankDevolve(p, Date.now()));
   saveDragon(); markDirty();
-}, 2160000);
+}, 3456000);
 setInterval(() => {                                        // Sauberkeit (~4 Tage) + Dreck
   const p = dragon;
   p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
@@ -2103,7 +2124,7 @@ setInterval(() => {                                        // Sauberkeit (~4 Tag
     p.mess = [...p.mess, { type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) }];
   }
   saveDragon(); markDirty();
-}, 3456000);
+}, 4320000);
 setInterval(saveDragon, 60000);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) saveDragon();
