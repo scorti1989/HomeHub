@@ -1600,7 +1600,7 @@ function loadDragon(d) {
   } else {
     dragon = base;                                    // altes Drachen-Format oder leer -> Neustart bei 0
   }
-  saveDragon(); eggCheckIn(); markDirty();
+  eggCheckIn(); markDirty();   // eggCheckIn liest lastSeen und speichert am Ende selbst
 }
 
 /* ---------- Toast ---------- */
