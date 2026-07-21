@@ -654,8 +654,17 @@ body{
 .tk-venuebox{background:#faf9fd;border:1px solid #ece9f5;border-radius:11px;padding:10px 11px;margin-bottom:9px}
 .tk-venuename{font-size:14px;font-weight:700;color:#5b21b6;margin-bottom:2px}
 
+
+.tk-inlineform{background:#fff;border:2px solid #7c3aed;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(124,58,237,.15)}
+.tkf-formhead{font-size:15px;font-weight:800;color:#5b21b6;margin-bottom:12px}
+.tk-history{margin-top:16px;border-top:1px solid #e5e5ec;padding-top:6px}
+.tk-history summary{font-size:14px;font-weight:700;color:#888;cursor:pointer;padding:6px 0;list-style:none}
+.tk-history summary::-webkit-details-marker{display:none}
+.tk-history summary::before{content:'▸ ';color:#bbb}
+.tk-history[open] summary::before{content:'▾ '}
+
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=12">
+  <link rel="stylesheet" href="dragon-game.css?v=13">
 </head>
 <body>
 
@@ -1327,7 +1336,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=12"></script>
+<script src="dragon-game.js?v=13"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -4903,7 +4912,7 @@ let formTickets = [];                 // Arbeitskopie der Ticket-Zeilen im Formu
 
 function tkUid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function isMine(name) { const n = (name || '').trim().toLowerCase(); return n === '' || n === 'ich' || n === 'mir'; }
-function mineLabel(name) { return isMine(name) ? 'Mir' : name; }
+function mineLabel(name) { return isMine(name) ? 'Ich' : name; }
 
 function daysUntil(dateStr) {
   if (!dateStr) return null;
@@ -4947,28 +4956,36 @@ function renderTickets() {
   const el = document.getElementById('ticketsContent');
   if (!el) return;
   let h = '<div class="tk-wrap"><div class="tk-h">🎫 Konzerte</div>';
-  h += '<button class="tk-add" data-tkact="new">＋ Neues Konzert</button>';
   h += '<div class="tk-seg">' +
     `<button data-tktab="concerts" class="${ticketTab === 'concerts' ? 'on' : ''}">Konzerte</button>` +
     `<button data-tktab="venues" class="${ticketTab === 'venues' ? 'on' : ''}">Städte</button>` +
     `<button data-tktab="debts" class="${ticketTab === 'debts' ? 'on' : ''}">Wer schuldet</button>` +
     '</div>';
 
-  if (ticketTab === 'concerts') h += renderConcertList();
+  if (ticketTab === 'concerts') {
+    if (editConcertId === '__new') h += '<div class="tk-inlineform">' + concertFormHtml(null) + '</div>';
+    else h += '<button class="tk-add" data-tkact="new">＋ Neues Konzert</button>';
+    h += renderConcertList();
+  }
   else if (ticketTab === 'venues') h += renderVenueList();
   else h += renderDebts();
 
   h += '</div>';
   el.innerHTML = h;
+  if (ticketTab === 'concerts' && editConcertId) afterConcertForm();
 }
 
 function renderConcertList() {
-  if (!concerts.length) return '<div class="tk-empty">Noch keine Konzerte.<br>Tippe „Neues Konzert" um zu starten. 🎶</div>';
-  const sorted = concerts.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const up = sorted.filter(c => { const d = daysUntil(c.date); return d === null || d >= 0; }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const past = sorted.filter(c => { const d = daysUntil(c.date); return d !== null && d < 0; });
+  const hasNew = editConcertId === '__new';
+  if (!concerts.length && !hasNew) return '<div class="tk-empty">Noch keine Konzerte.<br>Tippe „Neues Konzert" um zu starten. 🎶</div>';
+  const up = concerts.filter(c => { const d = daysUntil(c.date); return d === null || d >= 0; })
+    .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));   // chronologisch, ohne Datum ans Ende
+  const past = concerts.filter(c => { const d = daysUntil(c.date); return d !== null && d < 0; })
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));            // neueste zuerst
   let h = '';
   const card = (c) => {
+    // Wird dieses Konzert gerade bearbeitet? -> Inline-Formular statt Karte
+    if (editConcertId === c.id) return '<div class="tk-inlineform">' + concertFormHtml(c.id) + '</div>';
     const d = daysUntil(c.date);
     const isPast = d !== null && d < 0;
     let cd = '', cls = '';
@@ -4983,18 +5000,22 @@ function renderConcertList() {
     html += `<div class="tk-venue">📍 ${esc(c.venueId || '—')}${c.city ? ', ' + esc(c.city) : ''}${c.time ? ' · 🕐 ' + esc(c.time) : ''}</div>`;
     html += `<div class="tk-venue">${fmtDate(c.date)}</div></div>`;
     html += `<div class="tk-cd ${cls}">${cd}</div></div>`;
+    const iHold = isMine(c.ticketHolder);
     html += '<div class="tk-meta">';
-    if (c.ticketHolder) html += `<span class="tk-chip hold">🎟 Tickets bei: ${esc(mineLabel(c.ticketHolder))}</span>`;
-    if (c.tickets && c.tickets.length) html += `<span class="tk-chip">${c.tickets.length}× Ticket</span>`;
+    // Bei mir: neutral; bei anderen: klar hervorheben, wo MEIN Ticket ist
+    if (iHold) html += `<span class="tk-chip hold">🎟 Tickets bei mir</span>`;
+    else if (c.ticketHolder) html += `<span class="tk-chip hold">🎟 Mein Ticket bei: ${esc(c.ticketHolder)}</span>`;
     html += '</div>';
-    if (c.tickets && c.tickets.length) {
+    // Ticket-Besitzerliste NUR wenn ich die Tickets halte (dann notiere ich, wem sie gehören)
+    if (iHold && c.tickets && c.tickets.length) {
       html += '<div class="tk-tix">';
       c.tickets.forEach((t, i) => {
         const mine = isMine(t.owner);
         let badges = '';
-        if (!mine) badges += `<span class="tk-b tap ${t.paid ? 'paid' : 'unpaid'}" data-tkact="togglepaid" data-cid="${c.id}" data-tix="${i}">${t.paid ? '✓ bezahlt' : '✗ offen'}</span>`;
-        // Übergeben nur relevant, wenn ICH die Tickets halte und sie jemand anderem gehören
-        if (isMine(c.ticketHolder) && !mine) badges += `<span class="tk-b tap ${t.handedOver ? 'given' : ''}" data-tkact="togglegiven" data-cid="${c.id}" data-tix="${i}">${t.handedOver ? '✓ übergeben' : 'übergeben?'}</span>`;
+        if (!mine) {
+          badges += `<span class="tk-b tap ${t.paid ? 'paid' : 'unpaid'}" data-tkact="togglepaid" data-cid="${c.id}" data-tix="${i}">${t.paid ? '✓ bezahlt' : '✗ offen'}</span>`;
+          badges += `<span class="tk-b tap ${t.handedOver ? 'given' : ''}" data-tkact="togglegiven" data-cid="${c.id}" data-tix="${i}">${t.handedOver ? '✓ übergeben' : 'übergeben?'}</span>`;
+        }
         html += `<div class="tk-tix-row"><span class="who">${esc(mineLabel(t.owner))}</span><div class="tk-badges">${badges}</div></div>`;
       });
       html += '</div>';
@@ -5006,102 +5027,54 @@ function renderConcertList() {
     html += '</div></div>';
     return html;
   };
-  if (up.length) { h += '<div style="font-size:13px;font-weight:700;color:#666;margin:4px 0 8px">Kommende</div>'; up.forEach(c => h += card(c)); }
-  if (past.length) { h += '<div style="font-size:13px;font-weight:700;color:#999;margin:14px 0 8px">Vergangene</div>'; past.forEach(c => h += card(c)); }
+  up.forEach(c => h += card(c));
+  if (past.length) {
+    h += '<details class="tk-history"><summary>🕓 Historie (' + past.length + ')</summary><div style="margin-top:10px">';
+    past.forEach(c => h += card(c));
+    h += '</div></details>';
+  }
   return h;
 }
 
-// ── Städte-Datenbank rendern (ersetzt Locations) ──
-function renderVenueList() {
-  const names = Object.keys(cities).sort();
-  if (!names.length) return '<div class="tk-empty">Noch keine Städte gespeichert.<br>Sie entstehen automatisch, sobald du bei einem Konzert eine Stadt einträgst. 🏙</div>';
-  const stars = (n) => n ? '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n) : '';
-  let h = '';
-  names.forEach(cn => {
-    const city = cities[cn];
-    const venuesObj = city.venues || {};
-    const vNames = Object.keys(venuesObj).sort();
-    h += `<div class="tk-vcard"><div class="tk-vname">🏙 ${esc(cn)}</div>`;
-    if (city.note) h += `<div class="tk-venue" style="margin-bottom:8px">📝 ${esc(city.note)}</div>`;
-
-    if (!vNames.length) {
-      h += '<div class="tk-venue" style="color:#aaa;margin-bottom:8px">Noch keine Venue-Infos.</div>';
-    }
-    vNames.forEach(vn => {
-      const v = venuesObj[vn];
-      const asp = v.aspects || {};
-      const concertsHere = concerts.filter(x => x.city === cn && x.venueId === vn).map(x => x.artist).filter(Boolean);
-      h += `<div class="tk-venuebox"><div class="tk-venuename">🎪 ${esc(vn)}</div>`;
-      if (concertsHere.length) h += `<div class="tk-venue" style="margin:2px 0 6px">🎤 ${esc(concertsHere.join(', '))}</div>`;
-      h += '<div class="tk-vgrid">';
-      const row = (icon, label, a) => {
-        if (!a || (!a.rating && !a.note && !a.where)) return '';
-        let val = a.rating ? `<span class="tk-stars">${stars(a.rating)}</span>` : '';
-        if (a.where) val += (val ? ' ' : '') + esc(a.where);
-        if (a.note) val += `<div class="tk-anote">${esc(a.note)}</div>`;
-        return `<span class="k">${icon} ${label}</span><span class="v">${val || '—'}</span>`;
-      };
-      if (v.maps) h += `<span class="k">📍 Karte</span><span class="v"><a href="${esc(v.maps)}" target="_blank" rel="noopener">In Maps öffnen ↗</a></span>`;
-      h += row('🅿️', 'Parken', asp.parking);
-      h += row('💶', 'Preise', asp.prices);
-      h += row('🍔', 'Essen', asp.food);
-      h += row('🧥', 'Garderobe', asp.wardrobe);
-      h += row('🚗', 'Heimfahrt', asp.trip);
-      if (v.note) h += `<span class="k">📝 Notiz</span><span class="v">${esc(v.note)}</span>`;
-      h += '</div>';
-      h += `<div class="tk-actions" style="margin-top:8px"><button class="tk-edit" data-tkact="editvenue" data-city="${esc(cn)}" data-venue="${esc(vn)}">Bearbeiten & bewerten</button></div>`;
-      h += '</div>';
-    });
-    h += `<button class="tkf-addtix" style="margin-top:9px" data-tkact="addvenue" data-city="${esc(cn)}">＋ Venue in ${esc(cn)} hinzufügen</button>`;
-    h += '</div>';
-  });
-  return h;
-}
 // ════════════════════════════════════════════
-// KONZERT-FORMULAR (Modal)
+// KONZERT-FORMULAR (inline)
 // ════════════════════════════════════════════
-function openConcertForm(id) {
-  editConcertId = id || null;
+function concertFormHtml(id) {
   const c = id ? concerts.find(x => x.id === id) : null;
-  formTickets = c && c.tickets ? JSON.parse(JSON.stringify(c.tickets)) : [{ owner: 'Mir', price: '', paid: true, handedOver: false }];
+  formTickets = c && c.tickets ? JSON.parse(JSON.stringify(c.tickets)) : [{ owner: 'Ich', price: '', paid: true, handedOver: false }];
   const cityNames = Object.keys(cities).sort();
   const cityDl = cityNames.map(n => `<option value="${esc(n)}">`).join('');
-  // Personen-Dropdown-Optionen (echtes <select> statt datalist)
-  const peopleOpts = ['Mir', ...ticketPeople.filter(pp => !isMine(pp))];
+  const peopleOpts = ['Ich', ...ticketPeople.filter(pp => !isMine(pp))];
+  const curHolder = c ? (c.ticketHolder || 'Ich') : 'Ich';
+  const iHold = isMine(curHolder);
 
-  let h = '<div class="tkf-row"><label>Künstler / Konzert</label><input id="tkfArtist" value="' + esc(c ? c.artist || '' : '') + '" placeholder="z.B. Die Ärzte"></div>';
+  let h = '<div class="tkf-formhead">' + (id ? '✏️ Konzert bearbeiten' : '🎫 Neues Konzert') + '</div>';
+  h += '<div class="tkf-row"><label>Künstler / Konzert</label><input id="tkfArtist" value="' + esc(c ? c.artist || '' : '') + '" placeholder="z.B. Die Ärzte"></div>';
   h += '<div class="tkf-two"><div class="tkf-row"><label>Location / Venue</label><input id="tkfVenue" value="' + esc(c ? c.venueId || '' : '') + '" placeholder="z.B. Kurpark"></div>';
   h += '<div class="tkf-row"><label>Stadt</label><input id="tkfCity" list="tkfCityList" value="' + esc(c ? c.city || '' : '') + '" placeholder="z.B. Hamm"><datalist id="tkfCityList">' + cityDl + '</datalist></div></div>';
   h += '<div class="tkf-two"><div class="tkf-row"><label>Datum</label><input type="date" id="tkfDate" value="' + esc(c ? c.date || '' : '') + '"></div>';
   h += '<div class="tkf-row"><label>Uhrzeit</label><input type="time" id="tkfTime" value="' + esc(c ? c.time || '' : '') + '"></div></div>';
-  // Wer hat die Tickets — echtes select
+  // Wer hat die Tickets
   h += '<div class="tkf-row"><label>Wer hat die Tickets?</label><select id="tkfHolder">';
-  const curHolder = c ? (c.ticketHolder || 'Mir') : 'Mir';
-  peopleOpts.forEach(o => { h += `<option value="${esc(o)}"${(isMine(o) && isMine(curHolder)) || o === curHolder ? ' selected' : ''}>${esc(mineLabel(o))}</option>`; });
-  h += '<option value="__new"' + (!peopleOpts.some(o => o === curHolder || (isMine(o) && isMine(curHolder))) ? ' selected' : '') + '>+ Andere Person …</option>';
-  h += '</select><input id="tkfHolderNew" placeholder="Name eingeben" style="display:none;margin-top:7px"></div>';
-  // Tickets — Button OBEN
-  h += '<div class="tkf-row"><label>Tickets</label><button type="button" class="tkf-addtix" data-tkact="addtix">＋ Ticket hinzufügen</button><div id="tkfTixList"></div></div>';
+  peopleOpts.forEach(o => { h += `<option value="${esc(o)}"${(isMine(o) && iHold) || o === curHolder ? ' selected' : ''}>${esc(mineLabel(o))}</option>`; });
+  h += '<option value="__new"' + (!peopleOpts.some(o => o === curHolder || (isMine(o) && iHold)) ? ' selected' : '') + '>+ Andere Person …</option>';
+  h += '</select><input id="tkfHolderNew" placeholder="Name eingeben" style="display:none;margin-top:7px" value="' + (iHold ? '' : esc(curHolder)) + '"></div>';
+  // Ticket-Besitzer-Bereich NUR wenn ich die Tickets halte
+  h += '<div id="tkfTixSection" style="display:' + (iHold ? 'block' : 'none') + '">';
+  h += '<div class="tkf-row"><label>Wem gehören die Tickets?</label><button type="button" class="tkf-addtix" data-tkact="addtix">＋ Ticket hinzufügen</button><div id="tkfTixList"></div></div>';
+  h += '</div>';
   h += '<div class="tkf-row"><label>Notiz (optional)</label><textarea id="tkfNote" placeholder="Sitzplatz, Block …">' + esc(c ? c.note || '' : '') + '</textarea></div>';
   h += '<div style="display:flex;gap:9px;margin-top:6px">';
+  h += '<button type="button" class="tk-edit" style="flex:0 0 auto;padding:11px 16px" data-tkact="canceledit">Abbrechen</button>';
   if (id) h += '<button type="button" class="tk-del-btn" data-tkact="delete" data-cid="' + id + '">Löschen</button>';
   h += '<button type="button" class="tk-add" style="margin:0" data-tkact="save">Speichern</button></div>';
-
-  openTicketModal(id ? 'Konzert bearbeiten' : 'Neues Konzert', h);
-  renderFormTickets();
-  // Holder-"Andere Person"-Umschaltung
-  const sel = document.getElementById('tkfHolder');
-  if (sel) {
-    const ni = document.getElementById('tkfHolderNew');
-    if (sel.value === '__new') { ni.style.display = 'block'; ni.value = isMine(curHolder) ? '' : curHolder; }
-    sel.addEventListener('change', () => { ni.style.display = sel.value === '__new' ? 'block' : 'none'; if (sel.value === '__new') ni.focus(); });
-  }
+  return h;
 }
 
 function renderFormTickets() {
   const box = document.getElementById('tkfTixList');
   if (!box) return;
-  const peopleOpts = ['Mir', ...ticketPeople.filter(pp => !isMine(pp))];
+  const peopleOpts = ['Ich', ...ticketPeople.filter(pp => !isMine(pp))];
   let h = '';
   formTickets.forEach((t, i) => {
     const mine = isMine(t.owner);
@@ -5146,6 +5119,70 @@ function syncFormTickets() {
   box.querySelectorAll('.tkfTixPrice').forEach(inp => { formTickets[+inp.dataset.tix].price = inp.value; });
   box.querySelectorAll('.tkfTixPaid').forEach(inp => { formTickets[+inp.dataset.tix].paid = inp.checked; });
 }
+
+// Nach dem Rendern des Inline-Formulars: Holder-Umschaltung + Ticketliste
+function afterConcertForm() {
+  const sel = document.getElementById('tkfHolder');
+  if (!sel) return;
+  const ni = document.getElementById('tkfHolderNew');
+  const section = document.getElementById('tkfTixSection');
+  function refresh() {
+    const isNew = sel.value === '__new';
+    if (ni) ni.style.display = isNew ? 'block' : 'none';
+    // Ticket-Besitzer-Bereich nur wenn ICH die Tickets halte
+    const holderMine = isMine(isNew ? (ni ? ni.value : '') : sel.value);
+    if (section) section.style.display = holderMine ? 'block' : 'none';
+  }
+  sel.addEventListener('change', () => { refresh(); if (sel.value === '__new' && ni) ni.focus(); });
+  if (ni) ni.addEventListener('input', refresh);
+  refresh();
+  renderFormTickets();
+}
+
+function saveConcertForm() {
+  syncFormTickets();
+  const artist = document.getElementById('tkfArtist').value.trim();
+  const venueId = document.getElementById('tkfVenue').value.trim();
+  const city = document.getElementById('tkfCity').value.trim();
+  const date = document.getElementById('tkfDate').value;
+  if (!artist && !date) { alert('Bitte mindestens Künstler oder Datum angeben.'); return; }
+  let holder = document.getElementById('tkfHolder').value;
+  if (holder === '__new') holder = (document.getElementById('tkfHolderNew').value || '').trim() || 'Ich';
+  const iHold = isMine(holder);
+  // Tickets nur speichern, wenn ich sie halte; sonst leer
+  let tickets = [];
+  if (iHold) {
+    tickets = formTickets.map(t => {
+      const owner = (t.owner || 'Ich').trim() || 'Ich';
+      const mine = isMine(owner);
+      return { owner, price: t.price !== '' && t.price != null ? Number(t.price) : null, paid: mine ? true : !!t.paid, handedOver: !!t.handedOver };
+    });
+  }
+  const obj = {
+    id: (editConcertId && editConcertId !== '__new') ? editConcertId : tkUid(),
+    artist, venueId, city, date,
+    time: document.getElementById('tkfTime').value,
+    ticketHolder: iHold ? 'Ich' : holder,
+    tickets,
+    note: document.getElementById('tkfNote').value.trim()
+  };
+  if (editConcertId && editConcertId !== '__new') { const i = concerts.findIndex(c => c.id === editConcertId); if (i >= 0) concerts[i] = obj; }
+  else concerts.push(obj);
+  if (!iHold) rememberPerson(holder);
+  tickets.forEach(t => rememberPerson(t.owner));
+  // Stadt/Venue-Gerüst anlegen
+  if (city) {
+    if (!cities[city]) cities[city] = { note: '', venues: {} };
+    if (!cities[city].venues) cities[city].venues = {};
+    if (venueId && !cities[city].venues[venueId]) cities[city].venues[venueId] = { maps: '', note: '', aspects: {} };
+  }
+  save('vh_concerts', concerts);
+  save('vh_cities', cities);
+  editConcertId = null;
+  renderTickets();
+  renderConcertBanner();
+}
+
 
 // ── Stadt-Formular mit Aspekt-Bewertungen ──
 function openVenueForm(cityName, venueName) {
@@ -5257,13 +5294,14 @@ function initTicketsDelegation() {
     const b = e.target.closest('[data-tkact]');
     if (!b) return;
     const act = b.dataset.tkact;
-    if (act === 'new') openConcertForm(null);
-    else if (act === 'edit') openConcertForm(b.dataset.cid);
+    if (act === 'new') { editConcertId = '__new'; renderTickets(); }
+    else if (act === 'edit') { editConcertId = b.dataset.cid; renderTickets(); }
+    else if (act === 'canceledit') { editConcertId = null; renderTickets(); }
     else if (act === 'save') saveConcertForm();
     else if (act === 'delete') {
       if (confirm('Dieses Konzert wirklich löschen?')) {
         concerts = concerts.filter(c => c.id !== b.dataset.cid);
-        save('vh_concerts', concerts); closeTicketModal(); renderTickets(); renderConcertBanner();
+        save('vh_concerts', concerts); editConcertId = null; renderTickets(); renderConcertBanner();
       }
     }
     else if (act === 'addtix') { syncFormTickets(); formTickets.push({ owner: '', price: '', paid: false, handedOver: false }); renderFormTickets(); }
