@@ -4,15 +4,15 @@
 // gemischte (index.html neu + dragon-game.js alt) Dateien, die zu
 // einem fast leeren Bildschirm führen konnten.
 
-const CACHE_VERSION = 'hh-v13';   // ← erhöht: löscht alten Cache automatisch
+const CACHE_VERSION = 'hh-v14';   // ← erhöht: löscht alten Cache automatisch
 const CACHE_NAME = `homehub-${CACHE_VERSION}`;
 const NET_TIMEOUT = 4000;        // ms – bei lahmem Handynetz nicht ewig warten
 
 const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',
-  './dragon-game.js?v=13',
-  './dragon-game.css?v=13',
+  './dragon-game.js?v=14',
+  './dragon-game.css?v=14',
 ];
 
 // Installation: Assets für den Offline-Fall vorab cachen

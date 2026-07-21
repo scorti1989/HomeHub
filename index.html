@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=13">
+  <link rel="stylesheet" href="dragon-game.css?v=14">
 </head>
 <body>
 
@@ -1336,7 +1336,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=13"></script>
+<script src="dragon-game.js?v=14"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -5112,12 +5112,13 @@ function syncFormTickets() {
   if (!box) return;
   box.querySelectorAll('.tkfTixOwner').forEach(sel => {
     const i = +sel.dataset.tix;
+    if (!formTickets[i]) return;
     let owner = sel.value;
     if (owner === '__new') { const ni = box.querySelector('.tkfTixOwnerNew[data-tix="' + i + '"]'); owner = ni ? ni.value : ''; }
     formTickets[i].owner = owner;
   });
-  box.querySelectorAll('.tkfTixPrice').forEach(inp => { formTickets[+inp.dataset.tix].price = inp.value; });
-  box.querySelectorAll('.tkfTixPaid').forEach(inp => { formTickets[+inp.dataset.tix].paid = inp.checked; });
+  box.querySelectorAll('.tkfTixPrice').forEach(inp => { const i = +inp.dataset.tix; if (formTickets[i]) formTickets[i].price = inp.value; });
+  box.querySelectorAll('.tkfTixPaid').forEach(inp => { const i = +inp.dataset.tix; if (formTickets[i]) formTickets[i].paid = inp.checked; });
 }
 
 // Nach dem Rendern des Inline-Formulars: Holder-Umschaltung + Ticketliste
@@ -5137,6 +5138,15 @@ function afterConcertForm() {
   if (ni) ni.addEventListener('input', refresh);
   refresh();
   renderFormTickets();
+}
+
+function rememberPerson(name) {
+  const n = (name || '').trim();
+  if (!n || isMine(n)) return;
+  if (!ticketPeople.some(pp => pp.toLowerCase() === n.toLowerCase())) {
+    ticketPeople.push(n);
+    save('vh_ticketpeople', ticketPeople);
+  }
 }
 
 function saveConcertForm() {
