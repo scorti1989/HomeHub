@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=14">
+  <link rel="stylesheet" href="dragon-game.css?v=15">
 </head>
 <body>
 
@@ -1336,7 +1336,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=14"></script>
+<script src="dragon-game.js?v=15"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -4930,6 +4930,7 @@ function upcomingConcerts() {
 
 // ── Home-Banner: nächstes Konzert ──
 function renderConcertBanner() {
+ try {
   const el = document.getElementById('concertBanner');
   if (!el) return;
   const up = upcomingConcerts();
@@ -4943,6 +4944,11 @@ function renderConcertBanner() {
     `<span class="cb-main">${esc(c.artist || 'Konzert')}</span>` +
     `<span class="cb-sub">${fmtDate(c.date)}${c.time ? ' · ' + esc(c.time) : ''}${venue}</span>`;
   el.onclick = () => showPage('tickets');
+ } catch (err) {
+   console.warn('[Konzerte] Banner:', err);
+   const el2 = document.getElementById('concertBanner');
+   if (el2) el2.style.display = 'none';
+ }
 }
 
 function fmtDate(dateStr) {
@@ -4952,7 +4958,11 @@ function fmtDate(dateStr) {
 }
 
 // ── Seite rendern ──
+// Fehlte in der App (Aufruf beim Speichern der Einstellungen) — sicherer No-op
+if (typeof applyRecipeModuleState !== 'function') { window.applyRecipeModuleState = function () {}; }
+
 function renderTickets() {
+ try {
   const el = document.getElementById('ticketsContent');
   if (!el) return;
   let h = '<div class="tk-wrap"><div class="tk-h">🎫 Konzerte</div>';
@@ -4973,6 +4983,11 @@ function renderTickets() {
   h += '</div>';
   el.innerHTML = h;
   if (ticketTab === 'concerts' && editConcertId) afterConcertForm();
+ } catch (err) {
+   console.warn('[Konzerte] Render:', err);
+   const el2 = document.getElementById('ticketsContent');
+   if (el2) el2.innerHTML = '<div class="tk-wrap"><div class="tk-empty">Anzeige-Fehler. Bitte Seite neu laden.<br><small>' + String(err && err.message || '').slice(0,120) + '</small></div></div>';
+ }
 }
 
 function renderConcertList() {
@@ -5033,6 +5048,76 @@ function renderConcertList() {
     past.forEach(c => h += card(c));
     h += '</div></details>';
   }
+  return h;
+}
+
+// ── Städte-Datenbank mit Venues rendern ──
+function renderVenueList() {
+  const names = Object.keys(cities).sort();
+  if (!names.length) return '<div class="tk-empty">Noch keine Städte gespeichert.<br>Sie entstehen automatisch, sobald du bei einem Konzert eine Stadt einträgst. 🏙</div>';
+  const stars = (n) => n ? '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n) : '';
+  let h = '';
+  names.forEach(cn => {
+    const city = cities[cn] || {};
+    const venuesObj = city.venues || {};
+    const vNames = Object.keys(venuesObj).sort();
+    h += `<div class="tk-vcard"><div class="tk-vname">🏙 ${esc(cn)}</div>`;
+    if (city.note) h += `<div class="tk-venue" style="margin-bottom:8px">📝 ${esc(city.note)}</div>`;
+    if (!vNames.length) h += '<div class="tk-venue" style="color:#aaa;margin-bottom:8px">Noch keine Venue-Infos.</div>';
+    vNames.forEach(vn => {
+      const v = venuesObj[vn] || {};
+      const asp = v.aspects || {};
+      const concertsHere = concerts.filter(x => x.city === cn && x.venueId === vn).map(x => x.artist).filter(Boolean);
+      h += `<div class="tk-venuebox"><div class="tk-venuename">🎪 ${esc(vn)}</div>`;
+      if (concertsHere.length) h += `<div class="tk-venue" style="margin:2px 0 6px">🎤 ${esc(concertsHere.join(', '))}</div>`;
+      h += '<div class="tk-vgrid">';
+      const row = (icon, label, a) => {
+        if (!a || (!a.rating && !a.note && !a.where)) return '';
+        let val = a.rating ? `<span class="tk-stars">${stars(a.rating)}</span>` : '';
+        if (a.where) val += (val ? ' ' : '') + esc(a.where);
+        if (a.note) val += `<div class="tk-anote">${esc(a.note)}</div>`;
+        return `<span class="k">${icon} ${label}</span><span class="v">${val || '—'}</span>`;
+      };
+      if (v.maps) h += `<span class="k">📍 Karte</span><span class="v"><a href="${esc(v.maps)}" target="_blank" rel="noopener">In Maps öffnen ↗</a></span>`;
+      h += row('🅿️', 'Parken', asp.parking);
+      h += row('💶', 'Preise', asp.prices);
+      h += row('🍔', 'Essen', asp.food);
+      h += row('🧥', 'Garderobe', asp.wardrobe);
+      h += row('🚗', 'Heimfahrt', asp.trip);
+      if (v.note) h += `<span class="k">📝 Notiz</span><span class="v">${esc(v.note)}</span>`;
+      h += '</div>';
+      h += `<div class="tk-actions" style="margin-top:8px"><button class="tk-edit" data-tkact="editvenue" data-city="${esc(cn)}" data-venue="${esc(vn)}">Bearbeiten & bewerten</button></div>`;
+      h += '</div>';
+    });
+    h += `<button class="tkf-addtix" style="margin-top:9px" data-tkact="addvenue" data-city="${esc(cn)}">＋ Venue in ${esc(cn)} hinzufügen</button>`;
+    h += '</div>';
+  });
+  return h;
+}
+
+// ── Wer schuldet wem (aus unbezahlten Tickets) ──
+function renderDebts() {
+  const balance = {};
+  concerts.forEach(c => {
+    (c.tickets || []).forEach(t => {
+      const owner = (t.owner || '').trim();
+      if (isMine(owner)) return;
+      if (t.paid) return;
+      const amt = Number(t.price || 0);
+      if (!amt) { balance[owner] = balance[owner] || 0; return; }
+      if (isMine(c.ticketHolder)) balance[owner] = (balance[owner] || 0) + amt;
+      else balance[owner] = (balance[owner] || 0) - amt;
+    });
+  });
+  const names = Object.keys(balance).filter(n => Math.abs(balance[n]) > 0.005);
+  if (!names.length) return '<div class="tk-empty">Keine offenen Ticket-Schulden. 🎉<br><span style="font-size:12px">Trage bei Tickets einen Preis ein und lasse „bezahlt" offen, dann wird hier abgerechnet.</span></div>';
+  let h = '<div class="tk-debt">';
+  names.sort().forEach(n => {
+    const v = balance[n];
+    const txt = v > 0 ? `schuldet dir <span class="pos">${v.toFixed(2)} €</span>` : `du schuldest <span class="neg">${Math.abs(v).toFixed(2)} €</span>`;
+    h += `<div class="tk-debt-row"><span>${esc(n)}</span><span>${txt}</span></div>`;
+  });
+  h += '</div><div style="font-size:11.5px;color:#999;padding:0 4px">Nur unbezahlte Tickets mit Preis. Als „bezahlt" markieren entfernt den Eintrag.</div>';
   return h;
 }
 
@@ -5299,9 +5384,13 @@ function closeTicketModal() {
 // ── Event-Delegation ──
 function initTicketsDelegation() {
   document.addEventListener('click', (e) => {
-    const seg = e.target.closest('[data-tktab]');
+   // Fehlerfest: darf NIE die restliche App beeinträchtigen
+   try {
+    const t = e.target;
+    if (!t || typeof t.closest !== 'function') return;
+    const seg = t.closest('[data-tktab]');
     if (seg) { ticketTab = seg.dataset.tktab; renderTickets(); return; }
-    const b = e.target.closest('[data-tkact]');
+    const b = t.closest('[data-tkact]');
     if (!b) return;
     const act = b.dataset.tkact;
     if (act === 'new') { editConcertId = '__new'; renderTickets(); }
@@ -5316,8 +5405,8 @@ function initTicketsDelegation() {
     }
     else if (act === 'addtix') { syncFormTickets(); formTickets.push({ owner: '', price: '', paid: false, handedOver: false }); renderFormTickets(); }
     else if (act === 'rmtix') { syncFormTickets(); formTickets.splice(+b.dataset.tix, 1); renderFormTickets(); }
-    else if (act === 'togglepaid') { const c = concerts.find(x => x.id === b.dataset.cid); if (c) { c.tickets[+b.dataset.tix].paid = !c.tickets[+b.dataset.tix].paid; save('vh_concerts', concerts); renderTickets(); } }
-    else if (act === 'togglegiven') { const c = concerts.find(x => x.id === b.dataset.cid); if (c) { c.tickets[+b.dataset.tix].handedOver = !c.tickets[+b.dataset.tix].handedOver; save('vh_concerts', concerts); renderTickets(); } }
+    else if (act === 'togglepaid') { const c = concerts.find(x => x.id === b.dataset.cid); const t2 = c && c.tickets ? c.tickets[+b.dataset.tix] : null; if (t2) { t2.paid = !t2.paid; save('vh_concerts', concerts); renderTickets(); } }
+    else if (act === 'togglegiven') { const c = concerts.find(x => x.id === b.dataset.cid); const t3 = c && c.tickets ? c.tickets[+b.dataset.tix] : null; if (t3) { t3.handedOver = !t3.handedOver; save('vh_concerts', concerts); renderTickets(); } }
     else if (act === 'viewvenue') { ticketTab = 'venues'; renderTickets(); const cy = b.dataset.city, vn = b.dataset.venue; setTimeout(() => openVenueForm(cy, vn), 60); }
     else if (act === 'editvenue') openVenueForm(b.dataset.city, b.dataset.venue);
     else if (act === 'addvenue') openVenueForm(b.dataset.city, '');
@@ -5329,6 +5418,9 @@ function initTicketsDelegation() {
     }
     else if (act === 'savevenue') saveVenueForm(b.dataset.oldcity, b.dataset.oldvenue);
     else if (act === 'closemodal') closeTicketModal();
+   } catch (err) {
+     console.warn('[Konzerte] Aktion fehlgeschlagen:', err);
+   }
   });
 }
 
