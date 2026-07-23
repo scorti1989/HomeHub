@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=16">
+  <link rel="stylesheet" href="dragon-game.css?v=17">
 </head>
 <body>
 
@@ -1100,7 +1100,7 @@ body{
       <input id="s-synctoken" type="password" placeholder="dein Passwort" autocomplete="off">
     </div>
     <div id="syncStatus" style="font-size:12px;color:#666;margin:-2px 0 8px"></div>
-    <button id="syncNowBtn" style="width:100%;padding:9px;border:none;border-radius:9px;background:#ede9fe;color:#5b21b6;font-weight:700;cursor:pointer">Jetzt abgleichen</button>
+    <button type="button" id="syncNowBtn" onclick="hhSync.run(true)" style="width:100%;padding:9px;border:none;border-radius:9px;background:#ede9fe;color:#5b21b6;font-weight:700;cursor:pointer">Jetzt abgleichen</button>
   </div>
   <div class="settings-section settings-section-danger">
     <div class="settings-section-title" style="color:var(--red)">Daten löschen</div>
@@ -1347,7 +1347,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=16"></script>
+<script src="dragon-game.js?v=17"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -6885,18 +6885,28 @@ const hhSync = (function () {
   // ---------- Netz ----------
   async function pull() {
     const c = cfg();
-    const r = await fetch(c.url + '/load?app=' + APP, { headers: { 'X-Sync-Token': c.token } });
+    let r;
+    try {
+      r = await fetch(c.url + '/load?app=' + APP, { headers: { 'X-Sync-Token': c.token } });
+    } catch (e) {
+      throw new Error('Server nicht erreichbar — Adresse prüfen oder offline?');
+    }
     if (r.status === 401) throw new Error('Passwort stimmt nicht');
     if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
     return await r.json();
   }
   async function push() {
     const c = cfg();
-    const r = await fetch(c.url + '/save?app=' + APP, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Sync-Token': c.token },
-      body: JSON.stringify(collect()),
-    });
+    let r;
+    try {
+      r = await fetch(c.url + '/save?app=' + APP, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Sync-Token': c.token },
+        body: JSON.stringify(collect()),
+      });
+    } catch (e) {
+      throw new Error('Server nicht erreichbar — Adresse prüfen oder offline?');
+    }
     if (r.status === 401) throw new Error('Passwort stimmt nicht');
     if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
     const res = await r.json();
@@ -6909,7 +6919,11 @@ const hhSync = (function () {
 
   // ---------- Abgleich ----------
   async function run(manual) {
-    if (!active() || busy) return;
+    if (!active()) {
+      if (manual) status('Bitte zuerst Server-Adresse und Passwort eintragen und speichern.', '#991b1b');
+      return;
+    }
+    if (busy) { if (manual) status('Läuft bereits …'); return; }
     busy = true;
     if (manual) status('Wird abgeglichen …');
     try {
@@ -6959,32 +6973,57 @@ const hhSync = (function () {
 
   return { cfg, setCfg, run, touch, showStatus, push, pull, apply, active };
 })();
+window.hhSync = hhSync;
 
-// Jede Datenänderung (auch im Ei-Spiel) löst automatisch einen Upload aus
+// --- Bedienung zuerst verdrahten, damit sie garantiert aktiv ist ---
+document.addEventListener('click', (e) => {
+  try {
+    const t = e.target;
+    if (!t || typeof t.closest !== 'function') return;
+    if (t.closest('#syncNowBtn')) hhSync.run(true);
+  } catch (err) { console.warn('[Sync] Klick:', err); }
+});
+document.addEventListener('visibilitychange', () => {
+  try {
+    if (document.hidden) {
+      if (localStorage.getItem('vh_sync_dirty')) hhSync.push().catch(() => {});
+    } else {
+      hhSync.run(false);
+    }
+  } catch (err) { console.warn('[Sync] Wechsel:', err); }
+});
+setTimeout(() => { try { hhSync.run(false); } catch (e) {} }, 1200);
+
+// --- Änderungserkennung: jede Datenänderung stößt einen Upload an ---
+// Falls der Browser das Überschreiben verweigert, greift der Fallback weiter unten.
 (function () {
   const IGNORE = { vh_sync: 1, vh_sync_at: 1, vh_sync_dirty: 1 };
-  const origSet = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function (k, v) {
-    origSet(k, v);
-    if (typeof k === 'string' && k.indexOf('vh_') === 0 && !IGNORE[k]) {
-      try { hhSync.touch(); } catch (e) {}
-    }
-  };
-})();
-
-// Beim Start abgleichen, beim Verlassen noch schnell sichern
-setTimeout(() => hhSync.run(false), 1200);
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (localStorage.getItem('vh_sync_dirty')) hhSync.push().catch(() => {});
-  } else {
-    hhSync.run(false);
+  try {
+    const origSet = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (k, v) {
+      origSet(k, v);
+      if (typeof k === 'string' && k.indexOf('vh_') === 0 && !IGNORE[k]) {
+        try { hhSync.touch(); } catch (e) {}
+      }
+    };
+    const probe = 'vh_synccheck';
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+  } catch (err) {
+    console.warn('[Sync] Speicher-Überwachung nicht möglich, nutze Zeitprüfung:', err);
+    let last = '';
+    setInterval(() => {
+      try {
+        const now = ['vh_contracts','vh_expenses','vh_meters','vh_shoplists','vh_concerts',
+                     'vh_cities','vh_recipes','vh_dragon','vh_budgets','vh_recurring',
+                     'vh_transfers','vh_weekplan','vh_prices','vh_ticketpeople','vh_venues']
+          .map(k => (localStorage.getItem(k) || '').length).join('|');
+        if (last && now !== last) hhSync.touch();
+        last = now;
+      } catch (e) {}
+    }, 15000);
   }
-});
-document.addEventListener('click', (e) => {
-  const b = e.target && e.target.closest ? e.target.closest('#syncNowBtn') : null;
-  if (b) hhSync.run(true);
-});
+})();
 
 </script>
 </body>
