@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=19">
+  <link rel="stylesheet" href="dragon-game.css?v=20">
 </head>
 <body>
 
@@ -1352,7 +1352,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=19"></script>
+<script src="dragon-game.js?v=20"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -1472,6 +1472,48 @@ function parseDE(value) {
 }
 
 // ════════════════════════════════════════════
+// ANALYSE-GRUPPEN (HomeHub)
+// ════════════════════════════════════════════
+const ANALYSIS_GROUPS = [
+  { id: 'wohnen',       label: '🏠 Wohnen',               color: '#4A7C5F' },
+  { id: 'versicherung', label: '🛡️ Versicherungen',        color: '#5A7EA8' },
+  { id: 'mobilitaet',   label: '🚗 Mobilität & Auto',      color: '#C47E3A' },
+  { id: 'alltag',       label: '🛒 Lebensmittel & Alltag', color: '#3E8E63' },
+  { id: 'freizeit',     label: '🎉 Freizeit & Abos',       color: '#7A5FA8' },
+  { id: 'gesundheit',   label: '💊 Gesundheit',            color: '#B05A5A' },
+  { id: 'urlaub',       label: '✈️ Urlaub & Reisen',       color: '#C4963A' },
+  { id: 'sparen',       label: '💰 Sparen & Vermögen',     color: '#2B7BA8' },
+  { id: 'sonstiges',    label: '📋 Sonstiges',             color: '#7A8C84' },
+];
+// Kategorie → Analysegruppe Mapping (vollständig, rückwärtskompatibel)
+const ANALYSIS_GROUP_MAP = {
+  // ── Verträge: Wohnen ──
+  strom: 'wohnen', gas: 'wohnen', wasser: 'wohnen', internet: 'wohnen',
+  miete: 'wohnen', rundfunk: 'wohnen', handy: 'wohnen',
+  // ── Verträge: Versicherungen ──
+  versicherung: 'versicherung',
+  // ── Verträge: Mobilität ──
+  transport: 'mobilitaet',
+  // ── Verträge: Freizeit & Abos ──
+  streaming: 'freizeit', gaming: 'freizeit', fitness: 'freizeit', software: 'freizeit',
+  // ── Verträge: Sparen ──
+  sparen: 'sparen',
+  // ── Ausgaben: Lebensmittel & Alltag ──
+  lebensmittel: 'alltag', drogerie: 'alltag', haushalt: 'alltag',
+  // ── Ausgaben: Freizeit ──
+  restaurant: 'freizeit', kino: 'freizeit', konzerte: 'freizeit', freizeit: 'freizeit',
+  lieferdienst: 'freizeit', kleidung: 'freizeit',
+  // ── Ausgaben: Mobilität ──
+  // transport bereits oben
+  // ── Ausgaben: Gesundheit ──
+  gesundheit: 'gesundheit',
+  // ── Ausgaben: Urlaub ──
+  urlaub: 'urlaub',
+  // ── Sonstiges (Fallback) ──
+  elektronik: 'sonstiges', sonstiges: 'sonstiges',
+};
+
+// ════════════════════════════════════════════
 // ZENTRALER APP STATE
 // ════════════════════════════════════════════
 const state = {
@@ -1551,49 +1593,9 @@ const EXP_ICON = {};
 const EXP_BG   = {};
 EXP_CATS.forEach(c => { EXP_ICON[c.v] = c.l.split(' ')[0]; EXP_BG[c.v] = c.bg; });
 
-// ════════════════════════════════════════════
-// ANALYSE-GRUPPEN (HomeHub)
-// ════════════════════════════════════════════
-const ANALYSIS_GROUPS = [
-  { id: 'wohnen',       label: '🏠 Wohnen',               color: '#4A7C5F' },
-  { id: 'versicherung', label: '🛡️ Versicherungen',        color: '#5A7EA8' },
-  { id: 'mobilitaet',   label: '🚗 Mobilität & Auto',      color: '#C47E3A' },
-  { id: 'alltag',       label: '🛒 Lebensmittel & Alltag', color: '#3E8E63' },
-  { id: 'freizeit',     label: '🎉 Freizeit & Abos',       color: '#7A5FA8' },
-  { id: 'gesundheit',   label: '💊 Gesundheit',            color: '#B05A5A' },
-  { id: 'urlaub',       label: '✈️ Urlaub & Reisen',       color: '#C4963A' },
-  { id: 'sparen',       label: '💰 Sparen & Vermögen',     color: '#2B7BA8' },
-  { id: 'sonstiges',    label: '📋 Sonstiges',             color: '#7A8C84' },
-];
-// Kategorie → Analysegruppe Mapping (vollständig, rückwärtskompatibel)
-const ANALYSIS_GROUP_MAP = {
-  // ── Verträge: Wohnen ──
-  strom: 'wohnen', gas: 'wohnen', wasser: 'wohnen', internet: 'wohnen',
-  miete: 'wohnen', rundfunk: 'wohnen', handy: 'wohnen',
-  // ── Verträge: Versicherungen ──
-  versicherung: 'versicherung',
-  // ── Verträge: Mobilität ──
-  transport: 'mobilitaet',
-  // ── Verträge: Freizeit & Abos ──
-  streaming: 'freizeit', gaming: 'freizeit', fitness: 'freizeit', software: 'freizeit',
-  // ── Verträge: Sparen ──
-  sparen: 'sparen',
-  // ── Ausgaben: Lebensmittel & Alltag ──
-  lebensmittel: 'alltag', drogerie: 'alltag', haushalt: 'alltag',
-  // ── Ausgaben: Freizeit ──
-  restaurant: 'freizeit', kino: 'freizeit', konzerte: 'freizeit', freizeit: 'freizeit',
-  lieferdienst: 'freizeit', kleidung: 'freizeit',
-  // ── Ausgaben: Mobilität ──
-  // transport bereits oben
-  // ── Ausgaben: Gesundheit ──
-  gesundheit: 'gesundheit',
-  // ── Ausgaben: Urlaub ──
-  urlaub: 'urlaub',
-  // ── Sonstiges (Fallback) ──
-  elektronik: 'sonstiges', sonstiges: 'sonstiges',
-};
 function getAnalysisGroup(category) {
-  return ANALYSIS_GROUP_MAP[category] || 'sonstiges';
+  try { return ANALYSIS_GROUP_MAP[category] || 'sonstiges'; }
+  catch (e) { return 'sonstiges'; }   // Sicherheitsnetz gegen Reihenfolge-Fehler
 }
 function groupLabel(id) {
   const g = ANALYSIS_GROUPS.find(x => x.id === id);
