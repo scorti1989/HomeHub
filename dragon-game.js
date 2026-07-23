@@ -360,7 +360,7 @@ function drawPowerOff(ctx, S, t) {
     return;
   }
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, CW, CH);
-  const P = EGG_PAL[S.stage]; if (!P.eyes) return;                         // Ur-Ei hat noch keine Augen -> komplett dunkel
+  const P = EGG_PAL[stg(S.stage)]; if (!P.eyes) return;                         // Ur-Ei hat noch keine Augen -> komplett dunkel
   const cx = 92, floorY = FLOOR - 1, eb = S.stage < 2 ? floorY - 12 : floorY, breath = Math.sin(t / 900) * 0.4;
   // frühe Stufen leuchten NICHT -> nur im Dunkeln sichtbar; rissig/kosmisch glimmen
   drawEyes(ctx, cx, eb - (P.rb + P.ht * 0.34) + breath, t, P, S.stage === 5 ? "glow" : "dark");
@@ -605,6 +605,7 @@ function drawEggShapes(g, stage) {
 }
 let EGG = Array.from({ length: 6 }, () => ({ open: null, blink: null, ver: -1 }));
 function ensureEgg(stage) {
+  stage = stg(stage);
   const e = EGG[stage]; if (e.ver === EGG_VER) return;
   const P = EGG_PAL[stage];
   e.open = buildSprite(EGG_W, EGG_H, g => drawEggShapes(g, stage), P.outline);
@@ -1197,7 +1198,7 @@ function drawPrestigeSuck(ctx, S, t) {
     const sc = Math.max(0.02, 1 - q * 0.98);
     const wob = Math.sin(el / 26) * 0.5 * q;                       // Jelly-Verzerrung
     ensureEgg(S.stage);
-    const spr = EGG[S.stage].open;
+    const spr = EGG[stg(S.stage)].open;
     ctx.save();
     ctx.translate(ex, ey);
     ctx.rotate(q * q * 15 + Math.sin(el / 45) * 0.35);             // wirbelt immer schneller
@@ -1286,7 +1287,7 @@ var knockAnim = { on: false, startT: 0 };
 var candleAnim = { on: false, startT: 0 };
 function drawEgg(ctx, S, t) {
   lastT = t;
-  const floorY = FLOOR - 1, P = EGG_PAL[S.stage], lit = S.power > 0;
+  const floorY = FLOOR - 1, P = EGG_PAL[stg(S.stage)], lit = S.power > 0;
   if (S.expActive) {                                                   // Expedition: Ei hüpft aus dem Bild
     if (expAnim.st === "in" || expAnim.st === "returning") {
       expAnim.st = "leaving";
@@ -1332,7 +1333,7 @@ function drawEgg(ctx, S, t) {
     ctx.globalAlpha = 1;
   }
   ensureEgg(S.stage);
-  const spr = EGG[S.stage];
+  const spr = EGG[stg(S.stage)];
   const face = walk.face, walking = !onStand && P.feet && Math.abs(face) > 0.15;
   const hp = (t % 520) / 520, inFlight = walking && hp < 0.72;         // Hüpf-Zyklus
   const hopY = inFlight ? Math.sin(hp / 0.72 * Math.PI) * 9 : 0;        // Parabel-Bogen
@@ -1452,6 +1453,7 @@ function drawEgg(ctx, S, t) {
 const EGG_XP = [0, 300, 1200, 3000, 6000, 10000];
 const FEEL = ["leblos & geheimnisvoll", "es nimmt dich wahr", "watschelt durchs Nest", "greift nach der Welt", "etwas wächst heraus", "kosmische Entität"];
 function clampI(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function stg(n) { n = Math.round(Number(n)); return isFinite(n) ? Math.min(5, Math.max(0, n)) : 0; }
 function stageForXp(xp) { let s = 0; for (let i = 0; i < 6; i++) if (xp >= EGG_XP[i]) s = i; return s; }
 // gewichtete HomeHub-Aktionen (Aufwand/Seltenheit)
 // Balancing (aus HomeHub-Backup 07/2026): ~70 Artikel, ~40 Ausgaben, ~3 Rezepte, ~2 Zähler, ~1.5 Verträge pro Monat
@@ -1588,6 +1590,35 @@ function migrateUnlocked(d) {
   return u;
 }
 
+function sanitizeDragon() {
+  const num = (v, d, min, max) => { const n = Number(v); return isFinite(n) ? Math.min(max, Math.max(min, n)) : d; };
+  dragon.stage       = stg(dragon.stage);
+  dragon.xp          = isFinite(Number(dragon.xp)) ? Number(dragon.xp) : 0;
+  dragon.power       = num(dragon.power, 100, 0, 100);
+  dragon.hunger      = num(dragon.hunger, 100, 0, 100);
+  dragon.sauberkeit  = num(dragon.sauberkeit, 100, 0, 100);
+  dragon.integrity   = num(dragon.integrity, 100, 0, 100);
+  dragon.shards      = num(dragon.shards, 0, 0, 99);
+  dragon.stardust    = num(dragon.stardust, 0, -9999, 999999);
+  dragon.prestige    = num(dragon.prestige, 0, 0, 9999);
+  dragon.expGoal     = num(dragon.expGoal, 12, 1, 999);
+  dragon.expProgress = num(dragon.expProgress, 0, 0, 9999);
+  dragon.krankSeit   = num(dragon.krankSeit, 0, 0, 8.64e15);
+  dragon.lastSeen    = num(dragon.lastSeen, 0, 0, 8.64e15);
+  dragon.streak      = num(dragon.streak, 0, 0, 99999);
+  dragon.krank       = !!dragon.krank;
+  dragon.expActive   = !!dragon.expActive;
+  if (!Array.isArray(dragon.mess)) dragon.mess = [];
+  dragon.mess = dragon.mess.filter(m => m && typeof m === 'object' && typeof m.type === 'string').slice(0, 12);
+  for (const k of ['deko', 'toys', 'costumes', 'unlocked', 'toyCooldown']) {
+    if (!dragon[k] || typeof dragon[k] !== 'object' || Array.isArray(dragon[k])) dragon[k] = {};
+  }
+  if (!dragon.statLog || typeof dragon.statLog !== 'object' || Array.isArray(dragon.statLog)) {
+    dragon.statLog = { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 };
+  }
+  if (!dragon.statLog.byAction || typeof dragon.statLog.byAction !== 'object') dragon.statLog.byAction = {};
+}
+
 function loadDragon(d) {
   const base = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
   if (d && typeof d === "object" && d.egg === true) {
@@ -1631,10 +1662,10 @@ function eggAddXp(n, label) {
   L0.byAction[label] = (L0.byAction[label] || 0) + 1;
   p.statLog = L0;
   p.stardust = stardust + luckyDust;
-  const newStage = Math.max(p.stage, stageForXp(xp));
+  const newStage = stg(Math.max(stg(p.stage), stageForXp(xp)));
   if (newStage > p.stage) {
     p.shards = 5;
-    setTimeout(() => flash("🎉 Entwicklung! " + EGG_PAL[newStage].name), 500);
+    setTimeout(() => flash("🎉 Entwicklung! " + EGG_PAL[stg(newStage)].name), 500);
   }
   p.xp = xp; p.stage = newStage;
   flash("+" + n + " XP · " + label);
@@ -1646,7 +1677,7 @@ function checkExpDone() {
   if (!p.expActive || p.expProgress < p.expGoal) return;
   const ds = 6 + p.stage, xpB = 15 + p.stage * 5, found = nextExpItem(p);
   p.stardust = (p.stardust || 0) + ds;
-  p.xp += xpB; p.stage = Math.max(p.stage, stageForXp(p.xp));
+  p.xp += xpB; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
   p.expActive = false; p.expProgress = 0;
   if (found) { p.unlocked = Object.assign({}, p.unlocked, { [found.id]: true }); }
   p.statLog = p.statLog || {}; p.statLog.exps = (p.statLog.exps || 0) + 1;
@@ -1717,7 +1748,7 @@ function eggFeed(id) {
   p.stardust -= item.cost;
   p.hunger = clampI(p.hunger + item.hunger, 0, 100);
   if (item.power) p.power = clampI(p.power + item.power, 0, 100);
-  if (item.xp) { p.xp += item.xp; p.stage = Math.max(p.stage, stageForXp(p.xp)); }
+  if (item.xp) { p.xp += item.xp; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp))); }
   p.statLog = p.statLog || {}; p.statLog.feeds = (p.statLog.feeds || 0) + 1;
   if (item.id === "spray" || item.id === "broth") {
     sprayAnim = { on: true, startT: lastT };
@@ -1831,7 +1862,7 @@ function eggPlay(id) {
   if (p.stage < 3) { flash("🔒 Braucht Arme (Stufe 4)."); return; }
   const now = Date.now(), cd = (p.toyCooldown || {})[id] || 0;
   if (now < cd) { flash("⏳ " + toy.label + " braucht noch " + Math.ceil((cd - now) / 3600000) + "h Pause."); return; }
-  p.xp += toy.xp; p.stage = Math.max(p.stage, stageForXp(p.xp));
+  p.xp += toy.xp; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
   const ds = Math.random() < 0.3 ? 1 : 0;
   p.stardust = (p.stardust || 0) + ds;
   p.toyCooldown = Object.assign({}, p.toyCooldown, { [id]: now + toy.cd });
@@ -1900,6 +1931,7 @@ function eggPrestige() {
 
 /* ---------- Check-in (Offline-Zeit) ---------- */
 function eggCheckIn() {
+  sanitizeDragon();
   const p = dragon, now = Date.now();
   const last = p.lastSeen || now;
   const elapsed = Math.max(0, (now - last) / 1000);
@@ -1926,7 +1958,7 @@ function eggCheckIn() {
     p.streak = lastDate === yesterday ? (p.streak || 0) + 1 : 1;
     const starBonus = p.streak >= 7 ? 3 : 2, xpBonus = p.streak >= 7 ? 5 : 3;
     p.stardust = (p.stardust || 0) + starBonus;
-    p.xp += xpBonus; p.stage = Math.max(p.stage, stageForXp(p.xp));
+    p.xp += xpBonus; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
     p.lastLogin = now;
     if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + "-Tage-Streak! +" + xpBonus + " XP · +" + starBonus + " ✨"), 900);
   }
@@ -1954,9 +1986,9 @@ function eggSections() {
   let h = "";
   // Status
   h += '<details class="eg-sec"><summary style="color:#ffcf6a">📊 Status</summary><div class="eg-pane">';
-  h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[p.stage].name) + "</span>" +
+  h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
        (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
-  if (EGG_PAL[p.stage].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[p.stage].motto) + '"</div>';
+  if (EGG_PAL[stg(p.stage)].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[stg(p.stage)].motto) + '"</div>';
   if (p.power <= 0) h += '<div style="color:#e0843a;font-size:7px;margin:5px 0">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
   if (p.krank) h += '<div style="color:#ff4a4a;font-size:7px;margin:5px 0">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
   if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
@@ -2028,6 +2060,14 @@ function eggSections() {
 }
 
 function updateEggUI() {
+  try { updateEggUIInner(); } catch (err) {
+    uiDirty = false;
+    console.warn('[Ei] Menüfehler:', err);
+    const se2 = document.getElementById("eggSections");
+    if (se2) se2.innerHTML = '<div class="eg-dim" style="padding:8px">Anzeige konnte nicht aufgebaut werden. App neu laden.</div>';
+  }
+}
+function updateEggUIInner() {
   const se = document.getElementById("eggSections");
   if (!se) return;
   const open = Array.from(se.querySelectorAll("details")).map(d => d.open);
@@ -2037,7 +2077,10 @@ function updateEggUI() {
 }
 
 function eggHandleClick(e) {
-  const b = e.target.closest("[data-act]");
+  try { eggHandleClickInner(e); } catch (err) { console.warn('[Ei] Aktion:', err); }
+}
+function eggHandleClickInner(e) {
+  const b = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
   if (!b) return;
   const act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
   if (act === "nudge") eggNudge();
@@ -2059,6 +2102,9 @@ function eggHandleClick(e) {
 }
 
 function renderDragonCard() {
+  try { renderDragonCardInner(); } catch (err) { console.warn('[Ei] Karte:', err); }
+}
+function renderDragonCardInner() {
   const card = document.getElementById("dragonCard");
   if (!card) return;
   card.innerHTML =
@@ -2069,7 +2115,9 @@ function renderDragonCard() {
   card.removeEventListener("click", eggHandleClick);
   card.addEventListener("click", eggHandleClick);
   eggCanvas = document.getElementById("eggCanvas");
+  if (!eggCanvas || !eggCanvas.getContext) { eggCtx = null; return; }
   eggCtx = eggCanvas.getContext("2d");
+  if (!eggCtx) return;
   eggCtx.imageSmoothingEnabled = false;
   updateEggUI();
   if (!eggRafId) { eggStart = performance.now(); eggLoop(); }
@@ -2078,8 +2126,18 @@ window.renderDragonCard = renderDragonCard;
 
 function eggLoop() {
   eggRafId = requestAnimationFrame(eggLoop);
+  try { eggFrame(); } catch (err) {
+    if (!eggLoop._warned) { eggLoop._warned = true; console.warn('[Ei] Anzeigefehler:', err); }
+  }
+}
+function eggFrame() {
   if (!eggCtx || document.hidden) return;
-  if (!document.getElementById("eggCanvas")) { eggCanvas = null; eggCtx = null; return; }
+  if (!document.getElementById("eggCanvas")) {
+    eggCanvas = null; eggCtx = null;
+    if (eggRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(eggRafId);
+    eggRafId = 0;
+    return;
+  }
   const t = performance.now() - eggStart;
   const St = dragon;
   eggCtx.clearRect(0, 0, CW, CH);
@@ -2102,9 +2160,11 @@ function eggLoop() {
 
 /* ---------- Intervalle & Lifecycle ---------- */
 setInterval(() => {                                        // Strom: nach 12h komplett leer
+  try {
   const p = dragon;
   p.power = clampI(p.power - 1, 0, 100);
   saveDragon(); markDirty();
+  } catch (e) { console.warn('[Ei]', e); }
 }, 432000);
 setInterval(() => {                                        // Hunger (~2,5 Tage)
   const p = dragon;

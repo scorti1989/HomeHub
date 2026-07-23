@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=18">
+  <link rel="stylesheet" href="dragon-game.css?v=19">
 </head>
 <body>
 
@@ -1352,7 +1352,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=18"></script>
+<script src="dragon-game.js?v=19"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -6942,6 +6942,8 @@ const hhSync = (function () {
     } catch (e) { throw new Error('Server nicht erreichbar'); }
     if (r.status === 401) throw new Error('Passwort stimmt nicht');
     if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
+    const res = await r.json().catch(() => ({}));
+    if (!res || res.name !== name) throw new Error('Worker ist veraltet — bitte den neuen Worker-Code bereitstellen');
     return name;
   }
 
