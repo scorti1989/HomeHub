@@ -664,7 +664,7 @@ body{
 .tk-history[open] summary::before{content:'▾ '}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=15">
+  <link rel="stylesheet" href="dragon-game.css?v=16">
 </head>
 <body>
 
@@ -1091,6 +1091,17 @@ body{
   <div class="fg"><label for="s-splitpct">Mein Anteil bei gemeinsamen Ausgaben (%)</label>
     <input id="s-splitpct" type="number" min="1" max="99" placeholder="50" inputmode="numeric">
   </div>
+  <div style="border-top:1px solid #eee;margin:14px 0 10px;padding-top:12px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:8px">☁️ Cloud-Sync</div>
+    <div class="fg"><label for="s-syncurl">Server-Adresse</label>
+      <input id="s-syncurl" placeholder="https://app-sync.xxx.workers.dev" autocomplete="off" inputmode="url">
+    </div>
+    <div class="fg"><label for="s-synctoken">Sync-Passwort</label>
+      <input id="s-synctoken" type="password" placeholder="dein Passwort" autocomplete="off">
+    </div>
+    <div id="syncStatus" style="font-size:12px;color:#666;margin:-2px 0 8px"></div>
+    <button id="syncNowBtn" style="width:100%;padding:9px;border:none;border-radius:9px;background:#ede9fe;color:#5b21b6;font-weight:700;cursor:pointer">Jetzt abgleichen</button>
+  </div>
   <div class="settings-section settings-section-danger">
     <div class="settings-section-title" style="color:var(--red)">Daten löschen</div>
     <div class="settings-section-body">Bitte vorher ein Backup exportieren – dieser Vorgang kann nicht rückgängig gemacht werden.</div>
@@ -1336,7 +1347,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=15"></script>
+<script src="dragon-game.js?v=16"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -4866,6 +4877,12 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 document.getElementById('btnSettings').addEventListener('click', () => {
   document.getElementById('s-partnername').value = settings.partnerName || '';
   document.getElementById('s-splitpct').value = settings.splitPct || 50;
+  try {
+    const c = hhSync.cfg();
+    document.getElementById('s-syncurl').value = c.url || '';
+    document.getElementById('s-synctoken').value = c.token || '';
+    hhSync.showStatus();
+  } catch (e) {}
   openModal('settingsModal');
 });
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
@@ -4873,6 +4890,12 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
   settings.splitPct       = Math.min(99, Math.max(1, parseInt(document.getElementById('s-splitpct').value) || 50));
   save('vh_settings', settings);
   document.getElementById('sharedPill').textContent = '👫 ' + settings.partnerName;
+  try {
+    hhSync.setCfg(
+      document.getElementById('s-syncurl').value.trim().replace(/\/+$/, ''),
+      document.getElementById('s-synctoken').value.trim()
+    );
+  } catch (e) {}
   applyRecipeModuleState();
   closeModal('settingsModal');
   renderHome();
@@ -6755,6 +6778,214 @@ fillGroupSelects();
 autoBookRecurring();
 renderAmpel();
 renderHome();
+
+// ════════════════════════════════════════════
+// CLOUD-SYNC (Cloudflare Worker)
+// Speichert alle Daten automatisch online und holt sie auf jedem Gerät.
+// ════════════════════════════════════════════
+const hhSync = (function () {
+  const APP = 'homehub';
+  let timer = null, busy = false;
+
+  function cfg() {
+    try { return JSON.parse(localStorage.getItem('vh_sync') || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function setCfg(url, token) {
+    localStorage.setItem('vh_sync', JSON.stringify({ url, token }));
+    if (url && token) { setTimeout(() => run(true), 300); }
+  }
+  const active = () => { const c = cfg(); return !!(c.url && c.token); };
+
+  const syncedAt  = () => localStorage.getItem('vh_sync_at') || '';
+  const changedAt = () => localStorage.getItem('vh_sync_dirty') || '';
+
+  function status(txt, col) {
+    const el = document.getElementById('syncStatus');
+    if (el) { el.textContent = txt; el.style.color = col || '#666'; }
+  }
+  function showStatus() {
+    if (!active()) { status('Nicht eingerichtet — Adresse und Passwort eintragen.'); return; }
+    const a = syncedAt();
+    if (!a) { status('Eingerichtet, noch nicht abgeglichen.'); return; }
+    const d = new Date(a);
+    status('Zuletzt abgeglichen: ' + d.toLocaleString('de-DE'), '#166534');
+  }
+
+  // ---------- Daten einsammeln (gleiche Struktur wie das Backup) ----------
+  function collect() {
+    return {
+      contracts, meters, expenses, shopLists, budgets, priceMemory,
+      recurring, settings, transfers, recipes, weekPlan,
+      concerts, venues, cities, ticketPeople,
+      dragon: (typeof dragon === 'object' ? dragon : undefined),
+      exported: new Date().toISOString(),
+    };
+  }
+
+  function hasLocalData() {
+    return (contracts && contracts.length) || (expenses && expenses.length) ||
+           (meters && meters.length) || (concerts && concerts.length) ||
+           (shopLists && shopLists.items && shopLists.items.length);
+  }
+
+  // ---------- Daten übernehmen ----------
+  function apply(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (Array.isArray(data.contracts))  contracts  = migrateContracts(data.contracts);
+    if (Array.isArray(data.meters))     meters     = data.meters;
+    if (Array.isArray(data.expenses))   expenses   = migrateExpenses(data.expenses);
+    if (data.shopLists && typeof data.shopLists === 'object') shopLists = data.shopLists;
+    if (data.budgets && typeof data.budgets === 'object') budgets = data.budgets;
+    if (data.priceMemory && typeof data.priceMemory === 'object') priceMemory = data.priceMemory;
+    if (Array.isArray(data.recurring))  recurring  = data.recurring;
+    if (Array.isArray(data.transfers))  transfers  = data.transfers;
+    if (Array.isArray(data.recipes))    recipes    = data.recipes;
+    if (data.weekPlan && typeof data.weekPlan === 'object' && !Array.isArray(data.weekPlan)) weekPlan = data.weekPlan;
+    if (Array.isArray(data.concerts))   concerts   = data.concerts;
+    if (data.venues && typeof data.venues === 'object' && !Array.isArray(data.venues)) venues = data.venues;
+    if (data.cities && typeof data.cities === 'object' && !Array.isArray(data.cities)) cities = data.cities;
+    if (Array.isArray(data.ticketPeople)) ticketPeople = data.ticketPeople;
+    if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
+      settings = {
+        partnerName: typeof data.settings.partnerName === 'string' && data.settings.partnerName.trim()
+          ? data.settings.partnerName.trim() : 'Partner',
+        splitPct: typeof data.settings.splitPct === 'number' && isFinite(data.settings.splitPct)
+          ? Math.min(99, Math.max(1, Math.round(data.settings.splitPct))) : 50,
+      };
+      const pill = document.getElementById('sharedPill');
+      if (pill) pill.textContent = '👫 ' + settings.partnerName;
+    }
+    if (data.dragon && typeof loadDragon === 'function') loadDragon(data.dragon);
+
+    try { migrateCitiesFromVenues(); migrateCitiesV2(); } catch (e) {}
+
+    save('vh_contracts', contracts);   save('vh_meters', meters);
+    save('vh_expenses', expenses);     save('vh_shoplists', shopLists);
+    save('vh_budgets', budgets);       save('vh_prices', priceMemory);
+    save('vh_recurring', recurring);   save('vh_transfers', transfers);
+    save('vh_settings', settings);     save('vh_recipes', recipes);
+    save('vh_weekplan', weekPlan);     save('vh_concerts', concerts);
+    save('vh_venues', venues);         save('vh_cities', cities);
+    save('vh_ticketpeople', ticketPeople);
+
+    try {
+      renderAmpel(); renderHome(); renderContracts();
+      if (typeof activePage !== 'undefined') {
+        if (activePage === 'kasse') renderKasse();
+        if (activePage === 'meters') renderMeters();
+        if (activePage === 'analysis') renderAnalysis();
+        if (activePage === 'tickets') renderTickets();
+        if (activePage === 'recipes') renderRecipes();
+      }
+    } catch (e) {}
+    return true;
+  }
+
+  // ---------- Netz ----------
+  async function pull() {
+    const c = cfg();
+    const r = await fetch(c.url + '/load?app=' + APP, { headers: { 'X-Sync-Token': c.token } });
+    if (r.status === 401) throw new Error('Passwort stimmt nicht');
+    if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
+    return await r.json();
+  }
+  async function push() {
+    const c = cfg();
+    const r = await fetch(c.url + '/save?app=' + APP, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Sync-Token': c.token },
+      body: JSON.stringify(collect()),
+    });
+    if (r.status === 401) throw new Error('Passwort stimmt nicht');
+    if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
+    const res = await r.json();
+    if (res.savedAt) {
+      localStorage.setItem('vh_sync_at', res.savedAt);
+      localStorage.removeItem('vh_sync_dirty');
+    }
+    return res;
+  }
+
+  // ---------- Abgleich ----------
+  async function run(manual) {
+    if (!active() || busy) return;
+    busy = true;
+    if (manual) status('Wird abgeglichen …');
+    try {
+      const cloud = await pull();
+      const dirty = changedAt() && changedAt() > syncedAt();
+
+      if (cloud && cloud.empty) {
+        if (hasLocalData()) { await push(); status('Daten hochgeladen ✓', '#166534'); }
+        else status('Noch keine Daten vorhanden.');
+      } else {
+        const cloudAt = cloud._savedAt || '';
+        const cloudNewer = cloudAt && cloudAt > syncedAt();
+        if (cloudNewer && dirty) {
+          const ok = confirm(
+            'Auf dem Server liegt ein neuerer Stand (' + new Date(cloudAt).toLocaleString('de-DE') + '),\n' +
+            'aber auf diesem Gerät gibt es ungespeicherte Änderungen.\n\n' +
+            'OK = Server-Stand übernehmen (lokale Änderungen gehen verloren)\n' +
+            'Abbrechen = eigenen Stand hochladen'
+          );
+          if (ok) { apply(cloud); localStorage.setItem('vh_sync_at', cloudAt); localStorage.removeItem('vh_sync_dirty'); status('Server-Stand übernommen ✓', '#166534'); }
+          else { await push(); status('Eigener Stand hochgeladen ✓', '#166534'); }
+        } else if (cloudNewer) {
+          apply(cloud);
+          localStorage.setItem('vh_sync_at', cloudAt);
+          localStorage.removeItem('vh_sync_dirty');
+          status('Neuer Stand geladen ✓', '#166534');
+        } else if (dirty) {
+          await push(); status('Änderungen hochgeladen ✓', '#166534');
+        } else {
+          if (manual) status('Alles aktuell ✓', '#166534');
+        }
+      }
+    } catch (err) {
+      status('Fehler: ' + err.message, '#991b1b');
+      console.warn('[Sync]', err);
+    }
+    busy = false;
+  }
+
+  // ---------- Änderung merken + zeitversetzt hochladen ----------
+  function touch() {
+    if (!active()) return;
+    localStorage.setItem('vh_sync_dirty', new Date().toISOString());
+    clearTimeout(timer);
+    timer = setTimeout(() => { push().then(showStatus).catch(e => console.warn('[Sync]', e)); }, 4000);
+  }
+
+  return { cfg, setCfg, run, touch, showStatus, push, pull, apply, active };
+})();
+
+// Jede Datenänderung (auch im Ei-Spiel) löst automatisch einen Upload aus
+(function () {
+  const IGNORE = { vh_sync: 1, vh_sync_at: 1, vh_sync_dirty: 1 };
+  const origSet = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function (k, v) {
+    origSet(k, v);
+    if (typeof k === 'string' && k.indexOf('vh_') === 0 && !IGNORE[k]) {
+      try { hhSync.touch(); } catch (e) {}
+    }
+  };
+})();
+
+// Beim Start abgleichen, beim Verlassen noch schnell sichern
+setTimeout(() => hhSync.run(false), 1200);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (localStorage.getItem('vh_sync_dirty')) hhSync.push().catch(() => {});
+  } else {
+    hhSync.run(false);
+  }
+});
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest ? e.target.closest('#syncNowBtn') : null;
+  if (b) hhSync.run(true);
+});
+
 </script>
 </body>
 </html>
