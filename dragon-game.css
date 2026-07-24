@@ -1,13 +1,17 @@
-/* =========================================================================
-   dragon-game.css — HomeHub EI-EVOLUTION (ersetzt den Drachen)
-   Behält den Integrations-Kontrakt: .dragon-card / #dragonCard
-   Labor-Pixel-Optik passend zum bisherigen Dark-Design.
-   ========================================================================= */
+/* ══════════════════════════════════════════════════════════════════════════
+   dragon-game.css — HomeHub · EI-EVOLUTION
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+   • Keine externen Abhängigkeiten (kein Google-Fonts-Import) → offlinefähig
+   • Alle Regeln sind auf .dragon-card / .eg-* / #eggCanvas begrenzt,
+     die übrige HomeHub-App wird nicht beeinflusst
+   • Fehlt diese Datei, erscheint das Ei-Modul ungestaltet — die App läuft weiter
+   ══════════════════════════════════════════════════════════════════════════ */
 
-:root {
-  --eg-font: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+/* ── Karte + modulweite Variablen ──────────────────────────────────────── */
+.dragon-card {
+  /* Lokaler Monospace-Stack statt externer Pixel-Schrift */
+  --eg-font: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+             "Liberation Mono", "Courier New", monospace;
   --eg-bg:   #0e0b18;
   --eg-bg2:  #14101f;
   --eg-bg3:  #0a0812;
@@ -18,88 +22,211 @@
   --eg-edge: #2a2440;
   --eg-good: #5ad0b0;
   --eg-bad:  #e04040;
-}
 
-.dragon-card {
   font-family: var(--eg-font);
   background: var(--eg-bg);
   color: var(--eg-ink);
   padding: 12px;
   position: relative;
-  border-radius: 0;
+  border-radius: 0;              /* bewusst kantig: Pixel-Optik */
   box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--eg-edge);
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
   margin: 14px 0;
+  overflow-wrap: anywhere;       /* lange Namen sprengen die Karte nicht */
 }
 
-.eg-head { font-size: 9px; letter-spacing: 1px; margin-bottom: 8px; color: var(--eg-ink); }
+/* Nur innerhalb der Karte — beeinflusst die übrige App nicht */
+.dragon-card *,
+.dragon-card *::before,
+.dragon-card *::after { box-sizing: border-box; }
 
+.eg-head {
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  color: var(--eg-ink);
+}
+
+/* ── Canvas ────────────────────────────────────────────────────────────── */
 .eg-canvas-wrap { position: relative; }
+
 #eggCanvas {
-  display: block; width: 100%; height: auto;
-  image-rendering: pixelated; image-rendering: crisp-edges;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 180 / 156;       /* interne Maße aus dragon-game.js — kein Layout-Sprung */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   background: #0a0812;
   box-shadow: 0 0 0 2px var(--eg-bg3);
 }
 
+/* ── Meldungsstreifen über dem Canvas ─────────────────────────────────── */
 .eg-toast {
-  position: absolute; left: 6px; right: 6px; bottom: 6px;
-  font-size: 7px; line-height: 1.6; padding: 6px 8px;
-  background: rgba(10, 8, 18, 0.92); color: var(--eg-gold);
+  position: absolute;
+  left: 6px; right: 6px; bottom: 6px;
+  font-size: 9px;
+  line-height: 1.6;
+  padding: 6px 8px;
+  background: rgba(10, 8, 18, 0.92);
+  color: var(--eg-gold);
   box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--eg-edge);
-  opacity: 0; transform: translateY(4px); pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
   transition: opacity .18s, transform .18s;
+  overflow-wrap: anywhere;
 }
 .eg-toast.on { opacity: 1; transform: none; }
 
+/* ── Statuszeile (derzeit ungenutzt: die Anzeige sitzt im Canvas-HUD,
+      eggStatusRow() ist in dragon-game.js noch vorhanden) ──────────────── */
 .eg-status {
-  display: flex; align-items: center; flex-wrap: wrap;
-  font-size: 9px; margin: 8px 0 6px; color: var(--eg-dim);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 10px;
+  margin: 8px 0 6px;
+  color: var(--eg-dim);
 }
 .eg-mini {
-  display: inline-block; width: 30px; height: 6px;
-  background: #241c38; vertical-align: middle;
-  margin: 0 10px 0 4px; box-shadow: 0 0 0 1px var(--eg-bg3);
+  display: inline-block;
+  width: 30px; height: 6px;
+  background: #241c38;
+  vertical-align: middle;
+  margin: 0 10px 0 4px;
+  box-shadow: 0 0 0 1px var(--eg-bg3);
+  flex: none;
 }
 .eg-mini > span { display: block; height: 100%; }
-.eg-chip { margin-right: 10px; font-size: 8px; }
+.eg-chip { margin-right: 10px; font-size: 9px; }
 
+/* ── Aufklappbare Bereiche ────────────────────────────────────────────── */
 .eg-sec { margin-bottom: 6px; }
+
 .eg-sec summary {
-  font-family: var(--eg-font); font-size: 8px;
-  cursor: pointer; padding: 8px 9px; list-style: none; user-select: none;
+  font-family: var(--eg-font);
+  font-size: 9px;
+  cursor: pointer;
+  padding: 8px 9px;
+  min-height: 44px;              /* Touchfläche */
+  list-style: none;
+  user-select: none;
   background: var(--eg-bg2);
   box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: anywhere;
 }
 .eg-sec summary::-webkit-details-marker { display: none; }
-.eg-sec summary::after { content: '▸'; color: var(--eg-dim2); font-size: 8px; }
+.eg-sec summary::after { content: '▸'; color: var(--eg-dim2); font-size: 9px; flex: none; }
 .eg-sec[open] summary::after { content: '▾'; color: var(--eg-gold); }
 .eg-sec[open] summary { margin-bottom: 2px; }
+
 .eg-pane {
-  background: var(--eg-bg2); padding: 9px;
+  background: var(--eg-bg2);
+  padding: 9px;
   box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
   margin-bottom: 4px;
+  min-width: 0;
 }
-.eg-row { display: flex; justify-content: space-between; font-size: 8.5px; }
-.eg-dim { color: var(--eg-dim); font-size: 7px; line-height: 1.7; }
-.eg-dim small, .eg-btn small { font-size: 6px; opacity: .85; }
 
+.eg-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  min-width: 0;
+}
+.eg-dim { color: var(--eg-dim); font-size: 8px; line-height: 1.7; min-width: 0; }
+.eg-dim small,
+.eg-btn small { font-size: 8px; opacity: .85; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
 .eg-btn {
-  font-family: var(--eg-font); font-size: 7px; line-height: 1.7;
-  color: var(--eg-ink); background: #221c38; border: none;
-  padding: 8px 4px; width: 100%; cursor: pointer;
+  font-family: var(--eg-font);
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--eg-ink);
+  background: #221c38;
+  border: none;
+  padding: 8px 6px;
+  width: 100%;
+  min-width: 0;                  /* verhindert Überlauf im Raster */
+  min-height: 44px;              /* Touchfläche */
+  cursor: pointer;
   box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px #362c54;
   image-rendering: pixelated;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
-.eg-btn:active { transform: translateY(1px); }
-.eg-btn:disabled { color: var(--eg-dim2); background: #14101f; cursor: default; }
-.eg-btn.eg-owned { color: var(--eg-good); background: #0a2818; box-shadow: 0 0 0 1px #082010, 0 0 0 2px #1e4828; }
-.eg-btn.eg-gold { color: #1a1030; background: var(--eg-gold); box-shadow: 0 0 0 1px #5a4410, 0 0 0 2px #f4e6a0; }
+.eg-btn:not(:disabled):active { transform: translateY(1px); }
+.eg-btn:disabled {
+  color: var(--eg-dim2);
+  background: #14101f;
+  cursor: default;
+  transform: none;
+  opacity: .7;
+}
+.eg-btn.eg-owned {
+  color: var(--eg-good);
+  background: #0a2818;
+  box-shadow: 0 0 0 1px #082010, 0 0 0 2px #1e4828;
+}
+.eg-btn.eg-gold {
+  color: #1a1030;
+  background: var(--eg-gold);
+  box-shadow: 0 0 0 1px #5a4410, 0 0 0 2px #f4e6a0;
+}
 .eg-wide { display: block; margin: 6px 0; }
 
-.eg-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.eg-cat { border-top: 1px dashed #2e2848; margin-top: 9px; padding-top: 7px; }
-.eg-cattitle { margin-bottom: 5px; letter-spacing: 0.5px; }
-.eg-grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+/* Sichtbarer Tastaturfokus */
+.eg-btn:focus-visible,
+.eg-sec summary:focus-visible {
+  outline: 2px solid var(--eg-gold);
+  outline-offset: 3px;
+}
+
+/* ── Raster ───────────────────────────────────────────────────────────── */
+.eg-grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.eg-grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+/* Auf schmalen Geräten wird aus dem Vierer- ein Zweierraster */
+@media (max-width: 380px) {
+  .eg-grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+}
+
+/* ── Shop-Kategorien ──────────────────────────────────────────────────── */
+.eg-cat {
+  border-top: 1px dashed #2e2848;
+  margin-top: 9px;
+  padding-top: 7px;
+  min-width: 0;
+}
+.eg-cattitle { margin-bottom: 5px; letter-spacing: .5px; }
+
+/* ── Reduzierte Bewegung ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .eg-toast,
+  .eg-btn { transition: none; }
+  .eg-btn:not(:disabled):active { transform: none; }
+}

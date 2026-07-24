@@ -286,7 +286,7 @@ function drawHud(ctx, S, t) {
   ctx.fillRect(2, hy, CW - 4, hh);
   rect(ctx, 2, hy, CW - 4, 1, "rgba(255,255,255,0.10)");
   rect(ctx, 2, hy + hh - 1, CW - 4, 1, "rgba(0,0,0,0.5)");
-  ctx.font = '8px "Press Start 2P", monospace';
+  ctx.font = '8px ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", "Courier New", monospace';
   ctx.textBaseline = "top";
   const segs = (x0, v, col) => {
     for (let k = 0; k < 5; k++) {
@@ -1574,12 +1574,28 @@ window.DRAGON_DEFAULTS = {
   lastReview: "", lastNudge: "", lastBackupReward: "", lastTurn: 0, lastKnock: "", costumes: {}, unlocked: {}, lastSeen: 0,
 };
 var dragon = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
+window.dragon = dragon;   // sofort exportieren; loadDragon aktualisiert die Referenz
 
 var uiDirty = true;
-function markDirty() { uiDirty = true; }
+var dragonDirty = false;
+var lastSavedDragonJson = '';
+function markDirty() { uiDirty = true; dragonDirty = true; }
 
-function saveDragon() {
-  try { dragon.lastSeen = Date.now(); localStorage.setItem("vh_dragon", JSON.stringify(dragon)); } catch (_) {}
+// Speichert nur, wenn sich der Zustand wirklich geändert hat (oder force=true).
+// touchLastSeen=true nur bei echten Ereignissen (Aktion, Hintergrund, Check-in),
+// NICHT bei jedem Autosave — sonst wäre jeder Autosave selbst eine Änderung.
+function saveDragon(opts) {
+  const force = opts === true || (opts && opts.force);
+  const touchLastSeen = opts === true || (opts && opts.touchLastSeen);
+  try {
+    if (touchLastSeen) dragon.lastSeen = Date.now();
+    const json = JSON.stringify(dragon);
+    if (!force && !dragonDirty && json === lastSavedDragonJson) return false;
+    localStorage.setItem("vh_dragon", json);
+    lastSavedDragonJson = json;
+    dragonDirty = false;
+    return true;
+  } catch (_) { return false; }
 }
 
 function migrateUnlocked(d) {
@@ -1608,10 +1624,20 @@ function sanitizeDragon() {
   dragon.streak      = num(dragon.streak, 0, 0, 99999);
   dragon.krank       = !!dragon.krank;
   dragon.expActive   = !!dragon.expActive;
+  const MESS_TYPES = { poop: 1, slime: 1, shell: 1 };
   if (!Array.isArray(dragon.mess)) dragon.mess = [];
-  dragon.mess = dragon.mess.filter(m => m && typeof m === 'object' && typeof m.type === 'string').slice(0, 12);
+  dragon.mess = dragon.mess
+    .filter(m => m && typeof m === 'object' && !Array.isArray(m) && MESS_TYPES[m.type])
+    .map(m => ({
+      type: m.type,
+      x:    Number(m.x) || 0,
+      seed: Number(m.seed) || 0,
+    }))
+    .slice(0, 12);
+  const stripProto = o => { delete o.__proto__; delete o.constructor; delete o.prototype; return o; };
   for (const k of ['deko', 'toys', 'costumes', 'unlocked', 'toyCooldown']) {
     if (!dragon[k] || typeof dragon[k] !== 'object' || Array.isArray(dragon[k])) dragon[k] = {};
+    else stripProto(dragon[k]);
   }
   if (!dragon.statLog || typeof dragon.statLog !== 'object' || Array.isArray(dragon.statLog)) {
     dragon.statLog = { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 };
@@ -1619,18 +1645,44 @@ function sanitizeDragon() {
   if (!dragon.statLog.byAction || typeof dragon.statLog.byAction !== 'object') dragon.statLog.byAction = {};
 }
 
+// Übernimmt nur echte Plain Objects (keine Arrays/Strings) und kopiert tief,
+// damit keine Referenz aus dem Import bestehen bleibt. Gefährliche Schlüssel raus.
+function safePlainObject(src) {
+  const out = {};
+  if (!src || typeof src !== "object" || Array.isArray(src)) return out;
+  for (const k in src) {
+    if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
+    if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
+    const v = src[k];
+    const tv = typeof v;
+    if (v === null || tv === "number" || tv === "string" || tv === "boolean") out[k] = v;
+    else if (Array.isArray(v)) out[k] = v.slice();
+    else if (tv === "object") out[k] = safePlainObject(v);
+  }
+  return out;
+}
+
 function loadDragon(d) {
   const base = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
-  if (d && typeof d === "object" && d.egg === true) {
-    dragon = Object.assign(base, d);
-    dragon.statLog  = Object.assign({ acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 }, d.statLog || {});
-    dragon.mess     = Array.isArray(d.mess) ? d.mess : [];
-    dragon.deko     = d.deko || {}; dragon.toys = d.toys || {};
-    dragon.costumes = d.costumes || {}; dragon.toyCooldown = d.toyCooldown || {};
-    dragon.unlocked = migrateUnlocked(dragon);
+  // Ungültige Haupttypen (String, Array, Zahl, null) → kontrolliert Neustart
+  if (d && typeof d === "object" && !Array.isArray(d) && d.egg === true) {
+    dragon = Object.assign(base, safePlainObject(d));
+    dragon.statLog  = Object.assign(
+      { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
+      safePlainObject(d.statLog)
+    );
+    dragon.statLog.byAction = safePlainObject(dragon.statLog.byAction);
+    dragon.mess        = Array.isArray(d.mess) ? d.mess.slice() : [];
+    dragon.deko        = safePlainObject(d.deko);
+    dragon.toys        = safePlainObject(d.toys);
+    dragon.costumes    = safePlainObject(d.costumes);
+    dragon.toyCooldown = safePlainObject(d.toyCooldown);
+    dragon.unlocked    = migrateUnlocked(dragon);
   } else {
     dragon = base;                                    // altes Drachen-Format oder leer -> Neustart bei 0
   }
+  window.dragon = dragon;
+  sanitizeDragon();
   eggCheckIn(); markDirty();   // eggCheckIn liest lastSeen und speichert am Ende selbst
 }
 
@@ -1647,11 +1699,11 @@ function flash(msg) {
 /* ---------- Kernlogik ---------- */
 function eggAddXp(n, label) {
   const p = dragon;
-  if (p.power <= 0) { flash("🔌 Kein Strom! Erst die Stromzelle laden."); return; }
+  if (p.power <= 0) { flash("🔌 Kein Strom! Erst die Stromzelle laden."); return false; }
   if (p.krank) {
     flash("🤒 Krank! Erst Medizin geben.");
     if (p.expActive) p.expProgress += 1;
-    checkExpDone(); saveDragon(); markDirty(); return;
+    markDirty(); checkExpDone(); saveDragon(); return false;
   }
   let xp = p.xp + n, stardust = p.stardust || 0, luckyDust = 0;
   if (Math.random() < 0.15) { luckyDust = 1; setTimeout(() => flash("✨ Glücksfund! +1 Protein"), 1400); }
@@ -1669,7 +1721,8 @@ function eggAddXp(n, label) {
   }
   p.xp = xp; p.stage = newStage;
   flash("+" + n + " XP · " + label);
-  checkExpDone(); saveDragon(); markDirty();
+  markDirty(); checkExpDone(); saveDragon();
+  return true;
 }
 
 function checkExpDone() {
@@ -1686,13 +1739,15 @@ function checkExpDone() {
 
 function rewardDragon(action) {
   const a = EGG_ACTIONS[action];
-  if (!a) return;
-  if (a.daily) {
-    const today = new Date().toDateString();
-    if (dragon.lastBackupReward === today) return;
-    dragon.lastBackupReward = today;
-  }
-  eggAddXp(a.xp, a.label);
+  if (!a) return false;
+  const daily = !!a.daily;
+  const today = new Date().toDateString();
+  if (daily && dragon.lastBackupReward === today) return false;   // heute schon vergeben
+  const ok = eggAddXp(a.xp, a.label);
+  // Tagesbelohnung erst als verbraucht markieren, wenn die XP wirklich vergeben wurden
+  // (nicht bei Ablehnung wegen Strommangel oder Krankheit)
+  if (daily && ok) dragon.lastBackupReward = today;
+  return ok;
 }
 window.rewardDragon = rewardDragon;
 window.loadDragon = loadDragon;
@@ -1756,7 +1811,7 @@ function eggFeed(id) {
   } else {
     flash(item.label + " · lecker!" + (item.xp ? " +" + item.xp + " XP" : ""));
   }
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggCharge() {
@@ -1764,12 +1819,12 @@ function eggCharge() {
   if (p.power >= 100) return;
   const cost = Math.max(1, Math.ceil((100 - p.power) / 50));
   if ((p.stardust || 0) < cost) {
-    if (p.power <= 5) { p.power = 30; flash("⚡ Notstrom aktiviert — lädt auf 30%"); saveDragon(); markDirty(); return; }
+    if (p.power <= 5) { p.power = 30; flash("⚡ Notstrom aktiviert — lädt auf 30%"); markDirty(); saveDragon({ touchLastSeen: true }); return; }
     flash("Zu wenig ✨! Laden kostet " + cost + " ✨"); return;
   }
   p.power = 100; p.stardust -= cost;
   flash("🔋 Aufgeladen! (−" + cost + " ✨)");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggClean() {
@@ -1790,7 +1845,7 @@ function eggClean() {
     p.statLog.cleans = (p.statLog.cleans || 0) + 1;
     flash("🧼 Blitzblank! (−" + cost + " ✨)");
   }
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggHeal() {
@@ -1800,7 +1855,7 @@ function eggHeal() {
   if ((p.stardust || 0) < 5) { flash("Zu wenig ✨ für Medizin! (5 ✨)"); return; }
   p.krank = false; p.krankSeit = 0; p.stardust -= 5;
   flash("💊 Medizin gegeben — Erholt!");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggFix() {
@@ -1810,7 +1865,7 @@ function eggFix() {
   if ((p.stardust || 0) < 2) { flash("Zu wenig ✨! (2 ✨)"); return; }
   p.integrity = 100; p.stardust -= 2;
   flash("🩹 Schale geflickt!");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggCleanShells() {
@@ -1819,7 +1874,7 @@ function eggCleanShells() {
   if (p.shards <= 0) return;
   p.shards = 0; p.power = clampI(p.power + 8, 0, 100); p.xp += 2;
   flash("🧹 Aufgeräumt! +2 XP");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggBuyDeko(id, cost) {
@@ -1830,7 +1885,7 @@ function eggBuyDeko(id, cost) {
   p.stardust -= cost;
   p.deko = Object.assign({}, p.deko, { [id]: true });
   flash("✨ " + (it ? it.label : id) + " dekoriert!");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggBuyToy(id) {
@@ -1841,7 +1896,7 @@ function eggBuyToy(id) {
   p.stardust -= toy.cost;
   p.toys = Object.assign({}, p.toys, { [id]: true });
   flash("🎁 " + toy.label + " gekauft!");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggBuyCostume(id) {
@@ -1851,7 +1906,7 @@ function eggBuyCostume(id) {
   p.xp -= it.cost;                                     // Minus erlaubt, Stufe bleibt
   p.costumes = Object.assign({}, p.costumes, { [id]: true });
   flash("🎭 " + it.label + " gekauft!" + (p.xp < 0 ? " (XP im Minus — aufholen!)" : ""));
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggPlay(id) {
@@ -1871,7 +1926,7 @@ function eggPlay(id) {
   idle.until = lastT + (id === "top" ? 9500 : id === "balloon" ? 5400 : 5000);
   ball.active = false; ball.done = false;
   flash("🎮 Gespielt! +" + toy.xp + " XP" + (ds ? " · +1 ✨" : ""));
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 function eggStartExp() {
@@ -1880,7 +1935,7 @@ function eggStartExp() {
   const goal = [0, 0, 12, 16, 20, 25][p.stage] || 12;
   p.expActive = true; p.expProgress = 0; p.expGoal = goal;
   flash("🚪 Expedition! Sammle " + goal + " Aktionen");
-  saveDragon(); markDirty();
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 /* ---------- Rückblick ---------- */
@@ -1924,7 +1979,7 @@ function eggPrestige() {
     prestigeAnim = { st: "none", startT: 0 };
     walk.x = 92; walk.tx = 92; walk.face = 0;
     flash("🌀 PRESTIGE " + n + "! +" + bonus + " Protein · Rückblick bereit 📜");
-    saveDragon(); markDirty();
+    markDirty(); saveDragon({ touchLastSeen: true });
   }, 5200);
   markDirty();
 }
@@ -1964,13 +2019,33 @@ function eggCheckIn() {
   }
   Object.assign(p, applyKrankDevolve(p, now));
   if (elapsed > 7200) setTimeout(() => flash("👋 Willkommen zurück!"), 400);
-  saveDragon(); markDirty();
+  p.lastSeen = now;                 // Verfall verrechnet → Zeitstempel zurücksetzen
+  markDirty(); saveDragon({ touchLastSeen: true });
 }
 
 /* ---------- UI ---------- */
-var eggCanvas = null, eggCtx = null, eggRafId = 0, eggStart = 0;
+var eggCanvas = null, eggCtx = null, eggRafId = 0, eggStart = 0, eggElapsed = 0;
 
-function esc(x) { return String(x).replace(/</g, "&lt;"); }
+// Ist die Ei-Karte tatsächlich sichtbar? (Home-Seite aktiv, Element im Layout)
+function eggCardVisible() {
+  try {
+    const canvasEl = document.getElementById("eggCanvas");
+    if (!canvasEl) return false;
+    // offsetParent === null → Element oder ein Vorfahre ist display:none.
+    // Nur Sichtbarkeit, keine Style-WERTE für die Spiellogik.
+    if (typeof canvasEl.offsetParent !== "undefined" && canvasEl.offsetParent === null) return false;
+    return true;
+  } catch (e) { return true; }   // im Zweifel weiterzeichnen
+}
+
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function eggStatusRow() {
   const p = dragon;
@@ -2112,33 +2187,64 @@ function renderDragonCardInner() {
     '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas><div id="eggToast" class="eg-toast"></div></div>' +
     '' +
     '<div id="eggSections"></div>';
-  card.removeEventListener("click", eggHandleClick);
+  // Vor dem Neubinden die alte Schleife stoppen (kein zweiter RAF, keine Dopplung)
+  eggStopLoop();
+  card.removeEventListener("click", eggHandleClick);   // doppelte Listener vermeiden
   card.addEventListener("click", eggHandleClick);
   eggCanvas = document.getElementById("eggCanvas");
   if (!eggCanvas || !eggCanvas.getContext) { eggCtx = null; return; }
   eggCtx = eggCanvas.getContext("2d");
   if (!eggCtx) return;
   eggCtx.imageSmoothingEnabled = false;
+  eggElapsed = 0;                                       // frische Zeitbasis für dieses Canvas
   updateEggUI();
-  if (!eggRafId) { eggStart = performance.now(); eggLoop(); }
+  eggStartLoop();                                       // genau eine Schleife
 }
 window.renderDragonCard = renderDragonCard;
 
-function eggLoop() {
+var eggRenderErrors = 0;
+
+function eggStartLoop() {
+  if (eggRafId) return;                       // schon aktiv → keine zweite Schleife
+  if (typeof document !== "undefined" && document.hidden) return;
+  if (!eggCtx || !document.getElementById("eggCanvas")) return;
+  eggRenderErrors = 0;
+  eggStart = (typeof performance !== "undefined" ? performance.now() : Date.now()) - (eggElapsed || 0);
   eggRafId = requestAnimationFrame(eggLoop);
-  try { eggFrame(); } catch (err) {
-    if (!eggLoop._warned) { eggLoop._warned = true; console.warn('[Ei] Anzeigefehler:', err); }
+}
+
+function eggStopLoop() {
+  if (eggRafId && typeof cancelAnimationFrame === "function") cancelAnimationFrame(eggRafId);
+  eggRafId = 0;
+}
+
+function eggLoop() {
+  if (!eggRafId) return;                       // nach Stop nicht weiterlaufen
+  eggRafId = requestAnimationFrame(eggLoop);
+  try {
+    eggFrame();
+    eggRenderErrors = 0;
+  } catch (err) {
+    eggRenderErrors++;
+    if (eggRenderErrors <= 1) console.warn('[Ei] Anzeigefehler:', err);
+    if (eggRenderErrors >= 5) {                // mehrere Fehler hintereinander → anhalten
+      console.warn('[Ei] Animation nach wiederholten Fehlern gestoppt.');
+      eggStopLoop();
+    }
   }
 }
 function eggFrame() {
-  if (!eggCtx || document.hidden) return;
-  if (!document.getElementById("eggCanvas")) {
+  // Pausiert, wenn Tab im Hintergrund, Canvas weg oder Karte unsichtbar
+  if (typeof document !== "undefined" && document.hidden) { eggStopLoop(); return; }
+  const canvasEl = document.getElementById("eggCanvas");
+  if (!eggCtx || !canvasEl) {
     eggCanvas = null; eggCtx = null;
-    if (eggRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(eggRafId);
-    eggRafId = 0;
+    eggStopLoop();
     return;
   }
-  const t = performance.now() - eggStart;
+  if (!eggCardVisible()) { eggStopLoop(); return; }
+  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) - eggStart;
+  eggElapsed = t;
   const St = dragon;
   eggCtx.clearRect(0, 0, CW, CH);
   if (St.power > 0) {
@@ -2158,42 +2264,96 @@ function eggFrame() {
   if (uiDirty) updateEggUI();
 }
 
-/* ---------- Intervalle & Lifecycle ---------- */
-setInterval(() => {                                        // Strom: nach 12h komplett leer
-  try {
-  const p = dragon;
-  p.power = clampI(p.power - 1, 0, 100);
-  saveDragon(); markDirty();
-  } catch (e) { console.warn('[Ei]', e); }
-}, 432000);
-setInterval(() => {                                        // Hunger (~2,5 Tage)
-  const p = dragon;
-  p.hunger = clampI(p.hunger - 1, 0, 100);
-  if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
-  const krank = p.krank || p.sauberkeit <= 0 || p.hunger <= 1;
-  p.krankSeit = krank ? (p.krankSeit || Date.now()) : 0;
-  p.krank = krank;
-  Object.assign(p, applyKrankDevolve(p, Date.now()));
-  saveDragon(); markDirty();
-}, 3456000);
-setInterval(() => {                                        // Sauberkeit (~4 Tage) + Dreck
-  const p = dragon;
-  p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
-  if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
-    const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "shell"];
-    p.mess = [...p.mess, { type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) }];
-  }
-  saveDragon(); markDirty();
-}, 4320000);
-setInterval(saveDragon, 60000);
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) saveDragon();
-  else { eggCheckIn(); }
-});
+/* ══════════════════════════════════════════════════════════════════════
+   Timer-, Speicher- und RAF-Lifecycle
 
-/* ---------- Boot ---------- */
-(function eggBoot() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem("vh_dragon") || "null"); } catch (_) {}
-  loadDragon(stored);
-})();
+   • Alle Intervalle liegen zentral in eggTimers und werden nur EINMAL
+     gestartet (Schutz gegen doppelte Skripteinbindung, s.u.).
+   • Jeder Timer fängt Fehler lokal ab und sichert den Zustand vorher mit
+     sanitizeDragon() ab, bevor er auf Arrays/Objekte zugreift.
+   • Der Sicherheits-Autosave schreibt NUR bei dragonDirty === true — kein
+     minütlicher Schreibvorgang ohne echte Änderung, damit der Cloud-Sync
+     der Haupt-App nicht unnötig anspringt.
+   • lastSeen wird nur bei echten Ereignissen gesetzt (Hintergrund,
+     Check-in) — nicht bei jedem Autosave.
+   ══════════════════════════════════════════════════════════════════════ */
+
+var eggTimers = [];
+
+function eggEvery(ms, fn) {
+  const id = setInterval(() => {
+    try { sanitizeDragon(); fn(); }
+    catch (e) { console.warn('[Ei] Timerfehler:', e); }
+  }, ms);
+  eggTimers.push(id);
+  return id;
+}
+
+function eggStartTimers() {
+  if (eggTimers.length) return;              // schon gestartet
+
+  eggEvery(432000, () => {                   // Strom: nach 12h komplett leer
+    const p = dragon;
+    p.power = clampI(p.power - 1, 0, 100);
+    markDirty(); saveDragon();
+  });
+
+  eggEvery(3456000, () => {                  // Hunger (~2,5 Tage)
+    const p = dragon;
+    p.hunger = clampI(p.hunger - 1, 0, 100);
+    if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
+    const krank = p.krank || p.sauberkeit <= 0 || p.hunger <= 1;
+    p.krankSeit = krank ? (p.krankSeit || Date.now()) : 0;
+    p.krank = krank;
+    Object.assign(p, applyKrankDevolve(p, Date.now()));
+    markDirty(); saveDragon();
+  });
+
+  eggEvery(4320000, () => {                  // Sauberkeit (~4 Tage) + Dreck
+    const p = dragon;
+    p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
+    if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
+      const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "shell"];
+      p.mess = [...p.mess, { type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) }];
+    }
+    markDirty(); saveDragon();
+  });
+
+  // Sicherheits-Autosave: schreibt nur, wenn wirklich etwas offen ist
+  eggEvery(60000, () => {
+    if (dragonDirty) saveDragon();
+  });
+}
+
+function eggHandleVisibility() {
+  try {
+    if (document.hidden) {
+      eggStopLoop();
+      saveDragon({ touchLastSeen: true });    // echtes Ereignis → lastSeen aktualisieren
+    } else {
+      eggCheckIn();                           // aktualisiert lastSeen und speichert selbst
+      if (document.getElementById("eggCanvas")) eggStartLoop();
+    }
+  } catch (e) { console.warn('[Ei] Sichtbarkeitswechsel:', e); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Initialisierungsschutz gegen doppelte Skripteinbindung:
+   Timer, Listener und Boot laufen nur beim ersten Laden.
+   ══════════════════════════════════════════════════════════════════════ */
+if (window.__HOMEHUB_EGG_MODULE_INITIALIZED__) {
+  console.warn('[Ei] Zweite Initialisierung verhindert.');
+} else {
+  window.__HOMEHUB_EGG_MODULE_INITIALIZED__ = true;
+
+  document.addEventListener("visibilitychange", eggHandleVisibility);
+
+  // Boot: gespeicherten Stand laden (loadDragon säubert selbst)
+  (function eggBoot() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem("vh_dragon") || "null"); } catch (_) {}
+    loadDragon(stored);
+    try { lastSavedDragonJson = JSON.stringify(dragon); } catch (_) {}
+    eggStartTimers();
+  })();
+}
