@@ -872,10 +872,10 @@ function updateRoll(t, canRoll) {
   if (!canRoll) { roll.phase = "idle"; return; }
   if (roll.phase !== "idle") {
     const dur = roll.phase === "hop" ? 700 : 2200;
-    if (t - roll.startT > dur) { roll.phase = "idle"; roll.nextT = t + 9000 + Math.random() * 12000; }
+    if (t - roll.startT > dur) { roll.phase = "idle"; roll.nextT = t + 18000 + Math.random() * 22000; }
     return;
   }
-  if (t > roll.nextT && Math.random() < 0.003) {
+  if (t > roll.nextT && Math.random() < 0.0005) {
     roll.phase = Math.random() < 0.38 ? "hop" : "wobble";
     roll.startT = t;
   }
@@ -1313,7 +1313,7 @@ function drawEgg(ctx, S, t) {
   const onStand = S.stage < 2;                                           // Ei bleibt immer auf dem Ständer
   const rollEl = t - roll.startT;
   const rollYOff = onStand && roll.phase === "hop"    ? Math.sin(Math.min(rollEl / 700, 1) * Math.PI) * 7 : 0;
-  const rollAngle = onStand && roll.phase === "wobble" ? Math.sin(rollEl / 145) * 0.09 * Math.max(0, 1 - rollEl / 2200) : 0;
+  const rollAngle = onStand && roll.phase === "wobble" ? Math.sin(rollEl / 220) * 0.025 * Math.max(0, 1 - rollEl / 1800) : 0;
   const eb = onStand ? floorY - 12 - Math.round(rollYOff) : floorY - 11;
   updateFly(t, S.stage);
   const flyActive = fly.st !== "idle", watching = flyActive && S.stage >= 1 ;
