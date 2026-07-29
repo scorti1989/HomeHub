@@ -1455,13 +1455,6 @@ const FEEL = ["leblos & geheimnisvoll", "es nimmt dich wahr", "watschelt durchs 
 function clampI(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function stg(n) { n = Math.round(Number(n)); return isFinite(n) ? Math.min(5, Math.max(0, n)) : 0; }
 function stageForXp(xp) { let s = 0; for (let i = 0; i < 6; i++) if (xp >= EGG_XP[i]) s = i; return s; }
-// gewichtete HomeHub-Aktionen (Aufwand/Seltenheit)
-// Balancing (aus HomeHub-Backup 07/2026): ~70 Artikel, ~40 Ausgaben, ~3 Rezepte, ~2 Zähler, ~1.5 Verträge pro Monat
-// Ziel: ~880 XP/Monat -> voller Zyklus (10.000 XP) in ~1 Jahr
-const ACTIONS = [
-  { label: "Artikel abhaken", xp: 1 }, { label: "Ausgabe erfassen", xp: 3 }, { label: "Rezept anlegen", xp: 10 },
-  { label: "Zähler eintragen", xp: 25 }, { label: "Vertrag prüfen", xp: 40 },
-];
 const FOOD_ITEMS = [
   { id:"ei",     label:"🍳 Spiegelei",    cost:1, hunger:25, xp:0,  power:0,  desc:"Klassiker" },
   { id:"goldei", label:"🥚 Goldei",        cost:3, hunger:50, xp:2,  power:0,  desc:"+2 XP" },
@@ -1554,15 +1547,20 @@ const DECAY_PS = { power: 1/432, hunger: 1/3456, sauberkeit: 1/4320 };   // Stro
    Speicher-Key: 'vh_dragon' · Marker: dragon.egg === true
    ========================================================================= */
 
+// Rebalance 07/2026 (Grundlage: reales Nutzerbackup, ~13 Tage Nutzung: ~25 Ausgaben/Monat,
+// ~7 Artikel/Monat, Verträge/Zähler nur alle paar Monate, Rezepte selten):
+// echte HomeHub-Aktionen geben jetzt GARANTIERTE Sterne (nicht mehr nur 15% Zufall),
+// gestaffelt nach Seltenheit/Aufwand — dafür ist der reine "App geöffnet"-Streakbonus
+// entfallen (siehe checkDailyStreak(), jetzt an echte Aktionen gekoppelt).
 const EGG_ACTIONS = {
-  shopping:       { xp: 1,  label: "Artikel abhaken" },
-  expense:        { xp: 3,  label: "Ausgabe erfassen" },
-  recipe:         { xp: 10, label: "Rezept angelegt" },
-  recipeCooked:   { xp: 10, label: "Rezept gekocht" },
-  meter:          { xp: 25, label: "Zähler eingetragen" },
-  contractCreate: { xp: 40, label: "Vertrag angelegt" },
-  contractUpdate: { xp: 40, label: "Vertrag geprüft" },
-  backup:         { xp: 5,  label: "Backup", daily: true },
+  shopping:       { xp: 1,  label: "Artikel abhaken" },                                  // sehr häufig, kein Fixbonus
+  expense:        { xp: 3,  label: "Ausgabe erfassen",   stardustChance: 0.25 },          // häufig, ~1 ✨ alle 4 Buchungen
+  recipe:         { xp: 10, label: "Rezept angelegt",    stardust: 1 },                   // selten genutzt, aber sicher belohnt
+  recipeCooked:   { xp: 10, label: "Rezept gekocht",     stardust: 1 },
+  meter:          { xp: 25, label: "Zähler eingetragen", stardust: 2 },                   // alle paar Monate dran
+  contractCreate: { xp: 40, label: "Vertrag angelegt",   stardust: 3 },
+  contractUpdate: { xp: 40, label: "Vertrag geprüft",    stardust: 3 },
+  backup:         { xp: 5,  label: "Sicherung", daily: true },                            // feuert jetzt auch beim Auto-Sync
 };
 
 window.DRAGON_DEFAULTS = {
@@ -1737,6 +1735,24 @@ function checkExpDone() {
   setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! Jetzt im Shop · +" + xpB + " XP · +" + ds + " ✨" : "🎁 Expedition zurück! +" + xpB + " XP · +" + ds + " ✨"), 60);
 }
 
+// Streak-Bonus NUR bei echter HomeHub-Aktion (nicht beim bloßen Öffnen der App) —
+// dadurch verdient man sich die Sterne wirklich durch Arbeiten mit der App.
+// Bonus reduziert (vorher 2/3 ✨), weil echte Aktionen jetzt zusätzlich eigene
+// garantierte Sterne geben (siehe EGG_ACTIONS) — sonst würde die Summe zu hoch.
+function checkDailyStreak() {
+  const p = dragon, now = Date.now();
+  const today = new Date().toDateString();
+  const lastDate = p.lastLogin ? new Date(p.lastLogin).toDateString() : "";
+  if (lastDate === today) return;                    // heute schon verdient
+  const yesterday = new Date(now - 86400000).toDateString();
+  p.streak = lastDate === yesterday ? (p.streak || 0) + 1 : 1;
+  const starBonus = p.streak >= 7 ? 2 : 1, xpBonus = p.streak >= 7 ? 5 : 3;
+  p.stardust = (p.stardust || 0) + starBonus;
+  p.xp += xpBonus; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
+  p.lastLogin = now;
+  if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + " Tage in Folge aktiv! +" + xpBonus + " XP · +" + starBonus + " ✨"), 900);
+}
+
 function rewardDragon(action) {
   const a = EGG_ACTIONS[action];
   if (!a) return false;
@@ -1746,6 +1762,17 @@ function rewardDragon(action) {
   const ok = eggAddXp(a.xp, a.label);
   // Tagesbelohnung erst als verbraucht markieren, wenn die XP wirklich vergeben wurden
   // (nicht bei Ablehnung wegen Strommangel oder Krankheit)
+  if (ok) {
+    checkDailyStreak();
+    let bonus = 0;
+    if (a.stardust) bonus = a.stardust;                                        // garantiert, für seltene/wertvolle Aktionen
+    else if (a.stardustChance && Math.random() < a.stardustChance) bonus = 1;    // Erfolgsquote, für häufige Aktionen
+    if (bonus) {
+      dragon.stardust = (dragon.stardust || 0) + bonus;
+      setTimeout(() => flash("✨ +" + bonus + " für: " + a.label), 1300);
+      markDirty(); saveDragon();
+    }
+  }
   if (daily && ok) dragon.lastBackupReward = today;
   return ok;
 }
@@ -2005,18 +2032,8 @@ function eggCheckIn() {
     mess.push({ type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) });
   }
   p.mess = mess;
-  // Streak
-  const today = new Date().toDateString();
-  const lastDate = p.lastLogin ? new Date(p.lastLogin).toDateString() : "";
-  if (lastDate !== today) {
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    p.streak = lastDate === yesterday ? (p.streak || 0) + 1 : 1;
-    const starBonus = p.streak >= 7 ? 3 : 2, xpBonus = p.streak >= 7 ? 5 : 3;
-    p.stardust = (p.stardust || 0) + starBonus;
-    p.xp += xpBonus; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
-    p.lastLogin = now;
-    if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + "-Tage-Streak! +" + xpBonus + " XP · +" + starBonus + " ✨"), 900);
-  }
+  // Streak-Bonus wird NICHT mehr hier vergeben (das wäre nur fürs Öffnen der App) —
+  // siehe checkDailyStreak(), aufgerufen aus rewardDragon() bei echten HomeHub-Aktionen.
   Object.assign(p, applyKrankDevolve(p, now));
   if (elapsed > 7200) setTimeout(() => flash("👋 Willkommen zurück!"), 400);
   p.lastSeen = now;                 // Verfall verrechnet → Zeitstempel zurücksetzen

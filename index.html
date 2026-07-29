@@ -8419,7 +8419,7 @@ const hhSync = (function () {
       const dirty = changedAt() && changedAt() > syncedAt();
 
       if (cloud && cloud.empty) {
-        if (hasLocalData()) { await push(); status('Daten hochgeladen ✓', '#166534'); }
+        if (hasLocalData()) { await push(); rewardDragon('backup'); status('Daten hochgeladen ✓', '#166534'); }
         else status('Noch keine Daten vorhanden.');
       } else {
         const cloudAt = cloud._savedAt || '';
@@ -8432,7 +8432,7 @@ const hhSync = (function () {
             'Abbrechen = eigenen Stand hochladen'
           );
           if (ok) { apply(cloud); localStorage.setItem('vh_sync_at', cloudAt); localStorage.removeItem('vh_sync_dirty'); status('Server-Stand übernommen ✓', '#166534'); }
-          else { await push(); status('Eigener Stand hochgeladen ✓', '#166534'); }
+          else { await push(); rewardDragon('backup'); status('Eigener Stand hochgeladen ✓', '#166534'); }
         } else if (cloudNewer) {
           apply(cloud);
           if (hasLocalData()) localStorage.setItem('vh_sync_hadData', '1');
@@ -8440,7 +8440,7 @@ const hhSync = (function () {
           localStorage.removeItem('vh_sync_dirty');
           status('Neuer Stand geladen ✓', '#166534');
         } else if (dirty) {
-          await push(); status('Änderungen hochgeladen ✓', '#166534');
+          await push(); rewardDragon('backup'); status('Änderungen hochgeladen ✓', '#166534');
         } else {
           if (manual) status('Alles aktuell ✓', '#166534');
         }
