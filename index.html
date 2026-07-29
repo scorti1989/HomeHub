@@ -689,6 +689,9 @@ body{
 .tk-empty{text-align:center;color:#999;padding:36px 16px;font-size:14px}
 .tk-vcard{background:#fff;border-radius:14px;padding:13px 14px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
 .tk-vname{font-size:15px;font-weight:800;color:#1a1a2e;margin-bottom:6px}
+.tk-vname-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px}
+.tk-vname-row .tk-vname{margin-bottom:0}
+.tk-inline-venue{border-top:1px dashed var(--border);margin-top:8px;padding-top:8px}
 .tk-vgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
 .tk-vgrid .k{color:#888}
 .tk-vgrid .v{color:#333}
@@ -923,13 +926,13 @@ body{
     </div>
     <div id="sharedHint" style="display:none;font-size:11px;color:#9d174d;margin-top:4px">Kosten werden geteilt – dein Anteil wird berechnet.</div>
   </div>
-  <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-fav" style="width:18px;height:18px"> ⭐ Favorit</label></div>
+  <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input autocomplete="off" type="checkbox" id="f-fav" style="width:18px;height:18px"> ⭐ Favorit</label></div>
   </details>
   <details class="cf-sec" open><summary>Kosten</summary>
   <div class="cost-box">
     <div class="cost-box-title">💰 Kosten</div>
     <div class="frow">
-      <div class="fg"><label for="f-cost">Grundbetrag (€)</label><input id="f-cost" type="number" step=".01" placeholder="9.99" inputmode="decimal"></div>
+      <div class="fg"><label for="f-cost">Grundbetrag (€)</label><input autocomplete="off" id="f-cost" type="number" step=".01" placeholder="9.99" inputmode="decimal"></div>
       <div class="fg"><label for="f-interval">Intervall</label>
         <select id="f-interval">
           <option value="monatlich">monatlich</option><option value="4-wöchentlich">4-wöchentlich</option>
@@ -940,7 +943,7 @@ body{
     </div>
     <div class="fg"><label>Zusatzkosten (€) &amp; Intervall</label>
       <div class="frow">
-        <input id="f-extracost" type="number" step=".01" placeholder="0.00" inputmode="decimal">
+        <input autocomplete="off" id="f-extracost" type="number" step=".01" placeholder="0.00" inputmode="decimal">
         <select id="f-extrainterval">
           <option value="einmalig">einmalig</option><option value="monatlich">monatlich</option>
           <option value="quartalsweise">quartalsweise</option><option value="halbjährlich">halbjährlich</option><option value="jährlich">jährlich</option>
@@ -949,28 +952,28 @@ body{
     </div>
     <div class="fg"><label>Neukundenbonus (€/Mo) – wie viele Monate</label>
       <div class="frow">
-        <input id="f-discount" type="number" step=".01" placeholder="5.00" inputmode="decimal">
-        <input id="f-discountmonths" type="number" placeholder="Monate" inputmode="numeric">
+        <input autocomplete="off" id="f-discount" type="number" step=".01" placeholder="5.00" inputmode="decimal">
+        <input autocomplete="off" id="f-discountmonths" type="number" placeholder="Monate" inputmode="numeric">
       </div>
     </div>
-    <div class="fg"><label for="f-freemonths">Gratisperiode (Monate)</label><input id="f-freemonths" type="number" placeholder="z.B. 12" inputmode="numeric"></div>
+    <div class="fg"><label for="f-freemonths">Gratisperiode (Monate)</label><input autocomplete="off" id="f-freemonths" type="number" placeholder="z.B. 12" inputmode="numeric"></div>
     <div id="costPreview" style="display:none;background:white;border:1px solid #b7e4c7;border-radius:8px;padding:9px;font-size:12px"></div>
   </div>
   </details>
   <details class="cf-sec"><summary>Laufzeit &amp; Kündigung</summary>
   <div class="frow">
-    <div class="fg"><label for="f-start">Vertragsbeginn</label><input id="f-start" type="date"></div>
-    <div class="fg"><label for="f-end">Vertragsende / Ablauf</label><input id="f-end" type="date"></div>
+    <div class="fg"><label for="f-start">Vertragsbeginn</label><input autocomplete="off" id="f-start" type="date"></div>
+    <div class="fg"><label for="f-end">Vertragsende / Ablauf</label><input autocomplete="off" id="f-end" type="date"></div>
   </div>
   <!-- Mindestlaufzeit (optional) -->
   <div class="fg"><label for="f-minterm">Mindestlaufzeit (Monate, optional)</label>
-    <input id="f-minterm" type="number" placeholder="z.B. 24" inputmode="numeric" min="1">
+    <input autocomplete="off" id="f-minterm" type="number" placeholder="z.B. 24" inputmode="numeric" min="1">
     <div id="mintermHint" style="font-size:11px;color:var(--muted);margin-top:3px"></div>
   </div>
   <!-- Kündigungsfrist: Einheit + Wert + Bedingung -->
   <div class="fg"><label>Kündigungsfrist</label>
     <div style="display:flex;gap:7px;align-items:center">
-      <input id="f-cancelval" type="number" placeholder="z.B. 3" inputmode="numeric" min="0" style="width:80px;padding:10px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:white;color:var(--text);outline:none;flex-shrink:0">
+      <input autocomplete="off" id="f-cancelval" type="number" placeholder="z.B. 3" inputmode="numeric" min="0" style="width:80px;padding:10px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:white;color:var(--text);outline:none;flex-shrink:0">
       <select id="f-cancelunit" style="flex:1;padding:10px 8px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;background:white">
         <option value="tage">Tage</option>
         <option value="wochen">Wochen</option>
@@ -1009,8 +1012,8 @@ body{
     </div>
     <div id="cancelledFields" style="display:none">
       <div class="frow">
-        <div class="fg"><label for="f-cancelledOn">Gekündigt am</label><input id="f-cancelledOn" type="date"></div>
-        <div class="fg"><label for="f-cancelledUntil">Wirksam zum</label><input id="f-cancelledUntil" type="date"></div>
+        <div class="fg"><label for="f-cancelledOn">Gekündigt am</label><input autocomplete="off" id="f-cancelledOn" type="date"></div>
+        <div class="fg"><label for="f-cancelledUntil">Wirksam zum</label><input autocomplete="off" id="f-cancelledUntil" type="date"></div>
       </div>
       <div class="fg"><label for="f-cancelNote">Kündigungsnotiz</label><input id="f-cancelNote" placeholder="z.B. per E-Mail gekündigt" autocomplete="off"></div>
     </div>
@@ -1037,8 +1040,8 @@ body{
     <div id="accHint" style="font-size:11px;color:var(--muted);margin-top:3px">Persönliches Konto</div>
   </div>
   <div class="frow">
-    <div class="fg"><label for="e-amount">Betrag (€) *</label><input id="e-amount" type="number" step=".01" placeholder="0.00" inputmode="decimal"></div>
-    <div class="fg"><label for="e-date">Datum</label><input id="e-date" type="date"></div>
+    <div class="fg"><label for="e-amount">Betrag (€) *</label><input autocomplete="off" id="e-amount" type="number" step=".01" placeholder="0.00" inputmode="decimal"></div>
+    <div class="fg"><label for="e-date">Datum</label><input autocomplete="off" id="e-date" type="date"></div>
   </div>
   <div class="fg"><label for="e-desc">Beschreibung *</label><input id="e-desc" placeholder="z.B. REWE Einkauf" autocomplete="off"></div>
   <div class="fg"><label for="e-cat">Kategorie</label><select id="e-cat"></select></div>
@@ -1073,7 +1076,7 @@ body{
       </select>
     </div>
   </div>
-  <div class="fg"><label for="si-price">Erwarteter Preis (€)</label><input id="si-price" type="number" step=".01" placeholder="Optional" inputmode="decimal">
+  <div class="fg"><label for="si-price">Erwarteter Preis (€)</label><input autocomplete="off" id="si-price" type="number" step=".01" placeholder="Optional" inputmode="decimal">
     <div id="pmHint" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
   </div>
   <button class="btn-p" id="saveShopBtn">Hinzufügen</button>
@@ -1088,7 +1091,7 @@ body{
   <button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('budgetModal')">×</button>
   <h2>Budget festlegen</h2>
   <div class="fg"><label for="b-cat">Kategorie</label><select id="b-cat"></select></div>
-  <div class="fg"><label for="b-amount">Monatsbudget (€)</label><input id="b-amount" type="number" step="1" placeholder="z.B. 300" inputmode="numeric"></div>
+  <div class="fg"><label for="b-amount">Monatsbudget (€)</label><input autocomplete="off" id="b-amount" type="number" step="1" placeholder="z.B. 300" inputmode="numeric"></div>
   <button class="btn-p" id="saveBudgetBtn">Speichern</button>
   <button class="btn-s" id="cancelBudgetBtn">Abbrechen</button>
  </div>
@@ -1108,8 +1111,8 @@ body{
     </div>
   </div>
   <div class="frow">
-    <div class="fg"><label for="book-amount">Gesamtbetrag (€) *</label><input id="book-amount" type="number" step=".01" placeholder="0.00" inputmode="decimal"></div>
-    <div class="fg"><label for="book-date">Datum</label><input id="book-date" type="date"></div>
+    <div class="fg"><label for="book-amount">Gesamtbetrag (€) *</label><input autocomplete="off" id="book-amount" type="number" step=".01" placeholder="0.00" inputmode="decimal"></div>
+    <div class="fg"><label for="book-date">Datum</label><input autocomplete="off" id="book-date" type="date"></div>
   </div>
   <div id="bookListSummary" style="background:#f8fafc;border-radius:8px;padding:9px;font-size:11px;color:var(--muted);margin-bottom:10px"></div>
   <button class="btn-p" id="confirmBookBtn">Buchen (Liste bleibt erhalten)</button>
@@ -1135,23 +1138,23 @@ body{
     <div class="fg"><label for="m-unit">Einheit</label>
       <select id="m-unit"><option value="kWh">kWh</option><option value="m³">m³</option></select>
     </div>
-    <div class="fg"><label for="m-nextreading">Nächste Ablesung</label><input id="m-nextreading" type="date"></div>
+    <div class="fg"><label for="m-nextreading">Nächste Ablesung</label><input autocomplete="off" id="m-nextreading" type="date"></div>
   </div>
   <!-- Tarif-Daten (optional, für Energie-Analyse) -->
   <div style="border-top:1.5px solid var(--border);margin:12px 0 12px;padding-top:12px">
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">💰 Tarif &amp; Abrechnung (optional)</div>
     <div class="frow">
-      <div class="fg"><label for="m-unit-price">Arbeitspreis (ct/kWh)</label><input id="m-unit-price" type="number" step=".001" placeholder="32.50" inputmode="decimal"></div>
-      <div class="fg"><label for="m-base-price">Grundpreis (€/Mo)</label><input id="m-base-price" type="number" step=".01" placeholder="10.00" inputmode="decimal"></div>
+      <div class="fg"><label for="m-unit-price">Arbeitspreis (ct/kWh)</label><input autocomplete="off" id="m-unit-price" type="number" step=".001" placeholder="32.50" inputmode="decimal"></div>
+      <div class="fg"><label for="m-base-price">Grundpreis (€/Mo)</label><input autocomplete="off" id="m-base-price" type="number" step=".01" placeholder="10.00" inputmode="decimal"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label for="m-monthly-pay">Abschlag (€/Mo)</label><input id="m-monthly-pay" type="number" step=".01" placeholder="80.00" inputmode="decimal"></div>
-      <div class="fg"><label for="m-start-reading">Startzählerstand</label><input id="m-start-reading" type="number" step=".001" placeholder="12345.0" inputmode="decimal"></div>
+      <div class="fg"><label for="m-monthly-pay">Abschlag (€/Mo)</label><input autocomplete="off" id="m-monthly-pay" type="number" step=".01" placeholder="80.00" inputmode="decimal"></div>
+      <div class="fg"><label for="m-start-reading">Startzählerstand</label><input autocomplete="off" id="m-start-reading" type="number" step=".001" placeholder="12345.0" inputmode="decimal"></div>
     </div>
     <!-- Gas: Umrechnungsfaktor -->
     <div class="fg" id="m-gas-factor-row" style="display:none">
       <label for="m-gas-factor">Brennwert-Faktor (kWh/m³)</label>
-      <input id="m-gas-factor" type="number" step=".01" placeholder="10.5 (Standard)" inputmode="decimal">
+      <input autocomplete="off" id="m-gas-factor" type="number" step=".01" placeholder="10.5 (Standard)" inputmode="decimal">
       <div style="font-size:11px;color:var(--muted);margin-top:3px">Standard 10,5 kWh/m³ – deinen Wert findest du auf der Gasrechnung</div>
     </div>
     <!-- Verknüpfter Vertrag -->
@@ -1172,8 +1175,8 @@ body{
   <div class="modal-handle"></div>
   <button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('readingModal')">×</button>
   <h2 id="readingModalTitle">Zählerstand erfassen</h2>
-  <div class="fg"><label for="r-date">Datum</label><input id="r-date" type="date"></div>
-  <div class="fg"><label for="r-value">Zählerstand</label><input id="r-value" type="number" step=".001" placeholder="12345.6" inputmode="decimal"></div>
+  <div class="fg"><label for="r-date">Datum</label><input autocomplete="off" id="r-date" type="date"></div>
+  <div class="fg"><label for="r-value">Zählerstand</label><input autocomplete="off" id="r-value" type="number" step=".001" placeholder="12345.6" inputmode="decimal"></div>
   <div id="readingWarning" class="alert-box ab-yellow" style="display:none"></div>
   <div class="fg"><label for="reading-note">Notiz (optional)</label><input id="reading-note" placeholder="Optional" autocomplete="off"></div>
   <button class="btn-p" id="saveReadingBtn">Speichern</button>
@@ -1191,7 +1194,7 @@ body{
   <div class="alert-box ab-yellow" style="margin-bottom:12px">⚠️ Bestehende Daten werden überschrieben. Sichere vorher deine Daten mit dem Export-Button (⬇️).</div>
   <div style="border:2px dashed #b7e4c7;border-radius:11px;padding:20px;text-align:center;margin-bottom:12px">
     <div style="font-size:30px;margin-bottom:7px">📂</div>
-    <input type="file" id="importFile" accept=".json" style="display:none">
+    <input autocomplete="off" type="file" id="importFile" accept=".json" style="display:none">
     <button class="btn-p" style="width:auto;padding:9px 22px" id="pickImportBtn">Datei auswählen</button>
   </div>
   <div id="importStatus" style="display:none" class="alert-box ab-green"></div>
@@ -1209,16 +1212,18 @@ body{
     <input id="s-partnername" placeholder="z.B. Jonas" autocomplete="off">
   </div>
   <div class="fg"><label for="s-splitpct">Mein Anteil bei gemeinsamen Ausgaben (%)</label>
-    <input id="s-splitpct" type="number" min="1" max="99" placeholder="50" inputmode="numeric">
+    <input autocomplete="off" id="s-splitpct" type="number" min="1" max="99" placeholder="50" inputmode="numeric">
   </div>
   <div style="border-top:1px solid #eee;margin:14px 0 10px;padding-top:12px">
     <div style="font-weight:700;font-size:14px;margin-bottom:8px">☁️ Cloud-Sync</div>
+    <form id="syncForm" autocomplete="on" onsubmit="return false;">
     <div class="fg"><label for="s-syncurl">Server-Adresse</label>
-      <input id="s-syncurl" placeholder="https://app-sync.xxx.workers.dev" autocomplete="off" inputmode="url">
+      <input id="s-syncurl" name="url" placeholder="https://app-sync.xxx.workers.dev" autocomplete="url" inputmode="url">
     </div>
     <div class="fg"><label for="s-synctoken">Sync-Passwort</label>
-      <input id="s-synctoken" type="password" placeholder="dein Passwort" autocomplete="off">
+      <input id="s-synctoken" name="password" type="password" placeholder="dein Passwort" autocomplete="current-password">
     </div>
+    </form>
     <div id="syncStatus" style="font-size:12px;color:#666;margin:-2px 0 8px"></div>
     <button type="button" id="syncNowBtn" onclick="hhSync.run(true)" style="width:100%;padding:9px;border:none;border-radius:9px;background:#ede9fe;color:#5b21b6;font-weight:700;cursor:pointer">Jetzt abgleichen</button>
     <div style="display:flex;gap:8px;margin-top:8px">
@@ -1296,15 +1301,15 @@ body{
   <div class="recipe-import-area" id="recipeImportArea">
     <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Link importieren</div>
     <div style="display:flex;gap:8px">
-      <input id="r-url" placeholder="https://www.chefkoch.de/..." style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none">
+      <input autocomplete="off" id="r-url" placeholder="https://www.chefkoch.de/..." style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none">
       <button id="importRecipeUrlBtn" style="padding:10px 14px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:44px">Laden</button>
     </div>
     <div class="import-status" id="recipeImportStatus"></div>
   </div>
   <div class="fg"><label for="r-title">Titel *</label><input id="r-title" placeholder="z.B. Spaghetti Carbonara" autocomplete="off"></div>
   <div class="frow">
-    <div class="fg"><label for="r-time">Zubereitungszeit (Min)</label><input id="r-time" type="number" min="0" placeholder="30" inputmode="numeric"></div>
-    <div class="fg"><label for="r-servings">Portionen</label><input id="r-servings" type="number" min="1" placeholder="4" inputmode="numeric"></div>
+    <div class="fg"><label for="r-time">Zubereitungszeit (Min)</label><input autocomplete="off" id="r-time" type="number" min="0" placeholder="30" inputmode="numeric"></div>
+    <div class="fg"><label for="r-servings">Portionen</label><input autocomplete="off" id="r-servings" type="number" min="1" placeholder="4" inputmode="numeric"></div>
   </div>
   <div class="fg"><label>Tags (mehrere wählbar)</label>
     <div id="recipeTagPicker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
@@ -1380,8 +1385,8 @@ body{
   </div>
 
   <div class="frow">
-    <div class="fg"><label for="tr-amount">Betrag (€) *</label><input id="tr-amount" type="number" step=".01" placeholder="0,00" inputmode="decimal"></div>
-    <div class="fg"><label for="tr-date">Datum</label><input id="tr-date" type="date"></div>
+    <div class="fg"><label for="tr-amount">Betrag (€) *</label><input autocomplete="off" id="tr-amount" type="number" step=".01" placeholder="0,00" inputmode="decimal"></div>
+    <div class="fg"><label for="tr-date">Datum</label><input autocomplete="off" id="tr-date" type="date"></div>
   </div>
 
   <!-- Richtung: Wer zahlt wem -->
@@ -1411,7 +1416,7 @@ body{
   </div>
   <div class="fg" id="tr-settled-date-row" style="display:none">
     <label for="tr-settled-date">Beglichen am</label>
-    <input id="tr-settled-date" type="date">
+    <input autocomplete="off" id="tr-settled-date" type="date">
   </div>
 
   <button class="btn-p" id="saveTransferBtn">Speichern</button>
@@ -2401,7 +2406,7 @@ function renderHome() {
   <div class="quick-card">
     <div class="hm-quick-label">Ausgabe erfassen</div>
     <div class="quick-row">
-      <input class="quick-amt" id="q-amt" type="number" step=".01" placeholder="0,00" inputmode="decimal">
+      <input autocomplete="off" class="quick-amt" id="q-amt" type="number" step=".01" placeholder="0,00" inputmode="decimal">
       <input class="quick-desc" id="q-desc" placeholder="Wofür?" autocomplete="off" list="q-desc-suggestions">
       <datalist id="q-desc-suggestions"></datalist>
     </div>
@@ -2466,7 +2471,7 @@ function renderHome() {
       grouped[store].forEach(item => {
         const idx = shopItemsAll.indexOf(item);
         h += `<label class="hm-shop-check-row">
-          <input type="checkbox" class="hm-shop-checkbox" data-shopidx="${idx}">
+          <input autocomplete="off" type="checkbox" class="hm-shop-checkbox" data-shopidx="${idx}">
           <span class="hm-shop-name">${esc(item.name)}${item.qty ? ` <span class="hm-shop-qty">${esc(item.qty)}</span>` : ''}</span>
         </label>`;
       });
@@ -3426,19 +3431,19 @@ function openRecurringModal(idx) {
   const catOpts = EXP_CATS.map(c => `<option value="${c.v}"${r && r.category === c.v ? ' selected' : ''}>${c.l}</option>`).join('');
   const freq = r ? (r.frequency || 'monatlich') : 'monatlich';
   let h = `
-    <div class="fg"><label for="rec-desc">Beschreibung</label><input id="rec-desc" value="${esc(r ? r.desc || '' : '')}" placeholder="z.B. Haushaltsgeld"></div>
-    <div class="fg"><label for="rec-amount">Betrag (€)</label><input id="rec-amount" type="number" step=".01" inputmode="decimal" value="${esc(r && r.amount != null ? r.amount : '')}"></div>
+    <div class="fg"><label for="rec-desc">Beschreibung</label><input autocomplete="off" id="rec-desc" value="${esc(r ? r.desc || '' : '')}" placeholder="z.B. Haushaltsgeld"></div>
+    <div class="fg"><label for="rec-amount">Betrag (€)</label><input autocomplete="off" id="rec-amount" type="number" step=".01" inputmode="decimal" value="${esc(r && r.amount != null ? r.amount : '')}"></div>
     <div class="fg"><label for="rec-cat">Kategorie</label><select id="rec-cat">${catOpts}</select></div>
     <div class="fg"><label for="rec-freq">Rhythmus</label><select id="rec-freq">
       <option value="monatlich"${freq !== 'jaehrlich' ? ' selected' : ''}>Monatlich (am Monatsersten)</option>
       <option value="jaehrlich"${freq === 'jaehrlich' ? ' selected' : ''}>Jährlich</option>
     </select></div>
-    <div class="fg" id="rec-start-wrap" style="display:${freq === 'jaehrlich' ? 'block' : 'none'}"><label for="rec-start">Stichtag (für jährlich)</label><input id="rec-start" type="date" value="${esc(r ? r.startDate || '' : '')}"></div>
+    <div class="fg" id="rec-start-wrap" style="display:${freq === 'jaehrlich' ? 'block' : 'none'}"><label for="rec-start">Stichtag (für jährlich)</label><input autocomplete="off" id="rec-start" type="date" value="${esc(r ? r.startDate || '' : '')}"></div>
     <div class="fg"><label>Konto</label><div class="quick-acc" style="width:fit-content">
       <button type="button" class="qacc${(r ? r.account : activeHaushalt) !== 'wir' ? ' ai' : ''}" id="rec-acc-ich">Persönlich</button>
       <button type="button" class="qacc${(r ? r.account : activeHaushalt) === 'wir' ? ' aw' : ''}" id="rec-acc-wir">Gemeinsam</button>
     </div></div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="rec-active" ${!r || r.active !== false ? 'checked' : ''} style="width:18px;height:18px"> Aktiv (automatisch buchen)</label></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input autocomplete="off" type="checkbox" id="rec-active" ${!r || r.active !== false ? 'checked' : ''} style="width:18px;height:18px"> Aktiv (automatisch buchen)</label></div>
     <div style="display:flex;gap:9px;margin-top:8px">
       ${editRecurringIdx !== null ? '<button type="button" class="tk-del-btn" data-coact="rec-delete">Löschen</button>' : ''}
       <button type="button" class="kb-btn" data-coact="rec-cancel" style="flex:0 0 auto">Abbrechen</button>
@@ -3515,7 +3520,7 @@ function openStoreCheckout() {
   const catOpts = sel => EXP_CATS.map(c => `<option value="${c.v}"${c.v === sel ? ' selected' : ''}>${c.l}</option>`).join('');
 
   let h = `
-    <div class="fg"><label for="co-date">Datum</label><input id="co-date" type="date" value="${today()}"></div>
+    <div class="fg"><label for="co-date">Datum</label><input autocomplete="off" id="co-date" type="date" value="${today()}"></div>
     <div class="fg"><label>Konto</label><div class="quick-acc" style="width:fit-content">
       <button type="button" class="qacc${checkoutAcc !== 'wir' ? ' ai' : ''}" id="co-acc-ich">Persönlich</button>
       <button type="button" class="qacc${checkoutAcc === 'wir' ? ' aw' : ''}" id="co-acc-wir">Gemeinsam</button>
@@ -3526,14 +3531,14 @@ function openStoreCheckout() {
     h += `<div class="checkout-group" data-costore="${store}">
       <div class="checkout-group-head">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
-          <input type="checkbox" class="co-include" data-costorechk="${store}" checked style="width:18px;height:18px">
+          <input autocomplete="off" type="checkbox" class="co-include" data-costorechk="${store}" checked style="width:18px;height:18px">
           <span style="font-weight:700">${STORE_LABELS[store]}</span>
         </label>
         <span style="font-size:11px;color:var(--muted)">${g.items.length} Artikel</span>
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin:2px 0 7px;padding-left:26px">${g.items.slice(0, 4).map(({ item }) => esc(item.name || '')).join(', ')}${g.items.length > 4 ? ' …' : ''}</div>
       <div class="tkf-two">
-        <div class="fg" style="margin:0"><label>Betrag (€)</label><input class="co-amount" data-costore-amt="${store}" type="number" step=".01" inputmode="decimal" value="${g.sum > 0 ? g.sum.toFixed(2) : ''}" placeholder="0,00"></div>
+        <div class="fg" style="margin:0"><label>Betrag (€)</label><input autocomplete="off" class="co-amount" data-costore-amt="${store}" type="number" step=".01" inputmode="decimal" value="${g.sum > 0 ? g.sum.toFixed(2) : ''}" placeholder="0,00"></div>
         <div class="fg" style="margin:0"><label>Kategorie</label><select class="co-cat" data-costore-cat="${store}">${catOpts(STORE_CAT_DEFAULT[store] || 'sonstiges')}</select></div>
       </div>
     </div>`;
@@ -4285,7 +4290,7 @@ function openContractFilterDialog() {
       <option value="beendet"${ctStatusFilter === 'beendet' ? ' selected' : ''}>Beendet / Archiv</option>
       <option value="alle"${ctStatusFilter === 'alle' ? ' selected' : ''}>Alle (inkl. Archiv)</option>
     </select></div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ctf-fav" ${ctFavOnly ? 'checked' : ''} style="width:18px;height:18px"> Nur Favoriten</label></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input autocomplete="off" type="checkbox" id="ctf-fav" ${ctFavOnly ? 'checked' : ''} style="width:18px;height:18px"> Nur Favoriten</label></div>
     <div style="display:flex;gap:9px;margin-top:8px">
       <button type="button" class="kb-btn" data-ctact="filter-reset" style="flex:0 0 auto">Zurücksetzen</button>
       <button type="button" class="kb-btn-primary" data-ctact="filter-apply" style="flex:1">Anwenden</button>
@@ -4302,9 +4307,9 @@ function openCancelContractDialog(id) {
   const suggestedEnd = c.cancelledUntil || latestCancelDate(c) || c.endDate || '';
   const h = `
     <div style="font-size:13px;margin-bottom:12px"><b>${esc(c.name)}</b>${c.provider ? ' · ' + esc(c.provider) : ''}</div>
-    <div class="fg"><label for="cf-on">Gekündigt am</label><input id="cf-on" type="date" value="${today()}"></div>
-    <div class="fg"><label for="cf-until">Vertragsende</label><input id="cf-until" type="date" value="${esc(suggestedEnd)}"></div>
-    <div class="fg"><label for="cf-note">Notiz / Bestätigung</label><input id="cf-note" placeholder="z.B. per E-Mail gekündigt, Bestätigung erhalten"></div>
+    <div class="fg"><label for="cf-on">Gekündigt am</label><input autocomplete="off" id="cf-on" type="date" value="${today()}"></div>
+    <div class="fg"><label for="cf-until">Vertragsende</label><input autocomplete="off" id="cf-until" type="date" value="${esc(suggestedEnd)}"></div>
+    <div class="fg"><label for="cf-note">Notiz / Bestätigung</label><input autocomplete="off" id="cf-note" placeholder="z.B. per E-Mail gekündigt, Bestätigung erhalten"></div>
     <div style="display:flex;gap:9px;margin-top:8px">
       <button type="button" class="kb-btn" data-ctact="cancelflow-abort" style="flex:0 0 auto">Abbrechen</button>
       <button type="button" class="kb-btn-primary" data-ctact="cancelflow-save" style="flex:1">Als gekündigt markieren</button>
@@ -5877,7 +5882,7 @@ function renderAnalysis() {
   // ── Urlaubs-Toggle & Leerzustand ──────────────────────────────────────
   html += `<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted)">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-      <input type="checkbox" id="inclTravelChk" ${includeTravel() ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer">
+      <input autocomplete="off" type="checkbox" id="inclTravelChk" ${includeTravel() ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer">
       Urlaub einschließen
     </label>
   </div>`;
@@ -6184,7 +6189,8 @@ function renderConcertList() {
     html += `</div>`;
     if (missing) html += missing;
 
-    // Ticket-Besitzerliste und Notiz nur im aufgeklappten Zustand
+    // Aufgeklappt: ALLE verfügbaren Infos direkt hier – inkl. Venue/Route,
+    // damit man nicht erst über den Venues-Tab gehen muss.
     if (expanded) {
       if (iHold && c.tickets && c.tickets.length) {
         html += '<div class="tk-tix">';
@@ -6200,9 +6206,10 @@ function renderConcertList() {
         html += '</div>';
       }
       if (c.note) html += `<div class="tk-venue" style="margin-top:8px">📝 ${esc(c.note)}</div>`;
+      html += renderInlineVenueInfo(c.city, c.venueId);
       html += '<div class="tk-actions">';
       html += `<button class="tk-edit" data-tkact="edit" data-cid="${c.id}">Bearbeiten</button>`;
-      if (c.city && c.venueId && cities[c.city] && cities[c.city].venues && cities[c.city].venues[c.venueId]) html += `<button class="tk-venuebtn" data-tkact="viewvenue" data-city="${esc(c.city)}" data-venue="${esc(c.venueId)}">📍 Venue-Infos</button>`;
+      if (c.city && c.venueId) html += `<button class="tk-venuebtn" data-tkact="editvenue" data-city="${esc(c.city)}" data-venue="${esc(c.venueId)}">🎪 Venue bearbeiten</button>`;
       html += '</div>';
     }
 
@@ -6217,6 +6224,39 @@ function renderConcertList() {
     past.forEach(c => h += card(c));
     h += '</div></details>';
   }
+  return h;
+}
+
+// ── Venue- & Ort-Infos kompakt direkt in der Konzertkarte (kein Tab-Wechsel nötig) ──
+function renderInlineVenueInfo(cityName, venueName) {
+  if (!cityName && !venueName) return '';
+  const city = cities[cityName] || null;
+  const v = (city && city.venues && city.venues[venueName]) || null;
+  const asp = (v && v.aspects) || {};
+  const stars = n => n ? '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n) : '';
+
+  let h = '<div class="tk-inline-venue">';
+  if (city && city.note) h += `<div class="tk-venue" style="margin-top:6px">🏙 ${esc(city.note)}</div>`;
+
+  if (v) {
+    if (v.maps) h += `<div class="tk-venue" style="margin-top:6px">📍 <a href="${esc(v.maps)}" target="_blank" rel="noopener">Route öffnen ↗</a></div>`;
+    const rows = [];
+    if (asp.parking && asp.parking.rating) rows.push(`🅿️ ${stars(asp.parking.rating)}`);
+    if (asp.food && asp.food.rating) rows.push(`🍔 ${stars(asp.food.rating)}${asp.food.where ? ' · ' + esc(asp.food.where) : ''}`);
+    if (asp.prices && asp.prices.rating) rows.push(`💶 ${stars(asp.prices.rating)}`);
+    if (asp.wardrobe && asp.wardrobe.rating) rows.push(`🧥 ${stars(asp.wardrobe.rating)}`);
+    if (asp.trip && asp.trip.rating) rows.push(`🚗 ${stars(asp.trip.rating)}`);
+    if (rows.length) h += `<div class="tk-vexp" style="margin-top:6px">${rows.map(r => `<span>${r}</span>`).join('')}</div>`;
+    ['parking', 'prices', 'food', 'wardrobe', 'trip'].forEach(key => {
+      const a = asp[key];
+      if (a && a.note) h += `<div class="tk-anote" style="margin-top:3px">${esc(a.note)}</div>`;
+    });
+    if (v.note) h += `<div class="tk-venue" style="margin-top:6px">📝 ${esc(v.note)}</div>`;
+    if (!v.maps && !rows.length && !v.note) h += `<div class="tk-venue" style="margin-top:6px;color:var(--muted)">Noch keine Venue-Infos hinterlegt.</div>`;
+  } else if (venueName) {
+    h += `<div class="tk-venue" style="margin-top:6px;color:var(--muted)">Noch keine Venue-Infos hinterlegt.</div>`;
+  }
+  h += '</div>';
   return h;
 }
 
@@ -6255,7 +6295,7 @@ function renderVenueList() {
     const city = cities[cn] || {};
     const venuesObj = city.venues || {};
     const vNames = Object.keys(venuesObj).sort();
-    h += `<div class="tk-vcard"><div class="tk-vname">🏙 ${esc(cn)}</div>`;
+    h += `<div class="tk-vcard"><div class="tk-vname-row"><div class="tk-vname">🏙 ${esc(cn)}</div><button class="tk-link-mini" data-tkact="editcity" data-city="${esc(cn)}">✎ Ort bearbeiten</button></div>`;
     if (city.note) h += `<div class="tk-venue" style="margin-bottom:8px">📝 ${esc(city.note)}</div>`;
     if (!vNames.length) h += '<div class="tk-venue" style="color:#aaa;margin-bottom:8px">Noch keine Venue-Infos.</div>';
     vNames.forEach(vn => {
@@ -6365,22 +6405,22 @@ function concertFormHtml(id) {
   const iHold = isMine(curHolder);
 
   let h = '<div class="tkf-formhead">' + (id ? '✏️ Konzert bearbeiten' : '🎫 Neues Konzert') + '</div>';
-  h += '<div class="tkf-row"><label>Künstler / Konzert</label><input id="tkfArtist" value="' + esc(c ? c.artist || '' : '') + '" placeholder="z.B. Die Ärzte"></div>';
-  h += '<div class="tkf-two"><div class="tkf-row"><label>Stadt</label><input id="tkfCity" list="tkfCityList" value="' + esc(c ? c.city || '' : '') + '" placeholder="z.B. Hamm"><datalist id="tkfCityList">' + cityDl + '</datalist></div>';
-  h += '<div class="tkf-row"><label>Venue</label><input id="tkfVenue" list="tkfVenueList" value="' + esc(c ? c.venueId || '' : '') + '" placeholder="z.B. Kurpark"><datalist id="tkfVenueList">' + venueDlOptions(c ? c.city : '') + '</datalist></div></div>';
-  h += '<div class="tkf-two"><div class="tkf-row"><label>Datum</label><input type="date" id="tkfDate" value="' + esc(c ? c.date || '' : '') + '"></div>';
-  h += '<div class="tkf-row"><label>Uhrzeit</label><input type="time" id="tkfTime" value="' + esc(c ? c.time || '' : '') + '"></div></div>';
+  h += '<div class="tkf-row"><label>Künstler / Konzert</label><input autocomplete="off" id="tkfArtist" value="' + esc(c ? c.artist || '' : '') + '" placeholder="z.B. Die Ärzte"></div>';
+  h += '<div class="tkf-two"><div class="tkf-row"><label>Stadt</label><input autocomplete="off" id="tkfCity" list="tkfCityList" value="' + esc(c ? c.city || '' : '') + '" placeholder="z.B. Hamm"><datalist id="tkfCityList">' + cityDl + '</datalist></div>';
+  h += '<div class="tkf-row"><label>Venue</label><input autocomplete="off" id="tkfVenue" list="tkfVenueList" value="' + esc(c ? c.venueId || '' : '') + '" placeholder="z.B. Kurpark"><datalist id="tkfVenueList">' + venueDlOptions(c ? c.city : '') + '</datalist></div></div>';
+  h += '<div class="tkf-two"><div class="tkf-row"><label>Datum</label><input autocomplete="off" type="date" id="tkfDate" value="' + esc(c ? c.date || '' : '') + '"></div>';
+  h += '<div class="tkf-row"><label>Uhrzeit</label><input autocomplete="off" type="time" id="tkfTime" value="' + esc(c ? c.time || '' : '') + '"></div></div>';
   // Wer hat die Tickets
   h += '<div class="tkf-row"><label>Wer hat die Tickets?</label><select id="tkfHolder">';
   peopleOpts.forEach(o => { h += `<option value="${esc(o)}"${(isMine(o) && iHold) || o === curHolder ? ' selected' : ''}>${esc(mineLabel(o))}</option>`; });
   h += '<option value="__new"' + (!peopleOpts.some(o => o === curHolder || (isMine(o) && iHold)) ? ' selected' : '') + '>+ Andere Person …</option>';
-  h += '</select><input id="tkfHolderNew" placeholder="Name eingeben" style="display:none;margin-top:7px" value="' + (iHold ? '' : esc(curHolder)) + '"></div>';
+  h += '</select><input autocomplete="off" id="tkfHolderNew" placeholder="Name eingeben" style="display:none;margin-top:7px" value="' + (iHold ? '' : esc(curHolder)) + '"></div>';
   // Ticket-Besitzer-Bereich NUR wenn ich die Tickets halte
   h += '<div id="tkfTixSection" style="display:' + (iHold ? 'block' : 'none') + '">';
   // Ein Preis gilt für alle Tickets des Konzerts
   const prices = [...new Set(formTickets.map(t => (t.price !== '' && t.price != null) ? String(t.price) : null).filter(v => v !== null))];
   const priceAll = prices.length === 1 ? prices[0] : '';
-  h += '<div class="tkf-row"><label>Preis pro Ticket (€) – gilt für alle Tickets</label><input id="tkfPriceAll" type="number" step="0.01" inputmode="decimal" value="' + esc(priceAll) + '" placeholder="optional"></div>';
+  h += '<div class="tkf-row"><label>Preis pro Ticket (€) – gilt für alle Tickets</label><input autocomplete="off" id="tkfPriceAll" type="number" step="0.01" inputmode="decimal" value="' + esc(priceAll) + '" placeholder="optional"></div>';
   h += '<div class="tkf-row"><label>Wem gehören die Tickets?</label><button type="button" class="tkf-addtix" data-tkact="addtix">＋ Ticket hinzufügen</button><div id="tkfTixList"></div></div>';
   h += '</div>';
   h += '<div class="tkf-row"><label>Notiz (optional)</label><textarea id="tkfNote" placeholder="Sitzplatz, Block …">' + esc(c ? c.note || '' : '') + '</textarea></div>';
@@ -6409,11 +6449,11 @@ function renderFormTickets() {
     peopleOpts.forEach(o => { const setSel = !isNew && ((isMine(o) && mine) || o === t.owner); if (setSel) matched = true; h += `<option value="${esc(o)}"${setSel ? ' selected' : ''}>${esc(mineLabel(o))}</option>`; });
     const showNew = isNew || !matched;
     h += `<option value="__new"${showNew ? ' selected' : ''}>+ Andere …</option></select>`;
-    h += `<input class="tkfTixOwnerNew" data-tix="${i}" placeholder="Name" style="display:${showNew ? 'block' : 'none'};margin-top:6px" value="${showNew ? esc(t.owner || '') : ''}"></div>`;
+    h += `<input autocomplete="off" class="tkfTixOwnerNew" data-tix="${i}" placeholder="Name" style="display:${showNew ? 'block' : 'none'};margin-top:6px" value="${showNew ? esc(t.owner || '') : ''}"></div>`;
     // Bezahlt-Checkbox nur bei fremden Tickets ("+ Andere" gilt als fremd)
     h += '<div class="tkf-row" style="margin:0"><div class="tkf-checks">' +
       (mine ? '<span style="font-size:12px;color:#888">✓ bezahlt (mir)</span>'
-            : '<label><input type="checkbox" class="tkfTixPaid" data-tix="' + i + '" ' + (t.paid ? 'checked' : '') + '> bezahlt</label>') +
+            : '<label><input autocomplete="off" type="checkbox" class="tkfTixPaid" data-tix="' + i + '" ' + (t.paid ? 'checked' : '') + '> bezahlt</label>') +
       '</div></div>';
     h += '</div>';
   });
@@ -6546,6 +6586,31 @@ function saveConcertForm() {
 
 
 // ── Stadt-Formular mit Aspekt-Bewertungen ──
+function openCityForm(cityName) {
+  const city = cities[cityName] || { note: '', venues: {} };
+  let h = `<div class="tkf-row"><label>Stadt</label><input autocomplete="off" id="tcfCity" value="${esc(cityName || '')}" placeholder="z.B. Köln" ${cityName ? 'readonly' : ''}></div>`;
+  h += `<div class="tkf-row"><label>📝 Notiz zum Ort</label><textarea id="tcfNote" placeholder="z.B. allgemeine Parksituation, Bahnhofsnähe …">${esc(city.note || '')}</textarea></div>`;
+  h += `<button type="button" class="tk-add" style="margin-top:4px" data-tkact="savecity" data-oldcity="${esc(cityName || '')}">Speichern</button>`;
+  openTicketModal(cityName ? '🏙 ' + cityName : 'Ort bearbeiten', h);
+}
+function saveCityForm(oldCity) {
+  const cityName = document.getElementById('tcfCity').value.trim();
+  if (!cityName) { alert('Bitte eine Stadt angeben.'); return; }
+  const note = document.getElementById('tcfNote').value.trim();
+  if (oldCity && oldCity !== cityName && cities[oldCity]) {
+    cities[cityName] = { note, venues: cities[oldCity].venues || {} };
+    delete cities[oldCity];
+    concerts.forEach(c => { if (c.city === oldCity) c.city = cityName; });
+    save('vh_concerts', concerts);
+  } else {
+    if (!cities[cityName]) cities[cityName] = { note: '', venues: {} };
+    cities[cityName].note = note;
+  }
+  save('vh_cities', cities);
+  closeTicketModal();
+  renderTickets();
+}
+
 function openVenueForm(cityName, venueName) {
   const city = cities[cityName] || { note: '', venues: {} };
   const v = (city.venues && city.venues[venueName]) || { maps: '', note: '', aspects: {} };
@@ -6556,14 +6621,14 @@ function openVenueForm(cityName, venueName) {
     r += `<span class="tkf-star-clear" data-star="0">✕</span></div>`;
     return r;
   };
-  let h = '<div class="tkf-two"><div class="tkf-row"><label>Stadt</label><input id="tvfCity" value="' + esc(cityName || '') + '" placeholder="z.B. Köln"></div>';
-  h += '<div class="tkf-row"><label>Venue</label><input id="tvfVenue" value="' + esc(venueName || '') + '" placeholder="z.B. E-Werk"></div></div>';
-  h += '<div class="tkf-row"><label>📍 Maps-Link (Venue/Parkplatz)</label><input id="tvfMaps" value="' + esc(v.maps || '') + '" placeholder="https://maps.google.com/…"></div>';
+  let h = '<div class="tkf-two"><div class="tkf-row"><label>Stadt</label><input autocomplete="off" id="tvfCity" value="' + esc(cityName || '') + '" placeholder="z.B. Köln"></div>';
+  h += '<div class="tkf-row"><label>Venue</label><input autocomplete="off" id="tvfVenue" value="' + esc(venueName || '') + '" placeholder="z.B. E-Werk"></div></div>';
+  h += '<div class="tkf-row"><label>📍 Maps-Link (Venue/Parkplatz)</label><input autocomplete="off" id="tvfMaps" value="' + esc(v.maps || '') + '" placeholder="https://maps.google.com/…"></div>';
   const aspect = (key, icon, label, withWhere) => {
     const av = a[key] || {};
     let x = `<div class="tkf-aspect"><div class="tkf-aspect-hd">${icon} ${label}</div>`;
     x += starRow(key, av.rating || 0);
-    if (withWhere) x += `<input class="tvfWhere" data-aspkey="${key}" value="${esc(av.where || '')}" placeholder="Wo? (z.B. Restaurant XY / im Venue)" style="margin-top:7px">`;
+    if (withWhere) x += `<input autocomplete="off" class="tvfWhere" data-aspkey="${key}" value="${esc(av.where || '')}" placeholder="Wo? (z.B. Restaurant XY / im Venue)" style="margin-top:7px">`;
     x += `<textarea class="tvfANote" data-aspkey="${key}" placeholder="Notiz …">${esc(av.note || '')}</textarea></div>`;
     return x;
   };
@@ -6626,25 +6691,28 @@ function saveVenueForm(oldCity, oldVenue) {
 }
 
 
-// ── Modal-Helfer (nutzt eigenes Overlay) ──
+// ── Modal-Helfer (nutzt das echte, funktionierende .modal-bg/.modal-Design –
+//    vorher fehlten die CSS-Regeln für .modal-overlay/.modal-box, wodurch
+//    das Formular unformatiert ganz unten im Bildschirm landete) ──
 function openTicketModal(title, bodyHtml) {
   let m = document.getElementById('ticketModal');
   if (!m) {
     m = document.createElement('div');
     m.id = 'ticketModal';
-    m.className = 'modal-overlay';
-    m.innerHTML = '<div class="modal-box" style="max-width:520px"><div class="modal-head"><span id="tkModalTitle"></span>' +
-      '<button class="modal-x" data-tkact="closemodal">✕</button></div><div id="tkModalBody" class="modal-body"></div></div>';
+    m.className = 'modal-bg';
+    m.innerHTML = '<div class="modal"><div class="modal-handle"></div>' +
+      '<button class="modal-close-btn" aria-label="Schließen" data-tkact="closemodal">×</button>' +
+      '<h2 id="tkModalTitle"></h2><div id="tkModalBody"></div></div>';
     document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m) closeTicketModal(); });
   }
   document.getElementById('tkModalTitle').textContent = title;
   document.getElementById('tkModalBody').innerHTML = bodyHtml;
   m.classList.add('open');
-  m.style.display = 'flex';
 }
 function closeTicketModal() {
   const m = document.getElementById('ticketModal');
-  if (m) { m.classList.remove('open'); m.style.display = 'none'; }
+  if (m) m.classList.remove('open');
 }
 
 // ── Event-Delegation ──
@@ -6680,6 +6748,8 @@ function initTicketsDelegation() {
     else if (act === 'togglepaid') { const c = concerts.find(x => x.id === b.dataset.cid); const t2 = c && c.tickets ? c.tickets[+b.dataset.tix] : null; if (t2) { t2.paid = !t2.paid; save('vh_concerts', concerts); renderTickets(); } }
     else if (act === 'togglegiven') { const c = concerts.find(x => x.id === b.dataset.cid); const t3 = c && c.tickets ? c.tickets[+b.dataset.tix] : null; if (t3) { t3.handedOver = !t3.handedOver; save('vh_concerts', concerts); renderTickets(); } }
     else if (act === 'viewvenue') { ticketTab = 'venues'; renderTickets(); const cy = b.dataset.city, vn = b.dataset.venue; setTimeout(() => openVenueForm(cy, vn), 60); }
+    else if (act === 'editcity') openCityForm(b.dataset.city);
+    else if (act === 'savecity') saveCityForm(b.dataset.oldcity);
     else if (act === 'editvenue') openVenueForm(b.dataset.city, b.dataset.venue);
     else if (act === 'addvenue') openVenueForm(b.dataset.city, '');
     else if (act === 'delvenue') {
@@ -7766,7 +7836,7 @@ function renderIngredientPickList() {
   document.getElementById('ingredientPickList').innerHTML =
     _ipIngredients.map((ing, i) => `
       <label style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);cursor:pointer">
-        <input type="checkbox" data-ipidx="${i}" ${ing.selected?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0">
+        <input autocomplete="off" type="checkbox" data-ipidx="${i}" ${ing.selected?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0">
         <span style="flex:1;font-size:13px;color:var(--text)">${esc(ing.rawLine)}</span>
         ${_ipExistingNames.has(ing.name.toLowerCase())
           ? '<span style="font-size:10px;color:var(--muted);flex-shrink:0">bereits vorhanden</span>' : ''}
