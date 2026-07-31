@@ -1695,10 +1695,13 @@ function flash(msg) {
 }
 
 /* ---------- Kernlogik ---------- */
-function eggAddXp(n, label) {
+// bypassSick: für echte HomeHub-Aktionen (rewardDragon) — krank blockiert weiterhin
+// die Spiel-Interaktionen (Füttern, Wenden, Spielen …), aber nicht die echte Arbeit
+// in der App, sonst könnte man bei 0 ✨ nie wieder die 5 ✨ für die Medizin verdienen.
+function eggAddXp(n, label, bypassSick) {
   const p = dragon;
   if (p.power <= 0) { flash("🔌 Kein Strom! Erst die Stromzelle laden."); return false; }
-  if (p.krank) {
+  if (p.krank && !bypassSick) {
     flash("🤒 Krank! Erst Medizin geben.");
     if (p.expActive) p.expProgress += 1;
     markDirty(); checkExpDone(); saveDragon(); return false;
@@ -1759,7 +1762,7 @@ function rewardDragon(action) {
   const daily = !!a.daily;
   const today = new Date().toDateString();
   if (daily && dragon.lastBackupReward === today) return false;   // heute schon vergeben
-  const ok = eggAddXp(a.xp, a.label);
+  const ok = eggAddXp(a.xp, a.label, true);   // echte HomeHub-Aktion → funktioniert auch krank
   // Tagesbelohnung erst als verbraucht markieren, wenn die XP wirklich vergeben wurden
   // (nicht bei Ablehnung wegen Strommangel oder Krankheit)
   if (ok) {
@@ -1879,9 +1882,12 @@ function eggHeal() {
   if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (!p.krank) return;
-  if ((p.stardust || 0) < 5) { flash("Zu wenig ✨ für Medizin! (5 ✨)"); return; }
-  p.krank = false; p.krankSeit = 0; p.stardust -= 5;
-  flash("💊 Medizin gegeben — Erholt!");
+  // Kein harter Lockout: kostet volle 5 ✨ wenn vorhanden, sonst so viel wie da ist
+  // (gleiches Prinzip wie beim Wegräumen von Haufen) — sonst könnte man bei 0 ✨
+  // krank UND handlungsunfähig zugleich sein.
+  const cost = Math.min(5, p.stardust || 0);
+  p.krank = false; p.krankSeit = 0; p.stardust = (p.stardust || 0) - cost;
+  flash(cost < 5 ? "💊 Notfall-Medizin verabreicht (−" + cost + " ✨)" : "💊 Medizin gegeben — Erholt!");
   markDirty(); saveDragon({ touchLastSeen: true });
 }
 
