@@ -1585,15 +1585,20 @@ function markDirty() { uiDirty = true; dragonDirty = true; }
 function saveDragon(opts) {
   const force = opts === true || (opts && opts.force);
   const touchLastSeen = opts === true || (opts && opts.touchLastSeen);
+  const silent = !!(opts && opts.silent);   // stille Buchhaltung (Verfall/lastSeen) löst KEINEN Cloud-Sync aus
   try {
     if (touchLastSeen) dragon.lastSeen = Date.now();
     const json = JSON.stringify(dragon);
     if (!force && !dragonDirty && json === lastSavedDragonJson) return false;
+    // Flag für den localStorage-Monkeypatch in index.html: bei stiller Buchhaltung
+    // nicht als "echte Änderung" werten und keinen Sync-Konflikt provozieren.
+    if (silent) window.__eggSilentWrite = true;
     localStorage.setItem("vh_dragon", json);
+    window.__eggSilentWrite = false;
     lastSavedDragonJson = json;
     dragonDirty = false;
     return true;
-  } catch (_) { return false; }
+  } catch (_) { window.__eggSilentWrite = false; return false; }
 }
 
 function migrateUnlocked(d) {
@@ -2043,7 +2048,7 @@ function eggCheckIn() {
   Object.assign(p, applyKrankDevolve(p, now));
   if (elapsed > 7200) setTimeout(() => flash("👋 Willkommen zurück!"), 400);
   p.lastSeen = now;                 // Verfall verrechnet → Zeitstempel zurücksetzen
-  markDirty(); saveDragon({ touchLastSeen: true });
+  markDirty(); saveDragon({ touchLastSeen: true, silent: true });
 }
 
 /* ---------- UI ---------- */
@@ -2352,7 +2357,7 @@ function eggHandleVisibility() {
   try {
     if (document.hidden) {
       eggStopLoop();
-      saveDragon({ touchLastSeen: true });    // echtes Ereignis → lastSeen aktualisieren
+      saveDragon({ touchLastSeen: true, silent: true });    // nur Zeitstempel, keine echte Aktion
     } else {
       eggCheckIn();                           // aktualisiert lastSeen und speichert selbst
       if (document.getElementById("eggCanvas")) eggStartLoop();
