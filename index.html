@@ -779,7 +779,7 @@ body{
 .tk-link-mini{background:none;border:none;color:#7c3aed;font-weight:700;font-size:12px;cursor:pointer;padding:0;white-space:nowrap}
 
 </style>
-  <link rel="stylesheet" href="dragon-game.css?v=26">
+  <link rel="stylesheet" href="dragon-game-balanced.css?v=27">
 </head>
 <body>
 
@@ -1588,7 +1588,7 @@ body{
   });
 })();
 </script>
-<script src="dragon-game.js?v=26"></script>
+<script src="dragon-game-balanced.js?v=27"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game.js nicht lädt. */
@@ -3614,7 +3614,7 @@ function saveStoreCheckout() {
   bookings.forEach(b => b.items.forEach(({ idx }) => removeIdx.add(idx)));
   shopLists.items = shopLists.items.filter((_, i) => !removeIdx.has(i));
   save('vh_shoplists', shopLists);
-  rewardDragon('shopping'); // HOMEHUB DRAGON
+  rewardDragon('shoppingComplete'); // HOMEHUB DRAGON – einmal pro abgeschlossenem Einkauf
   closeKasseModal();
   refreshEinkaufView();
   try { renderAmpel(); } catch (e) {}
@@ -4514,7 +4514,7 @@ document.getElementById('saveContractBtn').addEventListener('click', () => {
   else contracts.push(entry);
   save('vh_contracts', contracts);
   // HOMEHUB DRAGON
-  if (editContractId) rewardDragon('contractUpdate'); else rewardDragon('contractCreate');
+  if (editContractId) rewardDragon('contractUpdate', { id: entry.id }); else rewardDragon('contractCreate', { id: entry.id });
   incrementBackupCounter(10); // Vertragsänderung → Backup empfehlen
   closeModal('contractModal');
   renderContracts(); renderAmpel(); renderHome();
@@ -4683,7 +4683,6 @@ document.getElementById('cancelShopBtn').addEventListener('click', () => closeMo
 function toggleShopItem(idx) {
   shopLists.items[idx].checked = !shopLists.items[idx].checked;
   save('vh_shoplists', shopLists);
-  if (shopLists.items[idx].checked) rewardDragon('shopping'); // HOMEHUB DRAGON
   refreshEinkaufView();
 }
 function removeShopItem(idx) { shopLists.items.splice(idx, 1); save('vh_shoplists', shopLists); refreshEinkaufView(); }
@@ -4718,7 +4717,7 @@ document.getElementById('confirmBookBtn').addEventListener('click', () => {
   save('vh_expenses', expenses);
   shopLists.items.forEach(i => { i.checked = false; });
   save('vh_shoplists', shopLists);
-  rewardDragon('shopping'); // HOMEHUB DRAGON
+  rewardDragon('shoppingComplete'); // HOMEHUB DRAGON – einmal pro abgeschlossenem Einkauf
   closeModal('bookShoppingModal');
   renderKasse(); renderHome();
 });
@@ -5432,7 +5431,7 @@ document.getElementById('saveReadingBtn').addEventListener('click', () => {
   }
 
   save('vh_meters', meters);
-  rewardDragon('meter'); // HOMEHUB DRAGON
+  if (editReadingIdx === null) rewardDragon('meter', { id: meter.id + ':' + document.getElementById('r-date').value }); // nur neue Messwerte
   incrementBackupCounter(10); // Zählerstand → Backup empfehlen
   closeModal('readingModal');
   renderMeters();

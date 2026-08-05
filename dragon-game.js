@@ -1451,6 +1451,18 @@ function drawEgg(ctx, S, t) {
    ÖKONOMIE
    ======================================================================= */
 const EGG_XP = [0, 300, 1200, 3000, 6000, 10000];
+const STAGE_REWARDS = [0, 5, 5, 8, 10, 15];
+function localDayKey(date) {
+  const d = date instanceof Date ? date : new Date(date || Date.now());
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + day;
+}
+function sameLocalDay(value, key) {
+  if (!value) return false;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value === key;
+  const d = new Date(value);
+  return !isNaN(d.getTime()) && localDayKey(d) === key;
+}
 const FEEL = ["leblos & geheimnisvoll", "es nimmt dich wahr", "watschelt durchs Nest", "greift nach der Welt", "etwas wächst heraus", "kosmische Entität"];
 function clampI(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function stg(n) { n = Math.round(Number(n)); return isFinite(n) ? Math.min(5, Math.max(0, n)) : 0; }
@@ -1462,11 +1474,11 @@ const FOOD_ITEMS = [
   { id:"torte",  label:"🍰 Ei-Torte",      cost:4, hunger:60, xp:3,  power:0,  desc:"+3 XP" },
 ];
 const TOY_ITEMS = [
-  { id:"ball",    label:"🎾 Ball",         cost:4,  xp:8,  cd:6*3600*1000,  desc:"+8 XP · 6h" },
-  { id:"yoyo",    label:"🪀 Jo-Jo",        cost:6,  xp:14, cd:12*3600*1000, desc:"+14 XP · 12h" },
-  { id:"bubbles", label:"🫧 Seifenblasen", cost:8,  xp:20, cd:24*3600*1000, desc:"+20 XP · 24h" },
-  { id:"balloon", label:"🎈 Luftballon",   cost:10, xp:26, cd:36*3600*1000, desc:"+26 XP · 36h" },
-  { id:"top",     label:"🌀 Brummkreisel", cost:12, xp:34, cd:48*3600*1000, desc:"+34 XP · 48h" },
+  { id:"ball",    label:"🎾 Ball",         cost:8,  xp:5,  cd:12*3600*1000, desc:"+5 XP · 12h" },
+  { id:"yoyo",    label:"🪀 Jo-Jo",        cost:12, xp:8,  cd:24*3600*1000, desc:"+8 XP · 24h" },
+  { id:"bubbles", label:"🫧 Seifenblasen", cost:16, xp:12, cd:36*3600*1000, desc:"+12 XP · 36h" },
+  { id:"balloon", label:"🎈 Luftballon",   cost:20, xp:16, cd:48*3600*1000, desc:"+16 XP · 48h" },
+  { id:"top",     label:"🌀 Brummkreisel", cost:25, xp:20, cd:72*3600*1000, desc:"+20 XP · 72h" },
 ];
 const SHOP_ITEMS = [
   { id: "rug",        label: "🧶 Teppich",    cost: 3, desc: "Gestreifter Läufer" },
@@ -1483,11 +1495,11 @@ const SEASON_ITEMS = [
   { id: "pumpkin",    label: "🎃 Kürbis",        cost: 6, months: [9],       desc: "Leuchtet schaurig" },
   { id: "xmastree",   label: "🎄 Tannenbaum",    cost: 8, months: [11], xmas: true, desc: "Mit Lichterkette" },
 ];
-const COSTUMES = [                                              // saisonale Kostüme — kosten XP, Minus erlaubt
-  { id: "bunnyears", label: "🐰 Hasenohren",       cost: 150, months: [2, 3],    desc: "Wackeln beim Hüpfen" },
-  { id: "strawhat",  label: "👒 Strohhut",         cost: 150, months: [5, 6, 7], desc: "Für die Sommersonne" },
-  { id: "ghost",     label: "👻 Geisterkostüm",    cost: 150, months: [9],       desc: "Buuuh!" },
-  { id: "santahat",  label: "🎅 Weihnachtsmütze",  cost: 150, months: [11], xmas: true, desc: "Mit Bommel" },
+const COSTUMES = [                                              // saisonale Kostüme — klare Stern-Währung, XP sinkt nie
+  { id: "bunnyears", label: "🐰 Hasenohren",       cost: 20, months: [2, 3],    desc: "Wackeln beim Hüpfen" },
+  { id: "strawhat",  label: "👒 Strohhut",         cost: 22, months: [5, 6, 7], desc: "Für die Sommersonne" },
+  { id: "ghost",     label: "👻 Geisterkostüm",    cost: 25, months: [9],       desc: "Buuuh!" },
+  { id: "santahat",  label: "🎅 Weihnachtsmütze",  cost: 25, months: [11], xmas: true, desc: "Mit Bommel" },
 ];
 function nextExpItem(p) {
   const u = p.unlocked || {}, pr = p.prestige || 0;
@@ -1526,7 +1538,7 @@ const WALL_ITEMS = [                                              // exklusiv ab
 ];
 
 // Offline-Decay: % pro Sekunde
-const KRANK_DEVOLVE_MS = 3 * 86400 * 1000;                       // 3 Tage krank -> eine Stufe zurück
+const KRANK_DEVOLVE_MS = 7 * 86400 * 1000;                       // erst nach 7 unbehandelten Tagen eine Stufe zurück
 function applyKrankDevolve(p, now) {
   if (!p.krank || !p.krankSeit) return p;
   let stage = p.stage, xp = p.xp, seit = p.krankSeit, hit = false;
@@ -1537,7 +1549,7 @@ function applyKrankDevolve(p, now) {
   setTimeout(() => flash("💔 Zu lange krank — das Ei ist eine Stufe zurückgefallen!"), 60);
   return { ...p, stage, xp, krankSeit: seit };
 }
-const DECAY_PS = { power: 1/432, hunger: 1/3456, sauberkeit: 1/4320 };   // Strom 12h (!), Hunger ~4 Tage, Sauberkeit ~5 Tage
+const DECAY_PS = { power: 1/864, hunger: 1/3456, sauberkeit: 1/4320 };   // Strom 24h, Hunger ~4 Tage, Sauberkeit ~5 Tage
 
 
 /* =========================================================================
@@ -1553,14 +1565,15 @@ const DECAY_PS = { power: 1/432, hunger: 1/3456, sauberkeit: 1/4320 };   // Stro
 // gestaffelt nach Seltenheit/Aufwand — dafür ist der reine "App geöffnet"-Streakbonus
 // entfallen (siehe checkDailyStreak(), jetzt an echte Aktionen gekoppelt).
 const EGG_ACTIONS = {
-  shopping:       { xp: 1,  label: "Artikel abhaken" },                                  // sehr häufig, kein Fixbonus
-  expense:        { xp: 3,  label: "Ausgabe erfassen",   stardustChance: 0.25 },          // häufig, ~1 ✨ alle 4 Buchungen
-  recipe:         { xp: 10, label: "Rezept angelegt",    stardust: 1 },                   // selten genutzt, aber sicher belohnt
-  recipeCooked:   { xp: 10, label: "Rezept gekocht",     stardust: 1 },
-  meter:          { xp: 25, label: "Zähler eingetragen", stardust: 2 },                   // alle paar Monate dran
-  contractCreate: { xp: 40, label: "Vertrag angelegt",   stardust: 3 },
-  contractUpdate: { xp: 40, label: "Vertrag geprüft",    stardust: 3 },
-  backup:         { xp: 5,  label: "Sicherung", daily: true },                            // feuert jetzt auch beim Auto-Sync
+  shoppingItem:   { xp: 0,  label: "Artikel abgehakt", expedition: false },
+  shoppingComplete:{ xp: 4, label: "Einkauf abgeschlossen", stardustChance: 0.25, expedition: true },
+  expense:        { xp: 3,  label: "Ausgabe erfasst", stardustChance: 0.25, expedition: true },
+  recipe:         { xp: 10, label: "Rezept angelegt", stardust: 1, expedition: true },
+  recipeCooked:   { xp: 10, label: "Rezept gekocht", stardust: 1, expedition: true, dailyPerItem: true },
+  meter:          { xp: 25, label: "Zählerstand erfasst", stardust: 2, expedition: true },
+  contractCreate: { xp: 40, label: "Vertrag angelegt", stardust: 3, expedition: true },
+  contractUpdate: { xp: 20, label: "Vertrag geprüft", stardust: 1, expedition: true, cooldownDays: 30 },
+  backup:         { xp: 3,  label: "Sicherung erstellt", daily: true, expedition: true },
 };
 
 window.DRAGON_DEFAULTS = {
@@ -1568,7 +1581,8 @@ window.DRAGON_DEFAULTS = {
   expActive: false, expProgress: 0, expGoal: 12, stardust: 0, deko: {},
   hunger: 100, sauberkeit: 100, krank: false, krankSeit: 0, mess: [],
   toys: {}, toyCooldown: {}, streak: 0, lastLogin: 0, prestige: 0,
-  statLog: { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
+  statLog: { acts: 0, byAction: {}, xpEarned: {}, starsEarned: {}, starsSpent: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
+  rewardCooldowns: {}, lastRealActionDay: "", lastCareBonusAt: 0,
   lastReview: "", lastNudge: "", lastBackupReward: "", lastTurn: 0, lastKnock: "", costumes: {}, unlocked: {}, lastSeen: 0,
 };
 var dragon = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
@@ -1598,7 +1612,12 @@ function saveDragon(opts) {
     lastSavedDragonJson = json;
     dragonDirty = false;
     return true;
-  } catch (_) { window.__eggSilentWrite = false; return false; }
+  } catch (err) {
+    window.__eggSilentWrite = false;
+    console.warn("[HomeHub Dragon] Speichern fehlgeschlagen:", err);
+    if (!(opts && opts.silent)) setTimeout(() => flash("⚠️ Ei konnte nicht gespeichert werden."), 0);
+    return false;
+  }
 }
 
 function migrateUnlocked(d) {
@@ -1612,16 +1631,24 @@ function migrateUnlocked(d) {
 function sanitizeDragon() {
   const num = (v, d, min, max) => { const n = Number(v); return isFinite(n) ? Math.min(max, Math.max(min, n)) : d; };
   dragon.stage       = stg(dragon.stage);
-  dragon.xp          = isFinite(Number(dragon.xp)) ? Number(dragon.xp) : 0;
+  dragon.xp          = isFinite(Number(dragon.xp)) ? Math.max(0, Number(dragon.xp)) : 0;
   dragon.power       = num(dragon.power, 100, 0, 100);
   dragon.hunger      = num(dragon.hunger, 100, 0, 100);
   dragon.sauberkeit  = num(dragon.sauberkeit, 100, 0, 100);
   dragon.integrity   = num(dragon.integrity, 100, 0, 100);
   dragon.shards      = num(dragon.shards, 0, 0, 99);
-  dragon.stardust    = num(dragon.stardust, 0, -9999, 999999);
+  dragon.stardust    = num(dragon.stardust, 0, 0, 999999);
   dragon.prestige    = num(dragon.prestige, 0, 0, 9999);
   dragon.expGoal     = num(dragon.expGoal, 12, 1, 999);
   dragon.expProgress = num(dragon.expProgress, 0, 0, 9999);
+  dragon.rewardCooldowns = safePlainObject(dragon.rewardCooldowns);
+  dragon.lastRealActionDay = typeof dragon.lastRealActionDay === "string" ? dragon.lastRealActionDay : "";
+  dragon.lastCareBonusAt = num(dragon.lastCareBonusAt, 0, 0, 8.64e15);
+  dragon.statLog = safePlainObject(dragon.statLog);
+  dragon.statLog.byAction = safePlainObject(dragon.statLog.byAction);
+  dragon.statLog.xpEarned = safePlainObject(dragon.statLog.xpEarned);
+  dragon.statLog.starsEarned = safePlainObject(dragon.statLog.starsEarned);
+  dragon.statLog.starsSpent = safePlainObject(dragon.statLog.starsSpent);
   dragon.krankSeit   = num(dragon.krankSeit, 0, 0, 8.64e15);
   dragon.lastSeen    = num(dragon.lastSeen, 0, 0, 8.64e15);
   dragon.streak      = num(dragon.streak, 0, 0, 99999);
@@ -1703,30 +1730,41 @@ function flash(msg) {
 // bypassSick: für echte HomeHub-Aktionen (rewardDragon) — krank blockiert weiterhin
 // die Spiel-Interaktionen (Füttern, Wenden, Spielen …), aber nicht die echte Arbeit
 // in der App, sonst könnte man bei 0 ✨ nie wieder die 5 ✨ für die Medizin verdienen.
-function eggAddXp(n, label, bypassSick) {
+function recordStatBucket(bucket, key, amount) {
+  const L = dragon.statLog = dragon.statLog || {};
+  L[bucket] = L[bucket] || {};
+  L[bucket][key] = (L[bucket][key] || 0) + amount;
+}
+function grantStageRewards(oldStage, newStage) {
+  if (newStage <= oldStage) return 0;
+  let stars = 0;
+  for (let stage = oldStage + 1; stage <= newStage; stage++) stars += STAGE_REWARDS[stage] || 0;
+  if (stars) {
+    dragon.stardust = (dragon.stardust || 0) + stars;
+    recordStatBucket("starsEarned", "Entwicklung", stars);
+  }
+  dragon.shards = 5;
+  setTimeout(() => flash("🎉 Entwicklung! " + EGG_PAL[stg(newStage)].name + (stars ? " · +" + stars + " Sterne" : "")), 500);
+  return stars;
+}
+function eggAddXp(n, label, options) {
+  const opts = typeof options === "object" ? options : { bypassSick: !!options };
   const p = dragon;
   if (p.power <= 0) { flash("🔌 Kein Strom! Erst die Stromzelle laden."); return false; }
-  if (p.krank && !bypassSick) {
-    flash("🤒 Krank! Erst Medizin geben.");
-    if (p.expActive) p.expProgress += 1;
-    markDirty(); checkExpDone(); saveDragon(); return false;
-  }
-  let xp = p.xp + n, stardust = p.stardust || 0, luckyDust = 0;
-  if (Math.random() < 0.15) { luckyDust = 1; setTimeout(() => flash("✨ Glücksfund! +1 Protein"), 1400); }
-  if (p.expActive) p.expProgress += 1;
+  if (p.krank && !opts.bypassSick) { flash("🤒 Krank! Erst Medizin geben."); return false; }
+  const gain = Math.max(0, Number(n) || 0);
+  const oldStage = stg(p.stage);
+  if (p.expActive && opts.expedition === true) p.expProgress += 1;
   const L0 = p.statLog || { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 };
   L0.acts = (L0.acts || 0) + 1;
   L0.byAction = L0.byAction || {};
   L0.byAction[label] = (L0.byAction[label] || 0) + 1;
   p.statLog = L0;
-  p.stardust = stardust + luckyDust;
-  const newStage = stg(Math.max(stg(p.stage), stageForXp(xp)));
-  if (newStage > p.stage) {
-    p.shards = 5;
-    setTimeout(() => flash("🎉 Entwicklung! " + EGG_PAL[stg(newStage)].name), 500);
-  }
-  p.xp = xp; p.stage = newStage;
-  flash("+" + n + " XP · " + label);
+  if (gain) recordStatBucket("xpEarned", label, gain);
+  p.xp = Math.max(0, (p.xp || 0) + gain);
+  p.stage = stg(Math.max(oldStage, stageForXp(p.xp)));
+  grantStageRewards(oldStage, p.stage);
+  if (gain) flash("+" + gain + " XP · " + label);
   markDirty(); checkExpDone(); saveDragon();
   return true;
 }
@@ -1734,13 +1772,17 @@ function eggAddXp(n, label, bypassSick) {
 function checkExpDone() {
   const p = dragon;
   if (!p.expActive || p.expProgress < p.expGoal) return;
-  const ds = 6 + p.stage, xpB = 15 + p.stage * 5, found = nextExpItem(p);
-  p.stardust = (p.stardust || 0) + ds;
-  p.xp += xpB; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
+  const rewards = { 2:{xp:30,stars:5}, 3:{xp:35,stars:6}, 4:{xp:40,stars:7}, 5:{xp:50,stars:8} };
+  const r = rewards[p.stage] || rewards[2], found = nextExpItem(p), oldStage = p.stage;
+  p.stardust = (p.stardust || 0) + r.stars;
+  p.xp += r.xp; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
+  grantStageRewards(oldStage, p.stage);
+  recordStatBucket("xpEarned", "Expedition", r.xp);
+  recordStatBucket("starsEarned", "Expedition", r.stars);
   p.expActive = false; p.expProgress = 0;
-  if (found) { p.unlocked = Object.assign({}, p.unlocked, { [found.id]: true }); }
+  if (found) p.unlocked = Object.assign({}, p.unlocked, { [found.id]: true });
   p.statLog = p.statLog || {}; p.statLog.exps = (p.statLog.exps || 0) + 1;
-  setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! Jetzt im Shop · +" + xpB + " XP · +" + ds + " ✨" : "🎁 Expedition zurück! +" + xpB + " XP · +" + ds + " ✨"), 60);
+  setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! · +" + r.xp + " XP · +" + r.stars + " Sterne" : "🎁 Expedition zurück! +" + r.xp + " XP · +" + r.stars + " Sterne"), 60);
 }
 
 // Streak-Bonus NUR bei echter HomeHub-Aktion (nicht beim bloßen Öffnen der App) —
@@ -1748,41 +1790,62 @@ function checkExpDone() {
 // Bonus reduziert (vorher 2/3 ✨), weil echte Aktionen jetzt zusätzlich eigene
 // garantierte Sterne geben (siehe EGG_ACTIONS) — sonst würde die Summe zu hoch.
 function checkDailyStreak() {
-  const p = dragon, now = Date.now();
-  const today = new Date().toDateString();
-  const lastDate = p.lastLogin ? new Date(p.lastLogin).toDateString() : "";
-  if (lastDate === today) return;                    // heute schon verdient
-  const yesterday = new Date(now - 86400000).toDateString();
-  p.streak = lastDate === yesterday ? (p.streak || 0) + 1 : 1;
-  const starBonus = p.streak >= 7 ? 2 : 1, xpBonus = p.streak >= 7 ? 5 : 3;
+  const p = dragon, now = Date.now(), today = localDayKey();
+  if (sameLocalDay(p.lastLogin, today)) return;
+  const yd = new Date(); yd.setDate(yd.getDate() - 1);
+  p.streak = sameLocalDay(p.lastLogin, localDayKey(yd)) ? (p.streak || 0) + 1 : 1;
+  const starBonus = p.streak >= 7 ? 2 : 1, xpBonus = p.streak >= 7 ? 4 : 3, oldStage = p.stage;
   p.stardust = (p.stardust || 0) + starBonus;
   p.xp += xpBonus; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
+  grantStageRewards(oldStage, p.stage);
+  recordStatBucket("xpEarned", "Tagesstreak", xpBonus);
+  recordStatBucket("starsEarned", "Tagesstreak", starBonus);
   p.lastLogin = now;
-  if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + " Tage in Folge aktiv! +" + xpBonus + " XP · +" + starBonus + " ✨"), 900);
+  if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + " Tage aktiv! +" + xpBonus + " XP · +" + starBonus + " Sterne"), 900);
 }
 
-function rewardDragon(action) {
+function checkWeeklyCareBonus() {
+  const p = dragon, now = Date.now();
+  if (!p.lastCareBonusAt) { p.lastCareBonusAt = now; return; }
+  if (now - p.lastCareBonusAt < 7 * 86400000) return;
+  p.lastCareBonusAt = now;
+  if (p.krank || p.hunger <= 0 || p.sauberkeit <= 0 || p.power <= 0) return;
+  const oldStage = p.stage;
+  p.xp += 10; p.stardust = (p.stardust || 0) + 2;
+  p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
+  grantStageRewards(oldStage, p.stage);
+  recordStatBucket("xpEarned", "Wochenpflege", 10);
+  recordStatBucket("starsEarned", "Wochenpflege", 2);
+  setTimeout(() => flash("🌿 Gute Wochenpflege! +10 XP · +2 Sterne"), 1600);
+}
+
+function rewardDragon(action, meta) {
   const a = EGG_ACTIONS[action];
   if (!a) return false;
-  const daily = !!a.daily;
-  const today = new Date().toDateString();
-  if (daily && dragon.lastBackupReward === today) return false;   // heute schon vergeben
-  const ok = eggAddXp(a.xp, a.label, true);   // echte HomeHub-Aktion → funktioniert auch krank
-  // Tagesbelohnung erst als verbraucht markieren, wenn die XP wirklich vergeben wurden
-  // (nicht bei Ablehnung wegen Strommangel oder Krankheit)
-  if (ok) {
-    checkDailyStreak();
-    let bonus = 0;
-    if (a.stardust) bonus = a.stardust;                                        // garantiert, für seltene/wertvolle Aktionen
-    else if (a.stardustChance && Math.random() < a.stardustChance) bonus = 1;    // Erfolgsquote, für häufige Aktionen
-    if (bonus) {
-      dragon.stardust = (dragon.stardust || 0) + bonus;
-      setTimeout(() => flash("✨ +" + bonus + " für: " + a.label), 1300);
-      markDirty(); saveDragon();
-    }
+  const today = localDayKey(), info = meta || {};
+  if (a.daily && sameLocalDay(dragon.lastBackupReward, today)) return false;
+  const cooldownKey = action + ":" + (info.id || "global");
+  const last = dragon.rewardCooldowns && dragon.rewardCooldowns[cooldownKey];
+  if (a.cooldownDays && last && Date.now() - last < a.cooldownDays * 86400000) return false;
+  if (a.dailyPerItem && sameLocalDay(last, today)) return false;
+  const ok = eggAddXp(a.xp, a.label, { bypassSick:true, expedition:a.expedition === true });
+  if (!ok) return false;
+  dragon.lastRealActionDay = today;
+  checkDailyStreak();
+  checkWeeklyCareBonus();
+  let bonus = 0;
+  if (a.stardust) bonus = a.stardust;
+  else if (a.stardustChance && Math.random() < a.stardustChance) bonus = 1;
+  if (bonus) {
+    dragon.stardust = (dragon.stardust || 0) + bonus;
+    recordStatBucket("starsEarned", a.label, bonus);
+    setTimeout(() => flash("✨ +" + bonus + " Stern" + (bonus === 1 ? "" : "e") + " · " + a.label), 1300);
   }
-  if (daily && ok) dragon.lastBackupReward = today;
-  return ok;
+  dragon.rewardCooldowns = dragon.rewardCooldowns || {};
+  if (a.cooldownDays || a.dailyPerItem) dragon.rewardCooldowns[cooldownKey] = Date.now();
+  if (a.daily) dragon.lastBackupReward = today;
+  markDirty(); saveDragon({ touchLastSeen:true });
+  return true;
 }
 window.rewardDragon = rewardDragon;
 window.loadDragon = loadDragon;
@@ -1804,13 +1867,13 @@ function eggKnock() {
   if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon;
   if (p.stage >= 2) return;
-  const today = new Date().toDateString();
+  const today = localDayKey();
   if (p.lastKnock === today) { flash("Es hat heute schon zurückgeklopft! 👂"); return; }
   p.lastKnock = today;
   knockAnim = { on: true, startT: lastT + 450 };                      // klopft mit kleiner Verzögerung zurück
   if (Math.random() < 0.5) {
     p.stardust = (p.stardust || 0) + 1;
-    setTimeout(() => flash("👂 Es klopft zurück … ✨ +1 Protein!"), 700);
+    setTimeout(() => flash("👂 Es klopft zurück … ✨ +1 Stern!"), 700);
   } else {
     setTimeout(() => flash("👂 … klopf, klopf — es lebt!"), 700);
   }
@@ -1823,10 +1886,10 @@ function eggCandle() {
   flash("🔦 Du hältst das Ei vor die Lampe …");
 }
 function eggNudge() {
-  const today = new Date().toDateString();
+  const today = localDayKey();
   if (dragon.lastNudge === today) { flash("Schon angestupst heute! Morgen wieder 🥚"); return; }
   dragon.lastNudge = today;
-  eggAddXp(5, "Anstupsen");
+  eggAddXp(dragon.stage === 0 ? 4 : 3, "Anstupsen", { expedition:false });
 }
 
 function eggFeed(id) {
@@ -1864,22 +1927,21 @@ function eggCharge() {
 
 function eggClean() {
   if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
+  const p = dragon; let changed = false, cost = 0;
   p.statLog = p.statLog || {};
   if (p.mess.length > 0) {
-    const cost = (p.stardust || 0) >= 1 ? 1 : 0;
-    p.mess = p.mess.slice(1);
-    p.sauberkeit = clampI(p.sauberkeit + 14, 0, 100);
-    p.stardust = (p.stardust || 0) - cost;
-    p.statLog.cleans = (p.statLog.cleans || 0) + 1;
-    flash("🧹 Haufen entfernt" + (cost ? " (−1 ✨)" : "") + " — noch " + p.mess.length);
+    cost = p.stage === 0 ? 0 : Math.min(1, p.stardust || 0);
+    p.mess = p.mess.slice(1); p.sauberkeit = clampI(p.sauberkeit + 14, 0, 100); changed = true;
+    flash("🧹 Haufen entfernt" + (cost ? " (−1 Stern)" : "") + " — noch " + p.mess.length);
   } else if (p.sauberkeit < 100) {
-    const cost = p.sauberkeit > 60 ? 1 : p.sauberkeit > 30 ? 2 : 3;
-    if ((p.stardust || 0) < cost) { flash("Wischen kostet " + cost + " ✨"); return; }
-    p.sauberkeit = 100; p.stardust -= cost;
-    p.statLog.cleans = (p.statLog.cleans || 0) + 1;
-    flash("🧼 Blitzblank! (−" + cost + " ✨)");
-  }
+    cost = p.stage === 0 ? 0 : (p.sauberkeit > 45 ? 1 : 2);
+    if ((p.stardust || 0) < cost) { flash("Wischen kostet " + cost + " Sterne"); return; }
+    p.sauberkeit = 100; changed = true; flash(cost ? "🧼 Blitzblank! (−" + cost + " Sterne)" : "🧼 Blitzblank!");
+  } else { flash("✨ Schon alles sauber."); }
+  if (!changed) return;
+  p.stardust = Math.max(0, (p.stardust || 0) - cost);
+  if (cost) recordStatBucket("starsSpent", "Reinigung", cost);
+  p.statLog.cleans = (p.statLog.cleans || 0) + 1;
   markDirty(); saveDragon({ touchLastSeen: true });
 }
 
@@ -1941,9 +2003,11 @@ function eggBuyCostume(id) {
   if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
   const p = dragon, it = COSTUMES.find(x => x.id === id);
   if (!it || (p.costumes && p.costumes[id])) return;
-  p.xp -= it.cost;                                     // Minus erlaubt, Stufe bleibt
+  if ((p.stardust || 0) < it.cost) { flash("Zu wenig Sterne! (" + it.cost + ")"); return; }
+  p.stardust -= it.cost;
+  recordStatBucket("starsSpent", "Kostüm", it.cost);
   p.costumes = Object.assign({}, p.costumes, { [id]: true });
-  flash("🎭 " + it.label + " gekauft!" + (p.xp < 0 ? " (XP im Minus — aufholen!)" : ""));
+  flash("🎭 " + it.label + " gekauft! (−" + it.cost + " Sterne)");
   markDirty(); saveDragon({ touchLastSeen: true });
 }
 
@@ -1955,9 +2019,12 @@ function eggPlay(id) {
   if (p.stage < 3) { flash("🔒 Braucht Arme (Stufe 4)."); return; }
   const now = Date.now(), cd = (p.toyCooldown || {})[id] || 0;
   if (now < cd) { flash("⏳ " + toy.label + " braucht noch " + Math.ceil((cd - now) / 3600000) + "h Pause."); return; }
+  if (p.lastRealActionDay !== localDayKey()) { flash("🏠 Erst heute etwas in HomeHub erledigen, dann spielen."); return; }
+  const oldStage = p.stage;
   p.xp += toy.xp; p.stage = stg(Math.max(stg(p.stage), stageForXp(p.xp)));
-  const ds = Math.random() < 0.3 ? 1 : 0;
-  p.stardust = (p.stardust || 0) + ds;
+  grantStageRewards(oldStage, p.stage);
+  recordStatBucket("xpEarned", "Spielen: " + toy.label, toy.xp);
+  const ds = 0;
   p.toyCooldown = Object.assign({}, p.toyCooldown, { [id]: now + toy.cd });
   p.statLog = p.statLog || {}; p.statLog.plays = (p.statLog.plays || 0) + 1;
   idle.act = "play"; idle.toy = id; idle.startT = lastT;
@@ -1970,7 +2037,7 @@ function eggPlay(id) {
 function eggStartExp() {
   const p = dragon;
   if (p.stage < 2 || p.expActive || p.power <= 0) return;
-  const goal = [0, 0, 12, 16, 20, 25][p.stage] || 12;
+  const goal = [0, 0, 10, 16, 20, 25][p.stage] || 10;
   p.expActive = true; p.expProgress = 0; p.expGoal = goal;
   flash("🚪 Expedition! Sammle " + goal + " Aktionen");
   markDirty(); saveDragon({ touchLastSeen: true });
@@ -1985,7 +2052,7 @@ function buildReview(p, n) {
     "\n🔥 Login-Streak: " + (p.streak || 0) + " Tage\n\n📋 HomeHub-Taten (" + (L.acts || 0) + " gesamt):\n" + (lines || "  –") +
     "\n\n🍳 Fütterungen: " + (L.feeds || 0) + "\n🎮 Spielrunden: " + (L.plays || 0) +
     "\n🚪 Expeditionen: " + (L.exps || 0) + "\n🧹 Reinigungen: " + (L.cleans || 0) +
-    "\n✨ Protein übrig: " + (p.stardust || 0) + "\n\nWeiter geht's mit Ei Nr. " + (n + 1) + "! 🌀";
+    "\n✨ Sterne übrig: " + (p.stardust || 0) + "\n\nWeiter geht's mit Ei Nr. " + (n + 1) + "! 🌀";
 }
 function eggDownloadReview() {
   if (!dragon.lastReview) return;
@@ -2016,7 +2083,7 @@ function eggPrestige() {
     });
     prestigeAnim = { st: "none", startT: 0 };
     walk.x = 92; walk.tx = 92; walk.face = 0;
-    flash("🌀 PRESTIGE " + n + "! +" + bonus + " Protein · Rückblick bereit 📜");
+    flash("🌀 PRESTIGE " + n + "! +" + bonus + " Sterne · Rückblick bereit 📜");
     markDirty(); saveDragon({ touchLastSeen: true });
   }, 5200);
   markDirty();
@@ -2102,7 +2169,7 @@ function eggSections() {
     const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
     h += '<div class="eg-dim" style="margin:7px 0 4px">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
     h += '<button class="eg-btn" data-act="turn"' + (tLeft > 0 ? " disabled" : "") + '>🔄 Wenden<br><small>' + (tLeft > 0 ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h") + "</small></button>";
-    h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === new Date().toDateString() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
+    h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === localDayKey() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
     h += '</div><button class="eg-btn eg-wide" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>';
   }
   h += "</div></details>";
@@ -2320,13 +2387,13 @@ function eggEvery(ms, fn) {
 function eggStartTimers() {
   if (eggTimers.length) return;              // schon gestartet
 
-  eggEvery(432000, () => {                   // Strom: nach 12h komplett leer
+  eggEvery(864000, () => {                   // Strom: nach etwa 24h komplett leer
     const p = dragon;
     p.power = clampI(p.power - 1, 0, 100);
     markDirty(); saveDragon();
   });
 
-  eggEvery(3456000, () => {                  // Hunger (~2,5 Tage)
+  eggEvery(3456000, () => {                  // Hunger (~4 Tage)
     const p = dragon;
     p.hunger = clampI(p.hunger - 1, 0, 100);
     if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
