@@ -1549,7 +1549,7 @@ function applyKrankDevolve(p, now) {
   setTimeout(() => flash("💔 Zu lange krank — das Ei ist eine Stufe zurückgefallen!"), 60);
   return { ...p, stage, xp, krankSeit: seit };
 }
-const DECAY_PS = { power: 1/864, hunger: 1/3456, sauberkeit: 1/4320 };   // Strom 24h, Hunger ~4 Tage, Sauberkeit ~5 Tage
+const DECAY_PS = { power: 1/216, hunger: 1/288, sauberkeit: 1/360 };   // Strom 6h, Hunger 8h, Sauberkeit 10h
 
 
 /* =========================================================================
@@ -2376,13 +2376,13 @@ function eggEvery(ms, fn) {
 function eggStartTimers() {
   if (eggTimers.length) return;              // schon gestartet
 
-  eggEvery(864000, () => {                   // Strom: nach etwa 24h komplett leer
+  eggEvery(216000, () => {                   // Strom: nach etwa 6h komplett leer
     const p = dragon;
     p.power = clampI(p.power - 1, 0, 100);
     markDirty(); saveDragon();
   });
 
-  eggEvery(3456000, () => {                  // Hunger (~4 Tage)
+  eggEvery(288000, () => {                   // Hunger (~8h)
     const p = dragon;
     p.hunger = clampI(p.hunger - 1, 0, 100);
     if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
@@ -2393,7 +2393,7 @@ function eggStartTimers() {
     markDirty(); saveDragon();
   });
 
-  eggEvery(4320000, () => {                  // Sauberkeit (~4 Tage) + Dreck
+  eggEvery(360000, () => {                   // Sauberkeit (~10h) + Dreck
     const p = dragon;
     p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
     if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
