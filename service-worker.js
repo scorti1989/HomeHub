@@ -15,10 +15,10 @@
    Versionen
    ─────────
    APP_VERSION muss mit den Query-Parametern in index.html übereinstimmen
-   (dragon-game.js?v=…, dragon-game.css?v=…).
+   (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '26';
+const APP_VERSION        = '28';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 
@@ -33,8 +33,8 @@ function scopeUrl(path) {
 
 const CRITICAL_PATHS = ['./', './index.html', './manifest.json'];
 const OPTIONAL_PATHS = [
-  `./dragon-game.js?v=${APP_VERSION}`,
-  `./dragon-game.css?v=${APP_VERSION}`,
+  `./dragon-game-balanced.js?v=${APP_VERSION}`,
+  `./dragon-game-balanced.css?v=${APP_VERSION}`,
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
