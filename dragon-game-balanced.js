@@ -1280,7 +1280,7 @@ let lastT = 0;
 var turnAnim = { on: false, startT: 0 };
 var sprayAnim = { on: false, startT: 0 };
 const BROOD_FOOD = [
-  { id: "spray", label: "💧 Besprühen",  cost: 0, hunger: 25, xp: 0, power: 0, desc: "Grundversorgung · kostenlos" },
+  { id: "spray", label: "💧 Besprühen",  cost: 0, hunger: 25, xp: 0, power: 0, desc: "" },
   { id: "broth", label: "🥣 Nährlösung", cost: 3, hunger: 60, xp: 2, power: 0, desc: "+2 XP" },
 ];
 var knockAnim = { on: false, startT: 0 };
@@ -1432,10 +1432,19 @@ function drawEgg(ctx, S, t) {
     else {
       const topEgg = eb + ebDrop - Math.round(P.ht + P.rb);
       ctx.globalAlpha = Math.min(1, (1 - sp) * 1.4);
-      for (let i = 0; i < 8; i++) {
-        const dx3 = (i - 3.5) * 4 + Math.sin(i * 2.1 + t / 90) * 2;
-        const dy3 = -10 + sp * (16 + (i % 3) * 5);
-        rect(ctx, Math.round(cx + dx3), Math.round(topEgg + dy3), 1, 1, i % 2 ? "#bfe6ff" : "#8ecfef");
+      for (let i = 0; i < 14; i++) {
+        const dx3 = (i - 6.5) * 3.4 + Math.sin(i * 2.1 + t / 90) * 2;
+        const dy3 = -14 + sp * (22 + (i % 3) * 6);
+        rect(ctx, Math.round(cx + dx3), Math.round(topEgg + dy3), 2, 2, i % 2 ? "#d8f2ff" : "#7fd4f5");
+      }
+      // Kurzer Glanz-Impact auf der Schale, wenn die Tropfen auftreffen
+      if (sp > 0.35 && sp < 0.8) {
+        const shineA = Math.sin((sp - 0.35) / 0.45 * Math.PI);
+        ctx.globalAlpha = shineA * 0.55;
+        for (let i = 0; i < 5; i++) {
+          const sx = cx + (i - 2) * 7;
+          rect(ctx, Math.round(sx), Math.round(topEgg + 10 + (i % 2) * 5), 3, 3, "#eafcff");
+        }
       }
       ctx.globalAlpha = 1;
     }
@@ -1468,7 +1477,7 @@ function clampI(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function stg(n) { n = Math.round(Number(n)); return isFinite(n) ? Math.min(5, Math.max(0, n)) : 0; }
 function stageForXp(xp) { let s = 0; for (let i = 0; i < 6; i++) if (xp >= EGG_XP[i]) s = i; return s; }
 const FOOD_ITEMS = [
-  { id:"ei",     label:"🍳 Spiegelei",    cost:0, hunger:25, xp:0,  power:0,  desc:"Grundversorgung · kostenlos" },
+  { id:"ei",     label:"🍳 Spiegelei",    cost:0, hunger:25, xp:0,  power:0,  desc:"" },
   { id:"goldei", label:"🥚 Goldei",        cost:3, hunger:50, xp:2,  power:0,  desc:"+2 XP" },
   { id:"matsch", label:"🌟 Sternenmatsch", cost:5, hunger:80, xp:0,  power:25, desc:"+Strom" },
   { id:"torte",  label:"🍰 Ei-Torte",      cost:4, hunger:60, xp:3,  power:0,  desc:"+3 XP" },
@@ -2148,8 +2157,8 @@ function eggSections() {
   h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
        (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
   if (EGG_PAL[stg(p.stage)].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[stg(p.stage)].motto) + '"</div>';
-  if (p.power <= 0) h += '<div style="color:#e0843a;font-size:7px;margin:5px 0">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
-  if (p.krank) h += '<div style="color:#ff4a4a;font-size:7px;margin:5px 0">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
+  if (p.power <= 0) h += '<div style="color:#e0843a;font-size:9px;margin:5px 0;line-height:1.4">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
+  if (p.krank) h += '<div style="color:#ff4a4a;font-size:9px;margin:5px 0;line-height:1.4">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
   if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
   if (p.lastReview) h += '<button class="eg-btn eg-wide" data-act="review">📜 Ei-Rückblick herunterladen</button>';
   if (p.xp >= 10000) h += '<button class="eg-btn eg-wide eg-gold" data-act="prestige">' + (prestigeConfirm ? "🌀 Wirklich? Nochmal tippen!" : "🌀 Durchs Portal (neues Ei)") + "</button>";
@@ -2179,11 +2188,14 @@ function eggSections() {
   if (p.stage === 4 && p.integrity < 100) h += '<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>';
   h += "</div>";
   if (p.stage < 2) {
-    h += '<div class="eg-dim" style="margin:7px 0 4px">💧 VERSORGUNG</div><div class="eg-grid2">';
-    for (const f of BROOD_FOOD) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label + "<br><small>" + (f.cost ? f.cost + "✨ · " : "") + f.desc + "</small></button>";
+    h += '<div class="eg-dim" style="margin:6px 0 4px">💧 VERSORGUNG</div><div class="eg-grid2">';
+    for (const f of BROOD_FOOD) {
+      const sub = f.cost ? f.cost + "✨" + (f.desc ? " · " + f.desc : "") : f.desc;
+      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>";
+    }
   } else {
-    h += '<div class="eg-dim" style="margin:7px 0 4px">🍽 FÜTTERN</div><div class="eg-grid4">';
-    for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + "<br><small>" + (f.cost ? f.cost + "✨" : "kostenlos") + "</small></button>";
+    h += '<div class="eg-dim" style="margin:6px 0 4px">🍽 FÜTTERN</div><div class="eg-grid4">';
+    for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
   }
   h += "</div></div></details>";
   // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
