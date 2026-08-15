@@ -2149,11 +2149,16 @@ function eggStatusRow() {
     '<span class="eg-chip" style="color:#bfa8ff">✨' + (p.stardust || 0) + "</span>";
 }
 
+function eggSecHead(color, icon, title) {
+  return '<div class="eg-sec-head" style="--eg-accent:' + color + '">' +
+    '<span class="eg-sec-icon">' + icon + '</span><span>' + title + '</span></div>';
+}
+
 function eggSections() {
   const p = dragon, un = p.unlocked || {};
   let h = "";
   // Status
-  h += '<details class="eg-sec"><summary style="color:#ffcf6a">📊 Status</summary><div class="eg-pane">';
+  h += '<div class="eg-sec">' + eggSecHead("#ffcf6a", "📊", "Status") + '<div class="eg-pane">';
   h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
        (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
   if (EGG_PAL[stg(p.stage)].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[stg(p.stage)].motto) + '"</div>';
@@ -2165,42 +2170,44 @@ function eggSections() {
   h += '<button class="eg-btn eg-wide" data-act="nudge">👉 Anstupsen (+5 XP · 1×/Tag)</button>';
   if (p.stage < 2) {
     const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
-    h += '<div class="eg-dim" style="margin:7px 0 4px">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
+    h += '<div class="eg-dim eg-subhead">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
     h += '<button class="eg-btn" data-act="turn"' + (tLeft > 0 ? " disabled" : "") + '>🔄 Wenden<br><small>' + (tLeft > 0 ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h") + "</small></button>";
     h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === localDayKey() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
     h += '</div><button class="eg-btn eg-wide" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>';
   }
-  h += "</div></details>";
+  h += "</div></div>";
   // Pflege
-  h += '<details class="eg-sec"><summary style="color:#5ad0b0">🍳 Pflege</summary><div class="eg-pane">';
+  h += '<div class="eg-sec">' + eggSecHead("#5ad0b0", "🍳", "Pflege") + '<div class="eg-pane">';
   if (p.power <= 0) {
     h += '<div class="eg-dim" style="margin:2px 0 6px">🔌 Stromausfall — im Dunkeln geht nichts. Zuerst laden!</div>';
     h += '<button class="eg-btn eg-wide eg-gold" data-act="charge">🔋 Stromzelle laden</button>';
-    h += "</div></details>";
+    h += "</div></div>";
     return h;
   }
   if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
-  h += '<div class="eg-grid2">';
-  if (p.power < 100) h += '<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>';
+  const careBtns = [];
+  if (p.power < 100) careBtns.push('<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>');
   if (p.mess.length > 0 || p.sauberkeit < 85)
-    h += '<button class="eg-btn" data-act="clean">' + (p.mess.length > 0 ? "🧹 Haufen weg (" + p.mess.length + " da)" : "🧼 Wischen") + "</button>";
-  if (p.krank) h += '<button class="eg-btn" data-act="heal">💊 Medizin geben</button>';
-  if (p.stage === 4 && p.integrity < 100) h += '<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>';
-  h += "</div>";
+    careBtns.push('<button class="eg-btn" data-act="clean">' + (p.mess.length > 0 ? "🧹 Haufen weg (" + p.mess.length + " da)" : "🧼 Wischen") + "</button>");
+  if (p.krank) careBtns.push('<button class="eg-btn" data-act="heal">💊 Medizin geben</button>');
+  if (p.stage === 4 && p.integrity < 100) careBtns.push('<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>');
+  // Bei nur einer nötigen Pflegeaktion volle Breite statt halbleerem Raster
+  if (careBtns.length === 1) h += careBtns[0].replace('class="eg-btn"', 'class="eg-btn eg-wide"');
+  else if (careBtns.length > 1) h += '<div class="eg-grid2">' + careBtns.join("") + "</div>";
   if (p.stage < 2) {
-    h += '<div class="eg-dim" style="margin:6px 0 4px">💧 VERSORGUNG</div><div class="eg-grid2">';
+    h += '<div class="eg-dim eg-subhead">💧 VERSORGUNG</div><div class="eg-grid2">';
     for (const f of BROOD_FOOD) {
       const sub = f.cost ? f.cost + "✨" + (f.desc ? " · " + f.desc : "") : f.desc;
       h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>";
     }
   } else {
-    h += '<div class="eg-dim" style="margin:6px 0 4px">🍽 FÜTTERN</div><div class="eg-grid4">';
+    h += '<div class="eg-dim eg-subhead">🍽 FÜTTERN</div><div class="eg-grid4">';
     for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
   }
-  h += "</div></div></details>";
+  h += "</div></div></div>";
   // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
   if (p.stage >= 2) {
-    h += '<details class="eg-sec"><summary style="color:#bfa8ff">🎮 Shop & Expedition</summary><div class="eg-pane">';
+    h += '<div class="eg-sec">' + eggSecHead("#bfa8ff", "🎮", "Shop & Expedition") + '<div class="eg-pane">';
     if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
     else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
     const shopGrid = (items, act, ownedMap, ownTxt) => {
@@ -2225,7 +2232,7 @@ function eggSections() {
     if (wallU.length) h += cat("🖼 WANDDEKO", shopGrid(wallU, "deko", p.deko, "✓ hängt"));
     if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
       h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
-    h += "</div></details>";
+    h += "</div></div>";
   }
   return h;
 }
@@ -2241,9 +2248,7 @@ function updateEggUI() {
 function updateEggUIInner() {
   const se = document.getElementById("eggSections");
   if (!se) return;
-  const open = Array.from(se.querySelectorAll("details")).map(d => d.open);
   se.innerHTML = eggSections();
-  se.querySelectorAll("details").forEach((d, i) => { if (open[i] !== undefined) d.open = open[i]; });
   uiDirty = false;
 }
 
@@ -2280,8 +2285,8 @@ function renderDragonCardInner() {
   if (!card) return;
   card.innerHTML =
     '<div class="eg-head">HomeHub · <span style="color:#ffcf6a">EI-EVOLUTION</span></div>' +
-    '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas><div id="eggToast" class="eg-toast"></div></div>' +
-    '' +
+    '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas></div>' +
+    '<div id="eggToast" class="eg-toast"></div>' +
     '<div id="eggSections"></div>';
   // Vor dem Neubinden die alte Schleife stoppen (kein zweiter RAF, keine Dopplung)
   eggStopLoop();
