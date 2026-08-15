@@ -18,7 +18,7 @@
    (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '31';
+const APP_VERSION        = '32';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 

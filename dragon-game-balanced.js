@@ -1279,6 +1279,7 @@ function drawCandling(ctx, S, t, cx, eb, P, k) {
 let lastT = 0;
 var turnAnim = { on: false, startT: 0 };
 var sprayAnim = { on: false, startT: 0 };
+var cleanAnim = { on: false, startT: 0, x: 90, pileType: null };   // Teleskop-Saugarm beim Reinigen
 const BROOD_FOOD = [
   { id: "spray", label: "💧 Besprühen",  cost: 0, hunger: 25, xp: 0, power: 0, desc: "" },
   { id: "broth", label: "🥣 Nährlösung", cost: 3, hunger: 60, xp: 2, power: 0, desc: "+2 XP" },
@@ -1426,6 +1427,53 @@ function drawEgg(ctx, S, t) {
   if (onStand) drawStandFront(ctx, cx, floorY - 12);
   if (S.shards > 0) drawShells(ctx, 92, floorY, S.shards);   // abgebrochene Schalenstücke liegen am Boden
   drawFly(ctx, t);
+  if (cleanAnim.on) {
+    const cp = (t - cleanAnim.startT) / 1500;
+    if (cp >= 1) cleanAnim.on = false;
+    else {
+      const tx = cleanAnim.x;
+      const armLenMax = 96;
+      let armLen;
+      if (cp < 0.22) armLen = armLenMax * (cp / 0.22);
+      else if (cp < 0.82) armLen = armLenMax;
+      else armLen = armLenMax * (1 - (cp - 0.82) / 0.18);
+      const nozzleY = 4 + armLen;
+      // Teleskoprohr von der Decke
+      rect(ctx, tx - 1, 4, 3, armLen, "#7a8290");
+      for (let s = 8; s < armLen - 4; s += 8) rect(ctx, tx - 2, 4 + s, 5, 1, "#3a4048");
+      // Düsenkopf
+      rect(ctx, tx - 3, nozzleY, 7, 4, "#4a5058");
+      rect(ctx, tx - 4, nozzleY + 3, 9, 2, "#20242a");
+      // Saugwirbel + Partikel, solange die Düse unten ist
+      if (cp > 0.22 && cp < 0.86) {
+        const suckP = Math.min(1, (cp - 0.22) / 0.5);
+        // Haufen sichtbar schrumpfen lassen, statt ihn schlagartig verschwinden zu lassen
+        if (cleanAnim.pileType) {
+          const scale = Math.max(0, 1 - suckP * 1.15);
+          if (scale > 0.02) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - suckP * 0.9);
+            ctx.translate(tx, FLOOR + 3);
+            ctx.scale(scale, scale);
+            ctx.translate(-tx, -(FLOOR + 3));
+            drawMess(ctx, [{ type: cleanAnim.pileType, x: tx, seed: 2 }]);
+            ctx.restore();
+          }
+        }
+        ctx.globalAlpha = 0.9;
+        for (let i = 0; i < 7; i++) {
+          const ang = t / 55 + i * 1.15;
+          const rad = 7 - suckP * 6;
+          const py = FLOOR - suckP * (FLOOR - nozzleY - 5) + Math.sin(ang) * 1.5;
+          const px = tx + Math.cos(ang) * rad;
+          rect(ctx, Math.round(px), Math.round(py), 1, 1, i % 2 ? "#cfe8ff" : "#8fbfe8");
+        }
+        ctx.globalAlpha = 0.55 + 0.3 * Math.sin(t / 70);
+        rect(ctx, tx - 1, nozzleY + 4, 2, 1, "#bfe6ff");
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
   if (sprayAnim.on) {
     const sp = (t - sprayAnim.startT) / 1100;
     if (sp >= 1) sprayAnim.on = false;
@@ -1936,10 +1984,14 @@ function eggClean() {
   p.statLog = p.statLog || {};
   // Grundbedürfnis — immer kostenlos (Sterne sind nur noch für den Shop da)
   if (p.mess.length > 0) {
+    const targetX = p.mess[0].x, targetType = p.mess[0].type;
     p.mess = p.mess.slice(1); p.sauberkeit = clampI(p.sauberkeit + 14, 0, 100); changed = true;
+    cleanAnim = { on: true, startT: lastT, x: targetX, pileType: targetType };
     flash("🧹 Haufen entfernt — noch " + p.mess.length);
   } else if (p.sauberkeit < 100) {
-    p.sauberkeit = 100; changed = true; flash("🧼 Blitzblank!");
+    p.sauberkeit = 100; changed = true;
+    cleanAnim = { on: true, startT: lastT, x: 90, pileType: null };
+    flash("🧼 Blitzblank!");
   } else { flash("✨ Schon alles sauber."); }
   if (!changed) return;
   p.statLog.cleans = (p.statLog.cleans || 0) + 1;
@@ -2167,7 +2219,7 @@ function eggSections() {
   if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
   if (p.lastReview) h += '<button class="eg-btn eg-wide" data-act="review">📜 Ei-Rückblick herunterladen</button>';
   if (p.xp >= 10000) h += '<button class="eg-btn eg-wide eg-gold" data-act="prestige">' + (prestigeConfirm ? "🌀 Wirklich? Nochmal tippen!" : "🌀 Durchs Portal (neues Ei)") + "</button>";
-  h += '<button class="eg-btn eg-wide" data-act="nudge">👉 Anstupsen (+5 XP · 1×/Tag)</button>';
+  h += '<button class="eg-btn eg-wide" data-act="nudge"' + (p.lastNudge === localDayKey() ? " disabled" : "") + '>👉 Anstupsen<br><small>' + (p.lastNudge === localDayKey() ? "Schon heute erledigt" : "+5 XP · 1×/Tag") + "</small></button>";
   if (p.stage < 2) {
     const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
     h += '<div class="eg-dim eg-subhead">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
@@ -2197,12 +2249,16 @@ function eggSections() {
   if (p.stage < 2) {
     h += '<div class="eg-dim eg-subhead">💧 VERSORGUNG</div><div class="eg-grid2">';
     for (const f of BROOD_FOOD) {
+      const blocked = p.krank || (p.stardust || 0) < f.cost;
       const sub = f.cost ? f.cost + "✨" + (f.desc ? " · " + f.desc : "") : f.desc;
-      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>";
+      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>";
     }
   } else {
     h += '<div class="eg-dim eg-subhead">🍽 FÜTTERN</div><div class="eg-grid4">';
-    for (const f of FOOD_ITEMS) h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '">' + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
+    for (const f of FOOD_ITEMS) {
+      const blocked = p.krank || (p.stardust || 0) < f.cost;
+      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
+    }
   }
   h += "</div></div></div>";
   // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
@@ -2214,8 +2270,34 @@ function eggSections() {
       let g = '<div class="eg-grid2">';
       for (const it of items) {
         const owned = ownedMap && ownedMap[it.id];
-        g += '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (owned && act !== "playtoy" ? " disabled" : "") + ">" +
+        const afford = (p.stardust || 0) >= it.cost;
+        g += '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (!owned && !afford ? " disabled" : "") + ">" +
           it.label + "<br><small>" + (owned ? ownTxt : it.cost + " ✨") + "</small></button>";
+      }
+      return g + "</div>";
+    };
+    // Spielzeug: eigener Renderer, weil gekaufte Spielzeuge je nach Zustand
+    // (Abklingzeit, krank, kein Strom, noch nichts in HomeHub erledigt) spielbar
+    // oder gesperrt sind — anders als Deko/Kostüme, die nur einmal gekauft werden.
+    const toyGrid = (items) => {
+      let g = '<div class="eg-grid2">', now = Date.now();
+      for (const it of items) {
+        const owned = p.toys && p.toys[it.id];
+        if (!owned) {
+          const afford = (p.stardust || 0) >= it.cost;
+          g += '<button class="eg-btn" data-act="toy" data-id="' + it.id + '"' + (afford ? "" : " disabled") + ">" +
+            it.label + "<br><small>" + it.cost + " ✨</small></button>";
+          continue;
+        }
+        const cdLeft = ((p.toyCooldown || {})[it.id] || 0) - now;
+        let reason = "";
+        if (p.power <= 0) reason = "Kein Strom";
+        else if (p.krank) reason = "Erst gesund werden";
+        else if (p.stage < 3) reason = "Braucht Arme";
+        else if (cdLeft > 0) reason = "noch " + Math.ceil(cdLeft / 3600000) + "h";
+        else if (p.lastRealActionDay !== localDayKey()) reason = "Erst HomeHub nutzen";
+        g += '<button class="eg-btn eg-owned" data-act="toy" data-id="' + it.id + '"' + (reason ? " disabled" : "") + ">" +
+          it.label + "<br><small>" + (reason || "▶ Spielen") + "</small></button>";
       }
       return g + "</div>";
     };
@@ -2225,7 +2307,7 @@ function eggSections() {
     const seasU = SEASON_ITEMS.filter(it => inSeason(it) && un[it.id]);
     const cosU  = COSTUMES.filter(it => inSeason(it) && un[it.id]);
     const wallU = (p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS.filter(inSeason)].filter(it => un[it.id]) : [];
-    if (toysU.length) h += cat("🧸 SPIELZEUG", shopGrid(toysU, "toy", p.toys, "▶ Spielen"));
+    if (toysU.length) h += cat("🧸 SPIELZEUG", toyGrid(toysU));
     if (dekoU.length) h += cat("🛍 DEKO", shopGrid(dekoU, "deko", p.deko, "✓"));
     if (seasU.length) h += cat("🗓 SAISON", shopGrid(seasU, "deko", p.deko, "✓"));
     if (cosU.length)  h += cat("🎭 KOSTÜME <small>· XP, Minus erlaubt</small>", shopGrid(cosU, "costume", p.costumes, "✓ getragen"));
