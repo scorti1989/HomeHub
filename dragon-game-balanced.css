@@ -124,13 +124,6 @@
   margin: 8px -8px;
 }
 
-.eg-subhead {
-  margin: 8px 0 5px;
-  padding-top: 7px;
-  border-top: 1px dashed var(--eg-bg3);
-  letter-spacing: .5px;
-}
-
 .eg-row {
   display: flex;
   justify-content: space-between;
@@ -151,7 +144,7 @@
   background: linear-gradient(180deg, #ffffff, #e6eaef);
   border: none;
   border-top: 1px solid #fff;
-  padding: 7px 6px;
+  padding: 8px 9px;
   width: 100%;
   min-width: 0;                  /* verhindert Überlauf im Raster */
   min-height: 44px;              /* Touchfläche */
@@ -198,34 +191,21 @@
   outline-offset: 3px;
 }
 
-/* ── Raster ───────────────────────────────────────────────────────────── */
-.eg-grid2 {
+/* ── Raster: Spaltenzahl passt sich dem Inhalt an (2 oder 3, was reinpasst) ── */
+.eg-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--eg-mincol, 92px), 1fr));
   gap: 6px;
 }
-.eg-grid4 {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
-}
 
-/* Auf schmalen Geräten wird aus dem Vierer- ein Zweierraster */
-@media (max-width: 380px) {
-  .eg-grid4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
+/* ── Zusammengehörigkeits-Zonen: farbiges Backlicht statt Textüberschrift ── */
+.eg-zone {
+  margin: 9px 0;
+  padding: 7px;
+  border-radius: 2px;
+  background: var(--eg-bg2);
+  box-shadow: 0 0 0 1px var(--eg-zc, var(--eg-bg3)), 0 0 10px -1px var(--eg-zg, transparent);
 }
-
-/* ── Shop-Kategorien ──────────────────────────────────────────────────── */
-.eg-cat {
-  border-top: 1px dashed var(--eg-bg3);
-  margin-top: 9px;
-  padding-top: 7px;
-  min-width: 0;
-}
-.eg-cattitle { margin-bottom: 5px; letter-spacing: .5px; }
 
 /* ── Reduzierte Bewegung ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

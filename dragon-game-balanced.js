@@ -2201,6 +2201,22 @@ function eggStatusRow() {
     '<span class="eg-chip" style="color:#bfa8ff">✨' + (p.stardust || 0) + "</span>";
 }
 
+// Farbige "Backlicht"-Zonen statt Textüberschriften — zusammengehörige Tasten
+// bekommen eine dezente farbige Glut als gemeinsamen Rahmen (Labor-Bedienpanel
+// mit unterschiedlich beleuchteten Funktionsbereichen), statt eines Textlabels.
+function eggZone(color, glow, innerHtml) {
+  return '<div class="eg-zone" style="--eg-zc:' + color + ";--eg-zg:" + glow + '">' + innerHtml + "</div>";
+}
+// Rasterbreite richtet sich nach dem längsten Label/Untertext der Gruppe statt
+// fest 2 oder 4 Spalten — kurze Label stehen zu dritt nebeneinander, lange
+// bekommen mehr Raum, nie wirkt der Text gequetscht.
+function eggGrid(entries) {
+  let maxLen = 6;
+  entries.forEach(en => { if (en.len > maxLen) maxLen = en.len; });
+  const minPx = Math.min(152, Math.max(72, Math.round(maxLen * 6.6 + 24)));
+  return '<div class="eg-grid" style="--eg-mincol:' + minPx + 'px">' + entries.map(en => en.html).join("") + "</div>";
+}
+
 function eggSections() {
   const p = dragon, un = p.unlocked || {};
   let h = '<div class="eg-pane">';
@@ -2216,10 +2232,13 @@ function eggSections() {
   h += '<button class="eg-btn eg-wide" data-act="nudge"' + (p.lastNudge === localDayKey() ? " disabled" : "") + '>👉 Anstupsen<br><small>' + (p.lastNudge === localDayKey() ? "Schon heute erledigt" : "+5 XP · 1×/Tag") + "</small></button>";
   if (p.stage < 2) {
     const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
-    h += '<div class="eg-divider"></div><div class="eg-grid2">';
-    h += '<button class="eg-btn" data-act="turn"' + (tLeft > 0 ? " disabled" : "") + '>🔄 Wenden<br><small>' + (tLeft > 0 ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h") + "</small></button>";
-    h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === localDayKey() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
-    h += '</div><button class="eg-btn eg-wide" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>';
+    const turnOff = tLeft > 0, knockOff = p.lastKnock === localDayKey();
+    const turnSub = turnOff ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h";
+    h += '<div class="eg-divider"></div>' + eggZone("#d99a3d", "rgba(217,154,61,.4)", eggGrid([
+      { html: '<button class="eg-btn" data-act="turn"' + (turnOff ? " disabled" : "") + ">🔄 Wenden<br><small>" + turnSub + "</small></button>", len: Math.max(6, turnSub.length) },
+      { html: '<button class="eg-btn" data-act="knock"' + (knockOff ? " disabled" : "") + ">👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>", len: Math.max(9, "+3 XP · 1×/Tag".length) },
+      { html: '<button class="eg-btn" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>', len: "Was wächst da drin?".length },
+    ]));
   }
   // Pflege
   if (p.power <= 0) {
@@ -2229,57 +2248,53 @@ function eggSections() {
   }
   h += '<div class="eg-divider"></div>';
   if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
-  const careBtns = [];
-  if (p.power < 100) careBtns.push('<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>');
-  if (p.mess.length > 0 || p.sauberkeit < 85)
-    careBtns.push('<button class="eg-btn" data-act="clean">' + (p.mess.length > 0 ? "🧹 Haufen weg (" + p.mess.length + " da)" : "🧼 Wischen") + "</button>");
-  if (p.krank) careBtns.push('<button class="eg-btn" data-act="heal">💊 Medizin geben</button>');
-  if (p.stage === 4 && p.integrity < 100) careBtns.push('<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>');
-  // Bei nur einer nötigen Pflegeaktion volle Breite statt halbleerem Raster
-  if (careBtns.length === 1) h += careBtns[0].replace('class="eg-btn"', 'class="eg-btn eg-wide"');
-  else if (careBtns.length > 1) h += '<div class="eg-grid2">' + careBtns.join("") + "</div>";
+  const careEntries = [];
+  if (p.power < 100) careEntries.push({ html: '<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>', len: "Stromzelle laden".length });
+  if (p.mess.length > 0 || p.sauberkeit < 85) {
+    const cleanTxt = p.mess.length > 0 ? "Haufen weg (" + p.mess.length + " da)" : "Wischen";
+    careEntries.push({ html: '<button class="eg-btn" data-act="clean">🧹 ' + cleanTxt + "</button>", len: cleanTxt.length });
+  }
+  if (p.krank) careEntries.push({ html: '<button class="eg-btn" data-act="heal">💊 Medizin geben</button>', len: "Medizin geben".length });
+  if (p.stage === 4 && p.integrity < 100) careEntries.push({ html: '<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>', len: "Schale flicken".length });
+  if (careEntries.length === 1) h += careEntries[0].html.replace('class="eg-btn"', 'class="eg-btn eg-wide"');
+  else if (careEntries.length > 1) h += eggZone("#2aa27a", "rgba(42,162,122,.4)", eggGrid(careEntries));
+  const feedEntries = [];
   if (p.stage < 2) {
-    h += '<div class="eg-dim eg-subhead">💧 VERSORGUNG</div><div class="eg-grid2">';
     for (const f of BROOD_FOOD) {
       const blocked = p.krank || (p.stardust || 0) < f.cost;
       const sub = f.cost ? f.cost + "✨" + (f.desc ? " · " + f.desc : "") : f.desc;
-      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>";
+      feedEntries.push({ html: '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>", len: Math.max(f.label.length - 3, sub.length) });
     }
   } else {
-    h += '<div class="eg-dim eg-subhead">🍽 FÜTTERN</div><div class="eg-grid4">';
     for (const f of FOOD_ITEMS) {
       const blocked = p.krank || (p.stardust || 0) < f.cost;
-      h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
+      feedEntries.push({ html: '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>", len: 4 });
     }
   }
+  h += eggZone("#3d8fd9", "rgba(61,143,217,.4)", eggGrid(feedEntries));
   h += "</div>";
   // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
   if (p.stage >= 2) {
     h += '<div class="eg-divider"></div>';
     if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
     else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
-    const shopGrid = (items, act, ownedMap, ownTxt) => {
-      let g = '<div class="eg-grid2">';
-      for (const it of items) {
-        const owned = ownedMap && ownedMap[it.id];
-        const afford = (p.stardust || 0) >= it.cost;
-        g += '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (!owned && !afford ? " disabled" : "") + ">" +
-          it.label + "<br><small>" + (owned ? ownTxt : it.cost + " ✨") + "</small></button>";
-      }
-      return g + "</div>";
-    };
+    const shopEntries = (items, act, ownedMap, ownTxt) => items.map(it => {
+      const owned = ownedMap && ownedMap[it.id];
+      const afford = (p.stardust || 0) >= it.cost;
+      const sub = owned ? ownTxt : it.cost + " ✨";
+      return { html: '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (!owned && !afford ? " disabled" : "") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
+    });
     // Spielzeug: eigener Renderer, weil gekaufte Spielzeuge je nach Zustand
     // (Abklingzeit, krank, kein Strom, noch nichts in HomeHub erledigt) spielbar
     // oder gesperrt sind — anders als Deko/Kostüme, die nur einmal gekauft werden.
-    const toyGrid = (items) => {
-      let g = '<div class="eg-grid2">', now = Date.now();
-      for (const it of items) {
+    const toyEntries = (items) => {
+      const now = Date.now();
+      return items.map(it => {
         const owned = p.toys && p.toys[it.id];
         if (!owned) {
           const afford = (p.stardust || 0) >= it.cost;
-          g += '<button class="eg-btn" data-act="toy" data-id="' + it.id + '"' + (afford ? "" : " disabled") + ">" +
-            it.label + "<br><small>" + it.cost + " ✨</small></button>";
-          continue;
+          const sub = it.cost + " ✨";
+          return { html: '<button class="eg-btn" data-act="toy" data-id="' + it.id + '"' + (afford ? "" : " disabled") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
         }
         const cdLeft = ((p.toyCooldown || {})[it.id] || 0) - now;
         let reason = "";
@@ -2288,22 +2303,20 @@ function eggSections() {
         else if (p.stage < 3) reason = "Braucht Arme";
         else if (cdLeft > 0) reason = "noch " + Math.ceil(cdLeft / 3600000) + "h";
         else if (p.lastRealActionDay !== localDayKey()) reason = "Erst HomeHub nutzen";
-        g += '<button class="eg-btn eg-owned" data-act="toy" data-id="' + it.id + '"' + (reason ? " disabled" : "") + ">" +
-          it.label + "<br><small>" + (reason || "▶ Spielen") + "</small></button>";
-      }
-      return g + "</div>";
+        const sub = reason || "▶ Spielen";
+        return { html: '<button class="eg-btn eg-owned" data-act="toy" data-id="' + it.id + '"' + (reason ? " disabled" : "") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
+      });
     };
-    const cat = (title, html2) => '<div class="eg-cat"><div class="eg-dim eg-cattitle">' + title + "</div>" + html2 + "</div>";
     const toysU = TOY_ITEMS.filter(t2 => un[t2.id]);
     const dekoU = SHOP_ITEMS.filter(it => un[it.id]);
     const seasU = SEASON_ITEMS.filter(it => inSeason(it) && un[it.id]);
     const cosU  = COSTUMES.filter(it => inSeason(it) && un[it.id]);
     const wallU = (p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS.filter(inSeason)].filter(it => un[it.id]) : [];
-    if (toysU.length) h += cat("🧸 SPIELZEUG", toyGrid(toysU));
-    if (dekoU.length) h += cat("🛍 DEKO", shopGrid(dekoU, "deko", p.deko, "✓"));
-    if (seasU.length) h += cat("🗓 SAISON", shopGrid(seasU, "deko", p.deko, "✓"));
-    if (cosU.length)  h += cat("🎭 KOSTÜME <small>· XP, Minus erlaubt</small>", shopGrid(cosU, "costume", p.costumes, "✓ getragen"));
-    if (wallU.length) h += cat("🖼 WANDDEKO", shopGrid(wallU, "deko", p.deko, "✓ hängt"));
+    if (toysU.length) h += eggZone("#9163d9", "rgba(145,99,217,.4)", eggGrid(toyEntries(toysU)));
+    if (dekoU.length) h += eggZone("#d9569a", "rgba(217,86,154,.4)", eggGrid(shopEntries(dekoU, "deko", p.deko, "✓")));
+    if (seasU.length) h += eggZone("#5fae3d", "rgba(95,174,61,.4)", eggGrid(shopEntries(seasU, "deko", p.deko, "✓")));
+    if (cosU.length)  h += eggZone("#d9a13d", "rgba(217,161,61,.4)", eggGrid(shopEntries(cosU, "costume", p.costumes, "✓ getragen")));
+    if (wallU.length) h += eggZone("#5c7a9e", "rgba(92,122,158,.4)", eggGrid(shopEntries(wallU, "deko", p.deko, "✓ hängt")));
     if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
       h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
   }
