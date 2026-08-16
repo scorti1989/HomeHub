@@ -2201,41 +2201,33 @@ function eggStatusRow() {
     '<span class="eg-chip" style="color:#bfa8ff">✨' + (p.stardust || 0) + "</span>";
 }
 
-function eggSecHead(color, icon, title) {
-  return '<div class="eg-sec-head" style="--eg-accent:' + color + '">' +
-    '<span class="eg-sec-icon">' + icon + '</span><span>' + title + '</span></div>';
-}
-
 function eggSections() {
   const p = dragon, un = p.unlocked || {};
-  let h = "";
-  // Status
-  h += '<div class="eg-sec">' + eggSecHead("#ffcf6a", "📊", "Status") + '<div class="eg-pane">';
-  h += '<div class="eg-row"><span style="color:#ffcf6a">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
+  let h = '<div class="eg-pane">';
+  // Status (ohne Überschrift — der Stufenname übernimmt die Rolle)
+  h += '<div class="eg-row"><span class="eg-stagename">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
        (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
   if (EGG_PAL[stg(p.stage)].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[stg(p.stage)].motto) + '"</div>';
-  if (p.power <= 0) h += '<div style="color:#e0843a;font-size:9px;margin:5px 0;line-height:1.4">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
-  if (p.krank) h += '<div style="color:#ff4a4a;font-size:9px;margin:5px 0;line-height:1.4">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
+  if (p.power <= 0) h += '<div class="eg-warn" style="margin:5px 0">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
+  if (p.krank) h += '<div class="eg-warn eg-bad" style="margin:5px 0">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
   if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
   if (p.lastReview) h += '<button class="eg-btn eg-wide" data-act="review">📜 Ei-Rückblick herunterladen</button>';
   if (p.xp >= 10000) h += '<button class="eg-btn eg-wide eg-gold" data-act="prestige">' + (prestigeConfirm ? "🌀 Wirklich? Nochmal tippen!" : "🌀 Durchs Portal (neues Ei)") + "</button>";
   h += '<button class="eg-btn eg-wide" data-act="nudge"' + (p.lastNudge === localDayKey() ? " disabled" : "") + '>👉 Anstupsen<br><small>' + (p.lastNudge === localDayKey() ? "Schon heute erledigt" : "+5 XP · 1×/Tag") + "</small></button>";
   if (p.stage < 2) {
     const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
-    h += '<div class="eg-dim eg-subhead">🥚 BRUTPFLEGE</div><div class="eg-grid2">';
+    h += '<div class="eg-divider"></div><div class="eg-grid2">';
     h += '<button class="eg-btn" data-act="turn"' + (tLeft > 0 ? " disabled" : "") + '>🔄 Wenden<br><small>' + (tLeft > 0 ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h") + "</small></button>";
     h += '<button class="eg-btn" data-act="knock"' + (p.lastKnock === localDayKey() ? " disabled" : "") + '>👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>';
     h += '</div><button class="eg-btn eg-wide" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>';
   }
-  h += "</div></div>";
   // Pflege
-  h += '<div class="eg-sec">' + eggSecHead("#5ad0b0", "🍳", "Pflege") + '<div class="eg-pane">';
   if (p.power <= 0) {
-    h += '<div class="eg-dim" style="margin:2px 0 6px">🔌 Stromausfall — im Dunkeln geht nichts. Zuerst laden!</div>';
-    h += '<button class="eg-btn eg-wide eg-gold" data-act="charge">🔋 Stromzelle laden</button>';
-    h += "</div></div>";
+    h += '<div class="eg-divider"></div><button class="eg-btn eg-wide eg-gold" data-act="charge">🔋 Stromzelle laden</button>';
+    h += "</div>";
     return h;
   }
+  h += '<div class="eg-divider"></div>';
   if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
   const careBtns = [];
   if (p.power < 100) careBtns.push('<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>');
@@ -2260,10 +2252,10 @@ function eggSections() {
       h += '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>";
     }
   }
-  h += "</div></div></div>";
+  h += "</div>";
   // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
   if (p.stage >= 2) {
-    h += '<div class="eg-sec">' + eggSecHead("#bfa8ff", "🎮", "Shop & Expedition") + '<div class="eg-pane">';
+    h += '<div class="eg-divider"></div>';
     if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
     else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
     const shopGrid = (items, act, ownedMap, ownTxt) => {
@@ -2314,8 +2306,8 @@ function eggSections() {
     if (wallU.length) h += cat("🖼 WANDDEKO", shopGrid(wallU, "deko", p.deko, "✓ hängt"));
     if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
       h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
-    h += "</div></div>";
   }
+  h += "</div>";
   return h;
 }
 
@@ -2366,7 +2358,7 @@ function renderDragonCardInner() {
   const card = document.getElementById("dragonCard");
   if (!card) return;
   card.innerHTML =
-    '<div class="eg-head">HomeHub · <span style="color:#ffcf6a">EI-EVOLUTION</span></div>' +
+    '<div class="eg-head">HomeHub · <span style="color:#b3720a">EI-EVOLUTION</span></div>' +
     '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas></div>' +
     '<div id="eggToast" class="eg-toast"></div>' +
     '<div id="eggSections"></div>';

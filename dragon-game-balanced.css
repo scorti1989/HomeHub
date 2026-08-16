@@ -12,26 +12,26 @@
   /* Lokaler Monospace-Stack statt externer Pixel-Schrift */
   --eg-font: ui-monospace, "SFMono-Regular", Menlo, Consolas,
              "Liberation Mono", "Courier New", monospace;
-  --eg-bg:   #0e0b18;
-  --eg-bg2:  #14101f;
-  --eg-bg3:  #0a0812;
-  --eg-ink:  #ece4ff;
-  --eg-dim:  #9a8fc0;
-  --eg-dim2: #5a5878;
-  --eg-gold: #ffcf6a;
-  --eg-edge: #2a2440;
-  --eg-good: #5ad0b0;
-  --eg-bad:  #e04040;
+  --eg-bg:   #dfe3e9;   /* Gehäuse: helles Grau */
+  --eg-bg2:  #eef1f4;   /* Panel-Fläche */
+  --eg-bg3:  #c7ccd3;   /* Schattenkante / Rasterlinie */
+  --eg-ink:  #232a35;   /* Haupttext: dunkel auf hell */
+  --eg-dim:  #667080;   /* Nebentext */
+  --eg-dim2: #a4abb6;   /* deaktiviert */
+  --eg-gold: #b3720a;   /* Bernstein-Kontrollleuchte, gedeckt für hellen BG */
+  --eg-edge: #b7bec7;   /* Rahmen */
+  --eg-good: #157a52;
+  --eg-bad:  #c0273d;
 
   font-family: var(--eg-font);
   background: var(--eg-bg);
   color: var(--eg-ink);
-  padding: 12px;
+  padding: 10px;
   position: relative;
   border-radius: 0;              /* bewusst kantig: Pixel-Optik */
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--eg-edge);
+  box-shadow: 0 0 0 2px #9aa1ab, 0 0 0 4px var(--eg-edge);
   image-rendering: pixelated;
-  -webkit-font-smoothing: none;
+  -webkit-font-smoothing: antialiased;
   margin: 14px 0;
   overflow-wrap: anywhere;       /* lange Namen sprengen die Karte nicht */
 }
@@ -59,23 +59,23 @@
   aspect-ratio: 180 / 156;       /* interne Maße aus dragon-game.js — kein Layout-Sprung */
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  background: #0a0812;
+  background: #d8dde3;
   box-shadow: 0 0 0 2px var(--eg-bg3);
 }
 
 /* ── Meldungszeile zwischen Szene und Menü (Labor-Readout) ────────────── */
 .eg-toast {
-  margin: 7px 0;
-  min-height: 30px;
+  margin: 6px 0;
+  min-height: 28px;
   display: flex;
   align-items: center;
   font-size: 10px;
   line-height: 1.4;
-  padding: 7px 10px;
-  background: linear-gradient(180deg, #171128, #120e20);
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #fff, #f0f3f6);
   border-left: 3px solid var(--eg-gold);
-  color: var(--eg-gold);
-  box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
+  color: #6b4300;
+  box-shadow: 0 0 0 1px var(--eg-bg3);
   opacity: 0;
   transform: translateY(-3px);
   transition: opacity .18s, transform .18s;
@@ -106,43 +106,28 @@
 .eg-mini > span { display: block; height: 100%; }
 .eg-chip { margin-right: 10px; font-size: 9px; }
 
-/* ── Aufklappbare Bereiche ────────────────────────────────────────────── */
-.eg-sec { margin-bottom: 6px; }
-
-/* ── Bereiche (immer offen — Labor-Panel-Optik) ──────────────────────── */
-.eg-sec { margin-bottom: 7px; }
-
-.eg-sec-head {
-  font-family: var(--eg-font);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .6px;
-  padding: 8px 10px;
-  min-height: 32px;
-  background: linear-gradient(180deg, #1a1530, #14101f);
-  border-left: 3px solid var(--eg-accent, var(--eg-gold));
-  color: var(--eg-accent, var(--eg-gold));
-  box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  overflow-wrap: anywhere;
-}
-.eg-sec-icon { flex: none; filter: drop-shadow(0 0 3px rgba(0,0,0,.4)); }
-
+/* ── Ein durchgehendes, helles Panel statt einzelner Überschriften-Karten ── */
 .eg-pane {
   background: var(--eg-bg2);
   padding: 9px 8px;
-  box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-edge);
-  border-top: none;
-  margin-bottom: 4px;
+  box-shadow: 0 0 0 1px var(--eg-bg3);
   min-width: 0;
+}
+
+.eg-stagename { font-weight: 700; font-size: 11px; color: var(--eg-ink); }
+
+.eg-warn { font-size: 9px; line-height: 1.4; color: var(--eg-gold); }
+.eg-warn.eg-bad { color: var(--eg-bad); font-weight: 600; }
+
+.eg-divider {
+  border-top: 1px solid var(--eg-bg3);
+  margin: 8px -8px;
 }
 
 .eg-subhead {
   margin: 8px 0 5px;
   padding-top: 7px;
-  border-top: 1px dashed #2e2848;
+  border-top: 1px dashed var(--eg-bg3);
   letter-spacing: .5px;
 }
 
@@ -163,15 +148,15 @@
   font-size: 10px;
   line-height: 1.4;
   color: var(--eg-ink);
-  background: linear-gradient(180deg, #271f42, #1c1732);
+  background: linear-gradient(180deg, #ffffff, #e6eaef);
   border: none;
-  border-top: 1px solid #3a2f5c;
+  border-top: 1px solid #fff;
   padding: 7px 6px;
   width: 100%;
   min-width: 0;                  /* verhindert Überlauf im Raster */
   min-height: 44px;              /* Touchfläche */
   cursor: pointer;
-  box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px #362c54;
+  box-shadow: 0 0 0 1px var(--eg-bg3), 0 1px 2px rgba(30,35,45,.12);
   image-rendering: pixelated;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -181,28 +166,29 @@
 }
 .eg-btn:not(:disabled):active {
   transform: translateY(1px);
-  background: linear-gradient(180deg, #1c1732, #271f42);
+  background: linear-gradient(180deg, #dee3e8, #eef1f4);
   box-shadow: 0 0 0 1px var(--eg-bg3), 0 0 0 2px var(--eg-good);
 }
 .eg-btn:disabled {
   color: var(--eg-dim2);
-  background: #14101f;
-  border-top-color: #241e3a;
+  background: #e3e6ea;
+  border-top-color: #f3f5f7;
+  box-shadow: 0 0 0 1px var(--eg-bg3);
   cursor: default;
   transform: none;
-  opacity: .7;
+  opacity: .8;
 }
 .eg-btn.eg-owned {
   color: var(--eg-good);
-  background: linear-gradient(180deg, #0e3020, #0a2818);
-  border-top-color: #1e5838;
-  box-shadow: 0 0 0 1px #082010, 0 0 0 2px #1e4828;
+  background: linear-gradient(180deg, #eefdf6, #d9f3e6);
+  border-top-color: #fff;
+  box-shadow: 0 0 0 1px #a9e0c4, 0 1px 2px rgba(30,35,45,.08);
 }
 .eg-btn.eg-gold {
-  color: #1a1030;
-  background: linear-gradient(180deg, #ffe19a, var(--eg-gold));
-  border-top-color: #fff2cc;
-  box-shadow: 0 0 0 1px #5a4410, 0 0 0 2px #f4e6a0;
+  color: #4a3000;
+  background: linear-gradient(180deg, #ffe6ad, #ffd066);
+  border-top-color: #fff5da;
+  box-shadow: 0 0 0 1px #d9a13a, 0 1px 2px rgba(30,35,45,.1);
 }
 .eg-wide { display: block; margin: 6px 0; }
 
@@ -234,7 +220,7 @@
 
 /* ── Shop-Kategorien ──────────────────────────────────────────────────── */
 .eg-cat {
-  border-top: 1px dashed #2e2848;
+  border-top: 1px dashed var(--eg-bg3);
   margin-top: 9px;
   padding-top: 7px;
   min-width: 0;
