@@ -1461,12 +1461,15 @@ function drawEgg(ctx, S, t) {
           }
         }
         ctx.globalAlpha = 0.9;
+        const pcol = cleanAnim.pileType === "slime" ? ["#d4f5c8", "#9fd88a"]
+                   : cleanAnim.pileType === "shell" ? ["#f5e6c8", "#d8bf8a"]
+                   : ["#cfe8ff", "#8fbfe8"];
         for (let i = 0; i < 7; i++) {
           const ang = t / 55 + i * 1.15;
           const rad = 7 - suckP * 6;
           const py = FLOOR - suckP * (FLOOR - nozzleY - 5) + Math.sin(ang) * 1.5;
           const px = tx + Math.cos(ang) * rad;
-          rect(ctx, Math.round(px), Math.round(py), 1, 1, i % 2 ? "#cfe8ff" : "#8fbfe8");
+          rect(ctx, Math.round(px), Math.round(py), 1, 1, i % 2 ? pcol[0] : pcol[1]);
         }
         ctx.globalAlpha = 0.55 + 0.3 * Math.sin(t / 70);
         rect(ctx, tx - 1, nozzleY + 4, 2, 1, "#bfe6ff");
@@ -1606,7 +1609,7 @@ function applyKrankDevolve(p, now) {
   setTimeout(() => flash("💔 Zu lange krank — das Ei ist eine Stufe zurückgefallen!"), 60);
   return { ...p, stage, xp, krankSeit: seit };
 }
-const DECAY_PS = { power: 1/216, hunger: 1/288, sauberkeit: 1/360 };   // Strom 6h, Hunger 8h, Sauberkeit 10h
+const DECAY_PS = { power: 1/432, hunger: 1/576, sauberkeit: 1/864 };   // Strom 12h, Hunger 16h, Sauberkeit 24h
 
 
 /* =========================================================================
@@ -1637,6 +1640,7 @@ window.DRAGON_DEFAULTS = {
   egg: true, stage: 0, xp: 0, power: 100, integrity: 100, shards: 0,
   expActive: false, expProgress: 0, expGoal: 12, stardust: 0, deko: {},
   hunger: 100, sauberkeit: 100, krank: false, krankSeit: 0, mess: [],
+  hungerZeroSince: 0, sauberkeitZeroSince: 0,
   toys: {}, toyCooldown: {}, streak: 0, lastLogin: 0, prestige: 0,
   statLog: { acts: 0, byAction: {}, xpEarned: {}, starsEarned: {}, starsSpent: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
   rewardCooldowns: {}, lastRealActionDay: "", lastCareBonusAt: 0,
@@ -1707,6 +1711,8 @@ function sanitizeDragon() {
   dragon.statLog.starsEarned = safePlainObject(dragon.statLog.starsEarned);
   dragon.statLog.starsSpent = safePlainObject(dragon.statLog.starsSpent);
   dragon.krankSeit   = num(dragon.krankSeit, 0, 0, 8.64e15);
+  dragon.hungerZeroSince     = num(dragon.hungerZeroSince, 0, 0, 8.64e15);
+  dragon.sauberkeitZeroSince = num(dragon.sauberkeitZeroSince, 0, 0, 8.64e15);
   dragon.lastSeen    = num(dragon.lastSeen, 0, 0, 8.64e15);
   dragon.streak      = num(dragon.streak, 0, 0, 99999);
   dragon.krank       = !!dragon.krank;
@@ -2150,11 +2156,21 @@ function eggCheckIn() {
   const altS = p.sauberkeit;
   p.sauberkeit = clampI(p.sauberkeit - DECAY_PS.sauberkeit * elapsed, 0, 100);
   const wasKrank = p.krank;
-  p.krank = p.krank || ((p.sauberkeit <= 0 || p.hunger <= 0) && elapsed > 43200);
+  // Krankheit jetzt an anhaltende Vernachlässigung gekoppelt (voller Tag am
+  // Boden), nicht mehr an eine einzelne lange Lücke seit dem letzten Öffnen —
+  // wer mindestens 1x täglich füttert/reinigt, wird nie krank, egal wann genau.
+  p.hungerZeroSince = p.hunger <= 0 ? (p.hungerZeroSince || now) : 0;
+  p.sauberkeitZeroSince = p.sauberkeit <= 0 ? (p.sauberkeitZeroSince || now) : 0;
+  const neglectedLong = (p.hungerZeroSince && now - p.hungerZeroSince > 86400000) ||
+                        (p.sauberkeitZeroSince && now - p.sauberkeitZeroSince > 86400000);
+  p.krank = p.krank || neglectedLong;
   p.krankSeit = p.krank ? (p.krankSeit || now) : 0;
   const mess = Array.isArray(p.mess) ? p.mess.slice() : [];
   const lost = altS - p.sauberkeit;
-  const neu = Math.max(0, Math.min(6 - mess.length, Math.floor(lost / 10)));
+  // Höchstens 2 neue Haufen pro Besuch — bei längerer Abwesenheit füllt sich der
+  // Vorrat über mehrere Besuche auf, statt bei der Rückkehr alles auf einmal
+  // abzuladen (das machte Reinigen zum reinen Mehrfach-Klick-Abarbeiten).
+  const neu = Math.max(0, Math.min(6 - mess.length, 2, Math.floor(lost / 10)));
   for (let i = 0; i < neu; i++) {
     const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "poop"];
     mess.push({ type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) });
@@ -2480,13 +2496,13 @@ function eggEvery(ms, fn) {
 function eggStartTimers() {
   if (eggTimers.length) return;              // schon gestartet
 
-  eggEvery(216000, () => {                   // Strom: nach etwa 6h komplett leer
+  eggEvery(432000, () => {                   // Strom: nach etwa 12h komplett leer
     const p = dragon;
     p.power = clampI(p.power - 1, 0, 100);
     markDirty(); saveDragon();
   });
 
-  eggEvery(288000, () => {                   // Hunger (~8h)
+  eggEvery(576000, () => {                   // Hunger (~16h)
     const p = dragon;
     p.hunger = clampI(p.hunger - 1, 0, 100);
     if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
@@ -2497,7 +2513,7 @@ function eggStartTimers() {
     markDirty(); saveDragon();
   });
 
-  eggEvery(360000, () => {                   // Sauberkeit (~10h) + Dreck
+  eggEvery(864000, () => {                   // Sauberkeit (~24h) + Dreck
     const p = dragon;
     p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
     if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
