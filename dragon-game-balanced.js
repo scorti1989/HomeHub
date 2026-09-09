@@ -149,7 +149,46 @@ function brokenHole(ctx, cx, cy, R, P, seed, cracks) {
     }
   }
 }
-function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick) {
+/* ---------- Stimmung: sichtbarer Ausdruck statt nur Balken ---------- */
+function eggMood(S) {
+  if (S.krank) return "sick";                    // eigener Ausdruck über die Augen (Lider)
+  const avg = (Math.max(0, S.hunger) + Math.max(0, S.sauberkeit) + Math.max(0, S.power)) / 3;
+  if (avg >= 65) return "happy";
+  if (avg >= 30) return "neutral";
+  return "sad";
+}
+function drawMouth(ctx, cx, my, mood, P) {
+  if (mood === "sick") return;                    // Augen übernehmen hier den Ausdruck
+  const col = P.outline || "#2a2014";
+  if (mood === "happy") {
+    rect(ctx, cx - 4, my, 2, 1, col);
+    rect(ctx, cx - 2, my + 2, 4, 1, col);
+    rect(ctx, cx + 2, my, 2, 1, col);
+  } else if (mood === "sad") {
+    rect(ctx, cx - 4, my + 2, 2, 1, col);
+    rect(ctx, cx - 2, my, 4, 1, col);
+    rect(ctx, cx + 2, my + 2, 2, 1, col);
+  } else {
+    rect(ctx, cx - 3, my + 1, 6, 1, col);
+  }
+}
+function isNightTime() {
+  const h = new Date().getHours();
+  return h >= 23 || h < 6;
+}
+// Rein atmosphärische Zufallsmomente beim Wiederkehren — keine Belohnung, kein
+// Stat-Effekt, nur eine kleine Überraschung statt immer derselben Meldung.
+const FLAVOR_MOMENTS = [
+  "🪨 Hat einen glänzenden Kiesel entdeckt und beäugt ihn misstrauisch.",
+  "🎵 Irgendwo im Labor summt eine alte Melodie.",
+  "🔬 Ein Kollege huscht mit einem Klemmbrett vorbei.",
+  "✨ Für einen Moment schimmert die Schale in einem ungewohnten Ton.",
+  "🐜 Etwas Kleines krabbelt kurz über den Boden und verschwindet wieder.",
+  "📻 Aus der Wand kommt kurz ein Rauschen — dann wieder Stille.",
+  "🫧 Eine einzelne Blase steigt aus dem Nährbecken auf.",
+  "🌡 Das Thermometer zeigt heute einen besonders gemütlichen Wert.",
+];
+function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick, sleeping) {
   const sep0 = Math.round(P.rb * 0.30), R0 = Math.max(4, Math.round(P.rb * 0.24)), shell = mode !== "dark";
   const pd = prof ? Math.sign(prof) : 0, pm = prof ? Math.min(1, Math.abs(prof)) : 0;
   let dx2, dy2, blink;
@@ -157,6 +196,7 @@ function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick) {
     const a = Math.atan2(track.y - ey, track.x - cx), m = Math.min(1, Math.hypot(track.x - cx, track.y - ey) / 24);
     dx2 = Math.cos(a) * (R0 - 1.5) * m; dy2 = Math.sin(a) * (R0 - 1.5) * m; blink = (t % 6000) > 5900;
   } else { const G = gaze(t); dx2 = G.dx * (R0 / 4); dy2 = G.dy * (R0 / 4); blink = G.blink; }
+  if (sleeping) blink = true;
   const eyeOrder = pd !== 0 ? [-pd, pd] : [-1, 1];                // hinteres Auge zuerst -> vorderes überdeckt es
   for (const sign of eyeOrder) {
     const isBack = pd !== 0 && sign !== pd;
@@ -308,8 +348,9 @@ function drawHud(ctx, S, t) {
 }
 function drawDim(ctx, power, t, deko) {
   const pw = Math.max(0, Math.min(100, power));
-  if (pw >= 99.5) return;                                                          // nur bei ganz vollem Akku hell
-  let dim = Math.min(0.86, (100 - pw) / 100 * 0.86);                               // dunkelt ab dem ersten Prozent stetig ab
+  const nightDim = isNightTime() ? 0.32 : 0;
+  if (pw >= 99.5 && nightDim === 0) return;                                        // nur bei ganz vollem Akku + Tag hell
+  let dim = Math.max(nightDim, Math.min(0.86, (100 - pw) / 100 * 0.86));           // dunkelt ab dem ersten Prozent stetig ab
   if (deko && deko.nightlight) dim = Math.min(dim, 0.74);                            // Nachtlicht hält Restlicht
   ctx.fillStyle = `rgba(5,7,16,${dim})`;
   ctx.fillRect(0, 0, CW, CH);
@@ -1411,7 +1452,8 @@ function drawEgg(ctx, S, t) {
   }
   if (idle.act === "play" && idle.toy === "ball") { const hx = cx - Math.round(P.rb * 0.86) - 7; updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
   if (P.eyes) {
-    const track = watching ? { x: fly.x, y: fly.y } : (idle.act === "watch" ? { x: cx, y: armY - 2 } : (idle.act === "play" ? playTrackPoint(cx, armY, t) : null));
+    const sleeping = isNightTime() && !S.krank && !S.expActive;
+    const track = sleeping ? null : (watching ? { x: fly.x, y: fly.y } : (idle.act === "watch" ? { x: cx, y: armY - 2 } : (idle.act === "play" ? playTrackPoint(cx, armY, t) : null)));
     let eyeDrawX = cx, eyeDrawY = eyeY;
     const bodyRot = rot + rollAngle;
     if (Math.abs(bodyRot) > 0.001) {                      // Augen-Loch rotiert mit der Schale (auch beim Gehen)
@@ -1420,7 +1462,16 @@ function drawEgg(ctx, S, t) {
       eyeDrawX = cx + ca * dx - sa * dy;
       eyeDrawY = ecy + sa * dx + ca * dy;
     }
-    drawEyes(ctx, eyeDrawX, eyeDrawY, t, P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank);
+    drawEyes(ctx, eyeDrawX, eyeDrawY, t, P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank, sleeping);
+    const R0 = Math.max(4, Math.round(P.rb * 0.24));
+    drawMouth(ctx, Math.round(eyeDrawX), Math.round(eyeDrawY) + R0 + 4, sleeping ? "neutral" : eggMood(S), P);
+    if (sleeping) {
+      const zb = (t / 900) % 3, za = Math.max(0, 1 - zb / 3);
+      ctx.globalAlpha = za * 0.8;
+      ctx.fillStyle = "#dfe8ff"; ctx.font = "8px monospace";
+      ctx.fillText("z", Math.round(eyeDrawX) + 12 + zb * 3, Math.round(eyeDrawY) - 6 - zb * 6);
+      ctx.globalAlpha = 1;
+    }
   }
   if (S.stage === 5) drawCosmic(ctx, cx + sway, eb, t, lit);            // Stufe 6 bleibt kosmisch
             // Tentakel ab Stufe 5, bleiben in Stufe 6
@@ -2179,7 +2230,10 @@ function eggCheckIn() {
   // Streak-Bonus wird NICHT mehr hier vergeben (das wäre nur fürs Öffnen der App) —
   // siehe checkDailyStreak(), aufgerufen aus rewardDragon() bei echten HomeHub-Aktionen.
   Object.assign(p, applyKrankDevolve(p, now));
-  if (elapsed > 7200) setTimeout(() => flash("👋 Willkommen zurück!"), 400);
+  if (elapsed > 7200) {
+    const msg = Math.random() < 0.35 ? FLAVOR_MOMENTS[Math.floor(Math.random() * FLAVOR_MOMENTS.length)] : "👋 Willkommen zurück!";
+    setTimeout(() => flash(msg), 400);
+  }
   p.lastSeen = now;                 // Verfall verrechnet → Zeitstempel zurücksetzen
   markDirty(); saveDragon({ touchLastSeen: true, silent: true });
 }
@@ -2335,6 +2389,11 @@ function eggSections() {
     if (wallU.length) h += eggZone("#5c7a9e", "rgba(92,122,158,.4)", eggGrid(shopEntries(wallU, "deko", p.deko, "✓ hängt")));
     if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
       h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
+    const albumTotal = TOY_ITEMS.length + SHOP_ITEMS.length + SEASON_ITEMS.length + COSTUMES.length + ((p.prestige || 0) >= 1 ? WALL_ITEMS.length + WALL_SEASON_ITEMS.length : 0);
+    const albumGot = TOY_ITEMS.filter(it => un[it.id]).length + SHOP_ITEMS.filter(it => un[it.id]).length +
+      SEASON_ITEMS.filter(it => un[it.id]).length + COSTUMES.filter(it => (p.costumes || {})[it.id]).length +
+      ((p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS].filter(it => un[it.id]).length : 0);
+    h += '<button class="eg-btn eg-wide" data-act="album" style="margin-top:9px">📖 Sammelalbum<br><small>' + albumGot + " von " + albumTotal + " Fundstücken</small></button>";
   }
   h += "</div>";
   return h;
@@ -2353,6 +2412,32 @@ function updateEggUIInner() {
   if (!se) return;
   se.innerHTML = eggSections();
   uiDirty = false;
+}
+
+// ── Sammelalbum: alle Gegenstände, gefunden oder noch nicht ──────────────
+function eggAlbumEntry(it, owned, note) {
+  const html = '<div class="eg-btn eg-owned' + (owned ? '' : ' eg-locked') + '" style="cursor:default">' +
+    (owned ? it.label : "🔒 " + it.label.replace(/^\S+\s/, "")) +
+    '<br><small>' + (owned ? (note || "Gefunden") : (it.months || it.xmas ? "Saisonal" : "Noch nicht gefunden")) + '</small></div>';
+  return { html, len: Math.max(it.label.length - 3, 12) };
+}
+function eggAlbumHtml() {
+  const p = dragon, un = p.unlocked || {};
+  const cats = [
+    ["#9163d9", "rgba(145,99,217,.4)", TOY_ITEMS, (it) => un[it.id]],
+    ["#d9569a", "rgba(217,86,154,.4)", SHOP_ITEMS, (it) => un[it.id]],
+    ["#5fae3d", "rgba(95,174,61,.4)", SEASON_ITEMS, (it) => un[it.id]],
+    ["#d9a13d", "rgba(217,161,61,.4)", COSTUMES, (it) => (p.costumes || {})[it.id]],
+  ];
+  if ((p.prestige || 0) >= 1) {
+    cats.push(["#5c7a9e", "rgba(92,122,158,.4)", [...WALL_ITEMS, ...WALL_SEASON_ITEMS], (it) => un[it.id]]);
+  }
+  let total = 0, got = 0, h = "";
+  cats.forEach(([c, g, items, isOwned]) => {
+    const entries = items.map(it => { const o = isOwned(it); total++; if (o) got++; return eggAlbumEntry(it, o); });
+    h += eggZone(c, g, eggGrid(entries));
+  });
+  return '<div class="eg-dim" style="margin-bottom:8px">' + got + " von " + total + " Fundstücken gesammelt</div>" + h;
 }
 
 function eggHandleClick(e) {
@@ -2378,6 +2463,7 @@ function eggHandleClickInner(e) {
   else if (act === "costume") eggBuyCostume(id);
   else if (act === "review") eggDownloadReview();
   else if (act === "prestige") eggPrestige();
+  else if (act === "album") { if (typeof openKasseModal === "function") openKasseModal("📖 Sammelalbum", eggAlbumHtml()); }
 }
 
 function renderDragonCard() {
