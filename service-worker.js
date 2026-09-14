@@ -18,7 +18,7 @@
    (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '36';
+const APP_VERSION        = '37';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 
@@ -35,9 +35,9 @@ const CRITICAL_PATHS = ['./', './index.html', './manifest.json'];
 const OPTIONAL_PATHS = [
   `./dragon-game-balanced.js?v=${APP_VERSION}`,
   `./dragon-game-balanced.css?v=${APP_VERSION}`,
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png',
 ];
 
 /* Dateiendungen, die als statische App-Ressourcen gelten */

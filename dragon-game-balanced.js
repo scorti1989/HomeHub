@@ -157,21 +157,6 @@ function eggMood(S) {
   if (avg >= 30) return "neutral";
   return "sad";
 }
-function drawMouth(ctx, cx, my, mood, P) {
-  if (mood === "sick") return;                    // Augen übernehmen hier den Ausdruck
-  const col = P.outline || "#2a2014";
-  if (mood === "happy") {
-    rect(ctx, cx - 4, my, 2, 1, col);
-    rect(ctx, cx - 2, my + 2, 4, 1, col);
-    rect(ctx, cx + 2, my, 2, 1, col);
-  } else if (mood === "sad") {
-    rect(ctx, cx - 4, my + 2, 2, 1, col);
-    rect(ctx, cx - 2, my, 4, 1, col);
-    rect(ctx, cx + 2, my + 2, 2, 1, col);
-  } else {
-    rect(ctx, cx - 3, my + 1, 6, 1, col);
-  }
-}
 function isNightTime() {
   const h = new Date().getHours();
   return h >= 23 || h < 6;
@@ -188,15 +173,18 @@ const FLAVOR_MOMENTS = [
   "🫧 Eine einzelne Blase steigt aus dem Nährbecken auf.",
   "🌡 Das Thermometer zeigt heute einen besonders gemütlichen Wert.",
 ];
-function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick, sleeping) {
+function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick, sleeping, mood) {
   const sep0 = Math.round(P.rb * 0.30), R0 = Math.max(4, Math.round(P.rb * 0.24)), shell = mode !== "dark";
   const pd = prof ? Math.sign(prof) : 0, pm = prof ? Math.min(1, Math.abs(prof)) : 0;
+  const expression = mood || "neutral";
   let dx2, dy2, blink;
   if (track) {                                                    // Fliege mit den Augen verfolgen
     const a = Math.atan2(track.y - ey, track.x - cx), m = Math.min(1, Math.hypot(track.x - cx, track.y - ey) / 24);
     dx2 = Math.cos(a) * (R0 - 1.5) * m; dy2 = Math.sin(a) * (R0 - 1.5) * m; blink = (t % 6000) > 5900;
   } else { const G = gaze(t); dx2 = G.dx * (R0 / 4); dy2 = G.dy * (R0 / 4); blink = G.blink; }
   if (sleeping) blink = true;
+  if (expression === "happy") dy2 -= Math.max(1, Math.round(R0 * 0.24));
+  else if (expression === "sad") dy2 += Math.max(1, Math.round(R0 * 0.34));
   const eyeOrder = pd !== 0 ? [-pd, pd] : [-1, 1];                // hinteres Auge zuerst -> vorderes überdeckt es
   for (const sign of eyeOrder) {
     const isBack = pd !== 0 && sign !== pd;
@@ -219,6 +207,26 @@ function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick, sleeping) {
       pe(ctx, ex, ey, R - 0.6, R - 0.6, scl);
       pe(ctx, ex + dx2, ey + dy2, pr, pr + 0.3, "#15121f");
       rect(ctx, ex + dx2 - 1, ey + dy2 - 2, 1, 1, "#fff");
+    }
+    if (!blink && expression === "happy") {
+      // Kleine nach oben gewölbte Lidlinie: Freude wird ausschließlich über
+      // die Augen gelesen, ohne einen Mund unterhalb der Augen zu zeichnen.
+      const col = P.outline || "#2a2014", y = Math.round(ey + R - 2);
+      rect(ctx, ex - 2, y + 1, 1, 1, col);
+      rect(ctx, ex - 1, y, 2, 1, col);
+      rect(ctx, ex + 1, y + 1, 1, 1, col);
+    } else if (!blink && expression === "sad") {
+      // Bei Traurigkeit liegen die Pupillen tiefer; zusätzlich steigen die
+      // inneren Brauen leicht an – ein klarer Pixel-Ausdruck ohne Mund.
+      const col = P.outline || "#2a2014";
+      const outerX = ex - sign * Math.max(1, Math.round(R * 0.55));
+      const innerX = ex + sign * Math.max(1, Math.round(R * 0.55));
+      const outerY = Math.round(ey - R - 2), innerY = outerY - 2;
+      for (let i = 0; i <= 2; i++) {
+        const x = Math.round(outerX + (innerX - outerX) * i / 2);
+        const y = Math.round(outerY + (innerY - outerY) * i / 2);
+        rect(ctx, x, y, 1, 1, col);
+      }
     }
   }
   if (sick) {                                                        // kränklicher Blick: Lider halb zu
@@ -404,7 +412,7 @@ function drawPowerOff(ctx, S, t) {
   const P = EGG_PAL[stg(S.stage)]; if (!P.eyes) return;                         // Ur-Ei hat noch keine Augen -> komplett dunkel
   const cx = 92, floorY = FLOOR - 1, eb = S.stage < 2 ? floorY - 12 : floorY, breath = Math.sin(t / 900) * 0.4;
   // frühe Stufen leuchten NICHT -> nur im Dunkeln sichtbar; rissig/kosmisch glimmen
-  drawEyes(ctx, cx, eb - (P.rb + P.ht * 0.34) + breath, t, P, S.stage === 5 ? "glow" : "dark");
+  drawEyes(ctx, cx, eb - (P.rb + P.ht * 0.34) + breath, t, P, S.stage === 5 ? "glow" : "dark", null, 0, false, false, "neutral");
 }
 
 /* ---------- Shop & Deko ---------- */
@@ -1462,9 +1470,8 @@ function drawEgg(ctx, S, t) {
       eyeDrawX = cx + ca * dx - sa * dy;
       eyeDrawY = ecy + sa * dx + ca * dy;
     }
-    drawEyes(ctx, eyeDrawX, eyeDrawY, t, P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank, sleeping);
-    const R0 = Math.max(4, Math.round(P.rb * 0.24));
-    drawMouth(ctx, Math.round(eyeDrawX), Math.round(eyeDrawY) + R0 + 4, sleeping ? "neutral" : eggMood(S), P);
+    const mood = sleeping ? "sleeping" : eggMood(S);
+    drawEyes(ctx, eyeDrawX, eyeDrawY, t, P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank, sleeping, mood);
     if (sleeping) {
       const zb = (t / 900) % 3, za = Math.max(0, 1 - zb / 3);
       ctx.globalAlpha = za * 0.8;
