@@ -779,9 +779,7 @@ body{
 .tk-link-mini{background:none;border:none;color:#7c3aed;font-weight:700;font-size:12px;cursor:pointer;padding:0;white-space:nowrap}
 
 </style>
-  <link rel="stylesheet" href="dragon-game-balanced.css?v=40">
-<link rel="stylesheet" href="shopping-list.css?v=40">
-<link rel="stylesheet" href="personal-ui.css?v=40">
+  <link rel="stylesheet" href="dragon-game-balanced.css?v=39">
 </head>
 <body>
 
@@ -887,22 +885,14 @@ body{
 
 <!-- NAV -->
 <nav class="nav" role="navigation" aria-label="Hauptnavigation">
-  <button class="nav-btn active" data-page="home"><span class="ni">⌂</span><span class="nl">Start</span><div class="nav-dot"></div></button>
-  <button class="nav-btn" data-uxgo="household"><span class="ni">€</span><span class="nl">Haushalt</span><div class="nav-dot"></div></button>
-  <button class="nav-btn" data-uxgo="einkauf"><span class="ni">✓</span><span class="nl">Einkauf</span><div class="nav-dot"></div></button>
+  <button class="nav-btn active" data-page="home"><span class="ni">⌂</span><span class="nl">Home</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="kasse"><span class="ni" style="font-size:16px;font-weight:700">€</span><span class="nl">Kasse</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="contracts"><span class="ni">≡</span><span class="nl">Verträge</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="meters"><span class="ni">◎</span><span class="nl">Zähler</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="analysis"><span class="ni">↗</span><span class="nl">Analyse</span><div class="nav-dot"></div></button>
   <button class="nav-btn" data-page="recipes" id="navRecipes"><span class="ni">✦</span><span class="nl">Rezepte</span><div class="nav-dot"></div></button>
-  <button class="nav-btn" data-page="tickets"><span class="ni">♫</span><span class="nl">Konzerte</span><div class="nav-dot"></div></button>
-  <button class="nav-btn" data-uxgo="more"><span class="ni">⋯</span><span class="nl">Mehr</span><div class="nav-dot"></div></button>
+  <button class="nav-btn" data-page="tickets"><span class="ni">🎫</span><span class="nl">Konzerte</span><div class="nav-dot"></div></button>
 </nav>
-<div class="modal-bg" id="personalMoreModal" role="dialog" aria-modal="true" aria-labelledby="personalMoreTitle">
- <div class="modal"><button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('personalMoreModal')">×</button>
- <h2 id="personalMoreTitle">Alle Bereiche</h2><div class="personal-more">
- <button data-uxgo="contracts">Verträge</button><button data-uxgo="meters">Zählerstände</button>
- <button data-uxgo="analysis">Analysen</button><button data-uxgo="budgets">Budgets</button>
- <button data-uxgo="ausgleich">Ausgleich</button><button data-uxgo="recurring">Wiederkehrende Buchungen</button>
- <button data-uxgo="egg">Mein Ei</button><button data-uxgo="backup">Backup herunterladen</button>
- <button data-uxgo="settings">Einstellungen</button></div></div>
-</div>
 
 <!-- ════ MODALS ════ -->
 
@@ -1218,9 +1208,6 @@ body{
   <div class="modal-handle"></div>
   <button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('settingsModal')">×</button>
   <h2>Einstellungen</h2>
-  <div class="fg"><label for="s-startarea">Beim Öffnen starten mit</label><select id="s-startarea"><option value="home">Startseite</option><option value="einkauf">Einkaufsliste</option><option value="household">Haushalt</option><option value="recipes">Rezepte</option><option value="tickets">Konzerte</option></select></div>
-  <div class="fg"><label for="s-defaultaccount">Standardkonto für neue Ausgaben</label><select id="s-defaultaccount"><option value="wir">Gemeinsam</option><option value="ich">Persönlich</option></select><div class="settings-section-body">Bei jeder Ausgabe weiterhin einzeln änderbar.</div></div>
-
   <div class="fg"><label for="s-partnername">Name deines Partners / Mitbewohners</label>
     <input id="s-partnername" placeholder="z.B. Jonas" autocomplete="off">
   </div>
@@ -1464,7 +1451,7 @@ body{
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v40';
+  var APP_VERSION = 'v39';
   window.__HOMEHUB_BOOTING__ = true;
   window.__HOMEHUB_READY__   = false;
 
@@ -1610,10 +1597,8 @@ body{
   });
 })();
 </script>
-<script src="dragon-game-balanced.js?v=40"></script>
-<script src="app-integrity.js?v=40"></script>
-<script src="shopping-list.js?v=40"></script>
-<script src="personal-ui.js?v=40"></script>
+<script src="dragon-game-balanced.js?v=39"></script>
+<script src="app-integrity.js?v=39"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game-balanced.js nicht lädt. */
@@ -2236,7 +2221,6 @@ function renderAmpel() {
 // ════════════════════════════════════════════
 let activePage = 'home';
 function showPage(id) {
-  captureQuickExpense();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + id)?.classList.add('active');
@@ -2262,7 +2246,6 @@ function showPage(id) {
   } catch (err) {
     console.warn('[HomeHub] Seite "' + id + '" konnte nicht vollständig aufgebaut werden:', err);
   }
-  updatePersonalNavigation();
 }
 document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
   btn.addEventListener('click', () => showPage(btn.dataset.page));
@@ -2272,7 +2255,6 @@ document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
 // HOME PAGE
 // ════════════════════════════════════════════
 function renderHome() {
-  captureQuickExpense();
   renderConcertBanner();
   const cm = currMonth(), pm = prevMonth();
   const now = new Date();
@@ -2414,7 +2396,7 @@ function renderHome() {
   // ── Schnellchips: häufig/zuletzt verwendete Beschreibungen ──
   const expList = Array.isArray(expenses) ? expenses : [];
   const descStats = {};
-  [...expList].sort((a,b)=>(b.date || '').localeCompare(a.date || '')).slice(0, 80).forEach((e, i) => {
+  [...expList].reverse().slice(0, 80).forEach((e, i) => {
     if (!e || !e.desc) return;
     const key = e.desc.trim();
     if (!key) return;
@@ -2427,26 +2409,26 @@ function renderHome() {
     .slice(0, 4);
 
   // ════ HTML aufbauen ════════════════════════════════════════════════════
-  let h = personalHomeActions();
+  let h = '';
 
   // ── 1. Schnellerfassung ──
   h += `
   <div class="quick-card">
     <div class="hm-quick-label">Ausgabe erfassen</div>
     <div class="quick-row">
-      <input aria-label="Betrag in Euro" autocomplete="off" class="quick-amt" id="q-amt" type="number" step=".01" placeholder="0,00" inputmode="decimal">
-      <input aria-label="Beschreibung der Ausgabe" class="quick-desc" id="q-desc" placeholder="Wofür?" autocomplete="off" list="q-desc-suggestions">
+      <input autocomplete="off" class="quick-amt" id="q-amt" type="number" step=".01" placeholder="0,00" inputmode="decimal">
+      <input class="quick-desc" id="q-desc" placeholder="Wofür?" autocomplete="off" list="q-desc-suggestions">
       <datalist id="q-desc-suggestions"></datalist>
     </div>
     <div class="quick-row2">
-      <select aria-label="Ausgabenkategorie" class="quick-sel" id="q-cat">${EXP_CATS.map(c => `<option value="${c.v}">${c.l}</option>`).join('')}</select>
+      <select class="quick-sel" id="q-cat">${EXP_CATS.map(c => `<option value="${c.v}">${c.l}</option>`).join('')}</select>
       <div class="quick-acc">
         <button class="qacc ai" id="q-ich" type="button">Ich</button>
         <button class="qacc" id="q-wir" type="button">Wir</button>
       </div>
-      <button class="qsave" id="qSaveBtn" aria-label="Ausgabe speichern">Speichern</button>
+      <button class="qsave" id="qSaveBtn">✓</button>
     </div>
-    <div id="q-feedback" class="q-feedback" aria-live="polite">${esc(uxExpenseFeedback)}</div>
+    <div id="q-feedback" class="q-feedback" aria-live="polite"></div>
     ${chips.length ? `<div class="hm-chips">${chips.map((c, i) =>
       `<button class="hm-chip" type="button" data-chipidx="${i}">${esc(c.desc)}</button>`).join('')}</div>` : ''}
   </div>`;
@@ -2509,7 +2491,6 @@ function renderHome() {
       <button class="hm-link-btn" id="homeShopAll">Liste öffnen</button>
     </div>`;
   }
-  h += shoppingMessageHtml();
   h += `</div>`;
 
   // ── 6. Wochenplan (nur bei Relevanz) ──
@@ -2523,8 +2504,6 @@ function renderHome() {
     h += `<div class="hm-week-row"><span class="hm-week-day">Morgen</span><span class="hm-week-recipe">${tomorrowRecipe ? esc(tomorrowRecipe.title) : 'noch nichts geplant'}</span></div>`;
     h += `</div>`;
   }
-
-  h += personalUpcomingCard();
 
   // ── 7. Zuletzt erfasst (max. 3) ──
   const recentExp = [...expList].filter(Boolean)
@@ -2560,7 +2539,7 @@ function renderHome() {
 
   // ── Event-Listener ──
   document.getElementById('homeToRecipes')?.addEventListener('click', () => showPage('recipes'));
-  document.getElementById('homeToKasse2')?.addEventListener('click', () => goKasseTab('ausgaben'));
+  document.getElementById('homeToKasse2')?.addEventListener('click', () => showPage('kasse'));
   document.getElementById('homeToAnalysisDetails')?.addEventListener('click', () => showPage('analysis'));
   document.getElementById('homeShopAll')?.addEventListener('click', () => goKasseTab('einkauf'));
   document.getElementById('homeAddShopItem')?.addEventListener('click', () => openAddShopItem());
@@ -2598,10 +2577,9 @@ function renderHome() {
   });
 
   // ── Schnellerfassung: Konto-Toggle ──
-  restoreQuickExpense();
-  let qAcc = uxQuickDraft?.account || settings.quickExpenseAccount || 'wir';
+  let qAcc = activeHaushalt === 'wir' ? 'wir' : 'ich';
   const setQAcc = a => {
-    qAcc = a;uxQuickAccount=a;
+    qAcc = a;
     document.getElementById('q-ich').className = 'qacc' + (a === 'ich' ? ' ai' : '');
     document.getElementById('q-wir').className = 'qacc' + (a === 'wir' ? ' aw' : '');
   };
@@ -2615,7 +2593,7 @@ function renderHome() {
   const qFeedEl  = document.getElementById('q-feedback');
   const qSuggEl  = document.getElementById('q-desc-suggestions');
 
-  const recentDescs = [...new Set([...expList].sort((a,b)=>(b.date || '').localeCompare(a.date || '')).slice(0, 50).map(e => e.desc))].slice(0, 10);
+  const recentDescs = [...new Set([...expList].reverse().slice(0, 50).map(e => e.desc))].slice(0, 10);
   if (qSuggEl) qSuggEl.innerHTML = recentDescs.map(d => `<option value="${esc(d)}">`).join('');
 
   const guessCategory = desc => {
@@ -2683,10 +2661,7 @@ function renderHome() {
       setTimeout(() => { if (qFeedEl) { qFeedEl.textContent = ''; qFeedEl.className = 'q-feedback'; } }, 2500);
     }
 
-    uxExpenseFeedback=fmtEurPlain(amt)+' gespeichert · '+(qAcc==='wir'?'Gemeinsam':'Persönlich');
-    uxQuickDraft=null;
     renderHome();
-    document.getElementById('q-amt')?.focus();
     renderAmpel();
   });
 }
@@ -2832,7 +2807,6 @@ function setKasseTab(tab) {
   activeKasseTab = tab;
   document.querySelectorAll('#kasseTabs .ktab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   renderKasse();
-  updatePersonalNavigation();
 }
 
 let mehrView = null; // null (Kartenübersicht) | 'einkauf' | 'ausgleich' | 'recurring'
@@ -2845,7 +2819,6 @@ function renderKasse() {
   else if (activeKasseTab === 'ausgaben') renderKasseAusgaben();
   else if (activeKasseTab === 'budgets') renderKasseBudgets();
   else if (activeKasseTab === 'mehr') renderKasseMehr();
-  updatePersonalNavigation();
 }
 
 function expensesForMonth(m) { return expenses.filter(e => e.date && e.date.startsWith(m)); }
@@ -3132,7 +3105,43 @@ function renderKasseAusgaben() {
 
   document.getElementById('kasseContent').innerHTML = html;
 }
-function renderKasseEinkauf() { renderContinuousShopping(); }
+function renderKasseEinkauf() {
+  const items = shopLists.items || [];
+  const storeMap = { supermarkt: { label: '🟢 Supermarkt', cls: 'ss' }, drogerie: { label: '🟣 Drogerie', cls: 'sd' }, baumarkt: { label: '🟡 Baumarkt', cls: 'sb' }, sonstiges: { label: '⚪ Sonstiges', cls: 'so' } };
+  const estTotal = items.reduce((s, i) => s + (Number(i.price) || 0), 0);
+  const done = items.filter(i => i.checked).length;
+  let html = '';
+  if (items.length) {
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;color:var(--muted)">${done}/${items.length} erledigt${estTotal > 0 ? ' · ca. ' + fmtEurPlain(estTotal) : ''}</div>
+    </div>`;
+  }
+  ['supermarkt', 'drogerie', 'baumarkt', 'sonstiges'].forEach(store => {
+    const storeItems = items.map((item, idx) => ({ item, idx })).filter(({ item }) => item.store === store);
+    if (!storeItems.length) return;
+    html += `<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin:10px 0 5px">${storeMap[store].label}</div>`;
+    storeItems.forEach(({ item, idx }) => {
+      const pm = priceMemory[item.name?.toLowerCase()];
+      let ph = '';
+      if (pm && item.price) {
+        const d = (Number(item.price) - pm.avg) / pm.avg * 100;
+        if (d > 10) ph = `<div class="ph-warn">⚠ +${d.toFixed(0)}% teurer als üblich (Ø ${fmtEurPlain(pm.avg)})</div>`;
+        else if (d < -10) ph = `<div class="ph-ok">✓ Günstiger als üblich</div>`;
+      }
+      html += `<div class="shop-item${item.checked ? ' chk' : ''}" data-sidx="${idx}">
+        <div class="schk${item.checked ? ' done' : ''}" data-chk="${idx}">${item.checked ? '✓' : ''}</div>
+        <div style="flex:1;cursor:pointer" data-edit-shop="${idx}">
+          <div class="sname">${esc(item.name)}${item.qty ? ' <span style="color:var(--muted);font-size:11px">' + esc(item.qty) + '</span>' : ''}</div>${ph}
+        </div>
+        ${item.price ? `<span class="sprice">${fmtEurPlain(item.price)}</span>` : ''}
+        <button style="background:none;border:none;color:#cbd5e0;font-size:20px;cursor:pointer;padding:0 0 0 5px;min-width:36px;min-height:44px" data-rm="${idx}" aria-label="Entfernen">×</button>
+      </div>`;
+    });
+  });
+  if (!items.length) html += `<div class="empty"><div class="ei">🛒</div><p>Keine offenen Artikel.<br><span class="empty-cta">Tippe <strong>+</strong> um etwas auf die Liste zu setzen.</span></p></div>`;
+  document.getElementById('kasseContent').innerHTML = html;
+  // Delegation läuft über den permanenten kasseContent-Listener (kein once:true)
+}
 
 // ── Budgetvorschlag: nur wenn 3 vollständige Vormonate mit Daten vorhanden sind ──
 function getBudgetSuggestion(hb) {
@@ -3315,7 +3324,7 @@ function wrapMehrBack(title, innerRender) {
 
 // Nach Speichern/Löschen die richtige Ansicht neu aufbauen (Mehr-Unterbereich oder direkt)
 function refreshEinkaufView() {
-  if (activeKasseTab === 'mehr' && mehrView === 'einkauf') renderKasseEinkauf();
+  if (activeKasseTab === 'mehr' && mehrView === 'einkauf') wrapMehrBack('Einkaufsliste', renderKasseEinkauf);
   else if (activeKasseTab === 'mehr') renderKasseMehr();
   else renderKasse();
   try { renderHome && activePage === 'home' && renderHome(); } catch (e) {}
@@ -3346,7 +3355,7 @@ function recurringNextDate(r) {
 
 function renderKasseMehr() {
   // Unterbereich aktiv? Dann diesen rendern
-  if (mehrView === 'einkauf')   { renderKasseEinkauf(); return; }
+  if (mehrView === 'einkauf')   { wrapMehrBack('Einkaufsliste', renderKasseEinkauf); return; }
   if (mehrView === 'ausgleich') { wrapMehrBack('Ausgleich', renderKasseAusgleich); return; }
   if (mehrView === 'recurring') { wrapMehrBack('Wiederkehrende Buchungen', renderKasseRecurring); return; }
 
@@ -4571,7 +4580,7 @@ function openAddExpense(prefill) {
   const cat = prefill?.category || 'lebensmittel';
   document.getElementById('e-cat').value = cat;
   document.getElementById('e-group').value = getAnalysisGroup(cat);
-  const defaultAcc = settings.quickExpenseAccount || 'wir';
+  const defaultAcc = activeHaushalt === 'wir' ? 'wir' : (activeHaushalt || getLastAccountForCat(cat));
   setAccount(defaultAcc);
   updateTripSuggestions();
   openModal('expenseModal');
@@ -4667,35 +4676,21 @@ function openEditShopItem(idx) {
 document.getElementById('saveShopBtn').addEventListener('click', () => {
   const name = document.getElementById('si-name').value.trim();
   if (!name) { alert('Bitte Artikelname eingeben.'); return; }
-  const priceRaw=document.getElementById('si-price').value.trim();
-  const price=strictNumber(priceRaw);
-  if(priceRaw && (price===null || price<0)){alert('Bitte einen gültigen Preis eingeben.');return;}
-  const item={name,qty:document.getElementById('si-qty').value.trim(),store:document.getElementById('si-store').value,price:priceRaw?price:''};
-  if(!shopLists.items)shopLists.items=[];
-  if(editShopIdx!==null && !shopLists.items[editShopIdx]){alert('Artikel wurde inzwischen entfernt. Bitte erneut öffnen.');return;}
-  let result;
-  shoppingChange('Artikel gespeichert.',()=>{
-    if(editShopIdx!==null)Object.assign(shopLists.items[editShopIdx],item);
-    else result=addContinuousShoppingItem(item);
-  });
-  if(result?.status==='open')shoppingNotice='Dieser Artikel steht bereits auf der Liste. Tippe ihn an, um Menge oder Preis zu ändern.';
-  if(editShopIdx===null){shoppingQuickDraftName='';shoppingQuickDraftStore=item.store;}
+  const item = { name, qty: document.getElementById('si-qty').value.trim(), store: document.getElementById('si-store').value, price: parseDE(document.getElementById('si-price').value), checked: false };
+  if (!shopLists.items) shopLists.items = [];
+  if (editShopIdx !== null) { item.checked = shopLists.items[editShopIdx].checked; shopLists.items[editShopIdx] = item; }
+  else shopLists.items.push(item);
+  save('vh_shoplists', shopLists);
   closeModal('shopItemModal');
   refreshEinkaufView();
 });
 document.getElementById('cancelShopBtn').addEventListener('click', () => closeModal('shopItemModal'));
 function toggleShopItem(idx) {
-  const item=shopLists.items[idx];if(!item)return;
-  const purchased=!item.checked;
-  shoppingChange('„'+item.name+'“ '+(purchased?'als gekauft markiert.':'wieder auf die Liste gesetzt.'),()=>{
-    item.checked=purchased;
-    if(purchased){item.lastPurchasedAt=new Date().toISOString();item.purchaseCount=(Number(item.purchaseCount)||0)+1;}
-  });
+  shopLists.items[idx].checked = !shopLists.items[idx].checked;
+  save('vh_shoplists', shopLists);
+  refreshEinkaufView();
 }
-function removeShopItem(idx) {
-  const item=shopLists.items[idx];if(!item)return;
-  shoppingChange('„'+item.name+'“ entfernt.',()=>{shopLists.items.splice(idx,1);});
-}
+function removeShopItem(idx) { shopLists.items.splice(idx, 1); save('vh_shoplists', shopLists); refreshEinkaufView(); }
 
 let bookAcc = 'ich';
 function openBookShopping() {
@@ -5912,7 +5907,6 @@ document.getElementById('fabBtn').addEventListener('click', () => {
   if (activePage === 'contracts') openAddContractModal();
   else if (activePage === 'meters') openMeterModal(activeMeterType || 'strom');
   else if (activePage === 'recipes') { openRecipeModal(null); return; }
-  else if (activePage === 'tickets') { ticketTab='concerts';editConcertId='__new';renderTickets();return; }
   else if (activePage === 'kasse') {
     if (activeKasseTab === 'mehr' && mehrView === 'einkauf') openAddShopItem();
     else if (activeKasseTab === 'mehr' && mehrView === 'ausgleich') openAddTransfer();
@@ -5936,8 +5930,6 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 // SETTINGS
 // ════════════════════════════════════════════
 document.getElementById('btnSettings').addEventListener('click', () => {
-  document.getElementById('s-startarea').value=settings.startArea || 'home';
-  document.getElementById('s-defaultaccount').value=settings.quickExpenseAccount || 'wir';
   document.getElementById('s-partnername').value = settings.partnerName || '';
   document.getElementById('s-splitpct').value = settings.splitPct || 50;
   try {
@@ -5951,8 +5943,6 @@ document.getElementById('btnSettings').addEventListener('click', () => {
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
   const syncUrl=document.getElementById('s-syncurl').value.trim();
   if(syncUrl && !safeWebUrl(syncUrl)){alert('Bitte eine gültige HTTP- oder HTTPS-Serveradresse eingeben.');return;}
-  settings.startArea=document.getElementById('s-startarea').value;
-  settings.quickExpenseAccount=document.getElementById('s-defaultaccount').value;
   settings.partnerName    = document.getElementById('s-partnername').value.trim() || 'Partner';
   settings.splitPct       = Math.min(99, Math.max(1, parseInt(document.getElementById('s-splitpct').value) || 50));
   save('vh_settings', settings);
@@ -7824,8 +7814,6 @@ function pushLinesToShoppingList(lines, sourceTitle) {
     if (!name) return;
     const qty = [amount, unit].filter(Boolean).join(' ');
     // ShoppingItem mit name (nicht desc) — konsistent mit openEditShopItem
-    const previous=shopLists.items.find(i=>i.checked && shoppingKey(i.name)===shoppingKey(name) && shoppingStoreOf(i)==='supermarkt');
-    if(previous){previous.checked=false;previous.qty=qty;previous.note=sourceTitle || '';return;}
     shopLists.items.push({
       id: uid(), name, qty, store: 'supermarkt',
       price: '', checked: false,
@@ -8429,8 +8417,6 @@ setTimeout(() => { try { hhSync.run(false); } catch (e) {} }, 1200);
 
 // Änderungen werden explizit nach erfolgreichem Speichern gemeldet.
 window.__hhReady=true;
-updatePersonalNavigation();
-if(['einkauf','household','recipes','tickets'].includes(settings.startArea))openPersonalArea(settings.startArea);
 </script>
 </body>
 </html>

@@ -18,7 +18,7 @@
    (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '40';
+const APP_VERSION        = '39';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 
@@ -31,7 +31,7 @@ function scopeUrl(path) {
   return new URL(path, self.registration.scope).href;
 }
 
-const CRITICAL_PATHS = ['./', './index.html', './manifest.json', `./app-integrity.js?v=${APP_VERSION}`, `./shopping-list.js?v=${APP_VERSION}`, `./personal-ui.js?v=${APP_VERSION}`, `./shopping-list.css?v=${APP_VERSION}`, `./personal-ui.css?v=${APP_VERSION}`];
+const CRITICAL_PATHS = ['./', './index.html', './manifest.json', `./app-integrity.js?v=${APP_VERSION}`];
 const OPTIONAL_PATHS = [
   `./dragon-game-balanced.js?v=${APP_VERSION}`,
   `./dragon-game-balanced.css?v=${APP_VERSION}`,
