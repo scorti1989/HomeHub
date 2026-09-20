@@ -135,10 +135,12 @@ function prepareAppSnapshot(input) {
     for(const key of ['avg','last','count'])if(entry[key]!=null && (typeof entry[key]!=='number' || !Number.isFinite(entry[key]) || entry[key]<0))throw new Error('Ungültiger Preisverlauf.');
   }
   d.settings={...d.settings,partnerName:d.settings.partnerName || 'Partner',splitPct:Number.isFinite(d.settings.splitPct)?Math.min(99,Math.max(1,d.settings.splitPct)):50};
+  if(d.settings.startArea!==undefined && !['home','einkauf','household','recipes','tickets'].includes(d.settings.startArea))d.settings.startArea='home';
+  if(d.settings.quickExpenseAccount!==undefined && !['wir','ich'].includes(d.settings.quickExpenseAccount))d.settings.quickExpenseAccount='wir';
   return d;
 }
 function collectAppSnapshot() {
-  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:39};
+  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:40};
 }
 function snapshotHasData(d) {
   if(['contracts','meters','expenses','recurring','transfers','recipes','concerts','ticketPeople'].some(k=>d[k]?.length))return true;

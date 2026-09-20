@@ -1,0 +1,11 @@
+.shopping-continuous{padding-bottom:20px}.shopping-hint{font-size:13px;color:var(--muted);line-height:1.5}
+.shopping-quick,.shopping-filters{display:grid;gap:8px;margin-bottom:16px}.shopping-quick>label,.shopping-filters>label{font-size:13px;font-weight:650}
+.shopping-quick>div{display:flex;gap:7px;flex-wrap:wrap}.shopping-continuous input,.shopping-continuous select{box-sizing:border-box;min-height:44px;max-width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font:inherit;font-size:16px}
+.shopping-quick input,.shopping-filters input{width:100%}.shopping-btn{min-height:44px;min-width:44px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--bg2);font:inherit;font-size:12px;cursor:pointer}
+.shopping-btn:focus-visible,.shopping-name:focus-visible{outline:3px solid var(--accent);outline-offset:2px}.shopping-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid var(--border)}
+.shopping-name{flex:1;min-width:0;min-height:44px;padding:4px 2px;text-align:left;background:none;border:0;color:var(--text);font:inherit;cursor:pointer;overflow-wrap:anywhere}.shopping-name strong{display:block;font-size:14px}.shopping-name span{display:block;font-size:12px;color:var(--muted)}
+.shopping-check{color:var(--accent);font-weight:700}.shopping-pin[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}.shopping-store-title{font-size:12px;margin:18px 0 4px;color:var(--muted)}
+.shopping-notice{background:var(--bg2);padding:10px;border-radius:8px;font-size:13px;line-height:1.5;margin:8px 0}.shopping-repeat{margin:14px 0;font-size:13px}.shopping-repeat>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+#shoppingPurchased{margin-top:24px;border-top:1px solid var(--border);padding-top:12px}#shoppingPurchased summary{cursor:pointer;min-height:44px;font-size:14px;font-weight:650;line-height:1.6}
+.shopping-sr{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:380px){.shopping-row{flex-wrap:wrap}.shopping-name{flex-basis:40%}.shopping-pin{font-size:11px;padding:6px}}
