@@ -779,7 +779,7 @@ body{
 .tk-link-mini{background:none;border:none;color:#7c3aed;font-weight:700;font-size:12px;cursor:pointer;padding:0;white-space:nowrap}
 
 </style>
-  <link rel="stylesheet" href="dragon-game-balanced.css?v=37">
+  <link rel="stylesheet" href="dragon-game-balanced.css?v=39">
 </head>
 <body>
 
@@ -1232,10 +1232,11 @@ body{
     </div>
     <div id="syncSnapList" style="display:none;margin-top:9px"></div>
   </div>
-  <div class="settings-section settings-section-danger">
-    <div class="settings-section-title" style="color:var(--red)">Daten löschen</div>
-    <div class="settings-section-body">Bitte vorher ein Backup exportieren – dieser Vorgang kann nicht rückgängig gemacht werden.</div>
-    <button id="clearDataBtn" class="btn-d" style="margin-top:8px">Alle Daten löschen</button>
+  <div class="settings-section">
+    <div class="settings-section-title">Sicherung vor Datenübernahme</div>
+    <div class="settings-section-body">Vor Import und Synchronisierung wird der vorherige Stand gesichert. Lade ihn herunter und spiele ihn bei Bedarf über Import ein.</div>
+    <button type="button" class="btn-s" onclick="downloadRecovery('hh_recovery_local')">Vorherigen lokalen Stand herunterladen</button>
+    <button type="button" class="btn-s" onclick="downloadRecovery('hh_recovery_cloud')">Gesicherten Serverstand herunterladen</button>
   </div>
   <div class="settings-section">
     <div class="settings-section-title">App installieren</div>
@@ -1305,6 +1306,14 @@ body{
       <button id="importRecipeUrlBtn" style="padding:10px 14px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:44px">Laden</button>
     </div>
     <div class="import-status" id="recipeImportStatus"></div>
+    <details style="margin-top:10px">
+      <summary>Rezepttext einfügen</summary>
+      <label for="r-paste">Kopierter Text, alternativ Rezept-JSON</label>
+      <textarea id="r-paste" rows="7" style="width:100%;box-sizing:border-box" placeholder="Rezeptname&#10;Portionen: 4&#10;Zutaten&#10;200 g Reis&#10;Zubereitung&#10;Reis kochen."></textarea>
+      <button type="button" class="btn-s" id="parseRecipeTextBtn">Vorschau erstellen</button>
+      <p>Bei Text helfen die Überschriften „Zutaten“ und „Zubereitung“. Du kannst alle Angaben anschließend bearbeiten.</p>
+    </details>
+    <div id="recipeImportPreview" hidden></div>
   </div>
   <div class="fg"><label for="r-title">Titel *</label><input id="r-title" placeholder="z.B. Spaghetti Carbonara" autocomplete="off"></div>
   <div class="frow">
@@ -1442,7 +1451,7 @@ body{
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v37';
+  var APP_VERSION = 'v39';
   window.__HOMEHUB_BOOTING__ = true;
   window.__HOMEHUB_READY__   = false;
 
@@ -1588,7 +1597,8 @@ body{
   });
 })();
 </script>
-<script src="dragon-game-balanced.js?v=37"></script>
+<script src="dragon-game-balanced.js?v=39"></script>
+<script src="app-integrity.js?v=39"></script>
 <script>
 'use strict';
 /* ── HOMEHUB DRAGON Guard ── Fallbacks, falls dragon-game-balanced.js nicht lädt. */
@@ -1677,8 +1687,8 @@ function load(k, d) {
 }
 
 function save(k, v) {
-  try { localStorage.setItem(k, JSON.stringify(v)); }
-  catch (e) { console.warn('[Storage] Speichern fehlgeschlagen:', k, e); }
+  try { const json=JSON.stringify(v); if(localStorage.getItem(k)===json)return; localStorage.setItem(k,json); onAppDataSaved(k); }
+  catch (e) { console.warn('[Storage] Speichern fehlgeschlagen:', k, e); if(window.__hhApplying)throw e; alert('Änderung konnte nicht dauerhaft gespeichert werden. Bitte Speicherplatz prüfen und ein Backup exportieren.'); }
 }
 
 // BUGFIX 4: Timezone-safe local date helpers – toISOString() uses UTC which
@@ -2761,7 +2771,6 @@ document.getElementById('kasseContent').addEventListener('click', e => {
   if (rm)  { removeShopItem(parseInt(rm.dataset.rm)); return; }
   const editShop = e.target.closest('[data-edit-shop]');
   if (editShop) { openEditShopItem(parseInt(editShop.dataset.editShop)); return; }
-  if (e.target.closest('#openBookBtn')) { openStoreCheckout(); return; }
 
   // Übersicht – Buttons und letzte Buchungen
   if (e.target.closest('#uebToBuchungenBtn')) { setKasseTab('ausgaben'); return; }
@@ -3105,7 +3114,6 @@ function renderKasseEinkauf() {
   if (items.length) {
     html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div style="font-size:13px;color:var(--muted)">${done}/${items.length} erledigt${estTotal > 0 ? ' · ca. ' + fmtEurPlain(estTotal) : ''}</div>
-      <button id="openBookBtn" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px">✓ Abrechnen</button>
     </div>`;
   }
   ['supermarkt', 'drogerie', 'baumarkt', 'sonstiges'].forEach(store => {
@@ -3373,7 +3381,6 @@ function renderKasseMehr() {
     <div class="mehr-card-sub">${openCount ? `${openCount} Artikel offen` : 'Keine offenen Artikel'}</div>
     <div class="mehr-card-actions">
       <button class="kb-btn" data-coact="mehr-einkauf">Liste öffnen</button>
-      ${openCount ? `<button class="kb-btn" data-coact="checkout">Einkauf abrechnen</button>` : ''}
     </div>
   </div>`;
   html += `<div class="mehr-card">
@@ -3652,7 +3659,6 @@ document.addEventListener('click', e => {
   else if (act === 'mehr-ausgleich') { mehrView = 'ausgleich'; renderKasseMehr(); }
   else if (act === 'mehr-recurring') { mehrView = 'recurring'; renderKasseMehr(); }
   else if (act === 'open-analysis')  { showPage('analysis'); }
-  else if (act === 'checkout')       { openStoreCheckout(); }
   else if (act === 'co-save')        { saveStoreCheckout(); }
   else if (act === 'co-cancel')      { closeKasseModal(); }
   else if (act === 'km-close')       { closeKasseModal(); }
@@ -4499,7 +4505,7 @@ document.getElementById('saveContractBtn').addEventListener('click', () => {
     cancelDays: cancelValToDays({ cancelVal: parseInt(document.getElementById('f-cancelval').value) || 0, cancelUnit: document.getElementById('f-cancelunit').value }),
     autoRenew: document.getElementById('f-autorenew').value,
     custNo: document.getElementById('f-custno').value.trim(),
-    cancelUrl: document.getElementById('f-cancelurl').value.trim(),
+    cancelUrl: safeWebUrl(document.getElementById('f-cancelurl').value.trim()),
     notes: document.getElementById('f-notes').value.trim(),
     ownership: currentOwnership,
     favorite: document.getElementById('f-fav') ? !!document.getElementById('f-fav').checked : (existing?.favorite || false),
@@ -4515,7 +4521,6 @@ document.getElementById('saveContractBtn').addEventListener('click', () => {
   save('vh_contracts', contracts);
   // HOMEHUB DRAGON
   if (editContractId) rewardDragon('contractUpdate', { id: entry.id }); else rewardDragon('contractCreate', { id: entry.id });
-  incrementBackupCounter(10); // Vertragsänderung → Backup empfehlen
   closeModal('contractModal');
   renderContracts(); renderAmpel(); renderHome();
 });
@@ -4620,7 +4625,7 @@ document.getElementById('saveExpBtn').addEventListener('click', () => {
   if (editExpId) expenses = expenses.map(e => e.id === editExpId ? entry : e);
   else expenses.push(entry);
   save('vh_expenses', expenses);
-  if (!editExpId) { incrementBackupCounter(2); rewardDragon('expense'); } // HOMEHUB DRAGON
+  if (!editExpId) { rewardDragon('expense'); } // HOMEHUB DRAGON
   closeModal('expenseModal');
   renderKasse(); renderHome();
 });
@@ -4858,6 +4863,7 @@ function calculateEnergyContractStats(meter, linkedContractId, opts) {
   // toDate = currentDate (nicht today()), damit alle Zeit- und Kostenberechnungen
   // exakt mit den real vorhandenen Messdaten übereinstimmen.
   const toDate = currentDate;
+  if(!validDate(fromDate) || !validDate(toDate) || fromDate>=toDate || (endDate && (!validDate(endDate) || endDate<=fromDate))) return {error:"Bitte Startdatum und Ablesedatum prüfen. Für diesen Zeitraum ist keine Energieprognose möglich."};
 
   // Startwert: explizit gepflegt > interpoliert > erste Ablesung
   let startValue;
@@ -4946,6 +4952,7 @@ function calculateEnergyContractStats(meter, linkedContractId, opts) {
 
 function renderEnergyCard(stats, meterType) {
   if (!stats) return '';
+  if(stats.error)return '<div class="energy-card">'+esc(stats.error)+'</div>';
   const unit    = meterType === 'gas' ? 'm³' : (meterType === 'strom' ? 'kWh' : 'm³');
   const gasFactor = meterType === 'gas'
     ? `<div style="font-size:11px;color:${stats.usingDefaultGasFactor ? '#f4a261' : 'var(--muted)'};margin-bottom:5px">
@@ -5249,13 +5256,13 @@ function renderMeters() {
   document.getElementById('editMeterBtn')?.addEventListener('click', () => openMeterModal(activeMeterType));
 
   // Delegation für Ablesungen: klickbar zum Bearbeiten
-  document.getElementById('meterContent').addEventListener('click', e => {
+  document.getElementById('meterContent').onclick = e => {
     const entry = e.target.closest('.reading-entry[data-ridx]');
     if (entry && !e.target.closest('#addReadingBtn') && !e.target.closest('#editMeterBtn')) {
       const idx = parseInt(entry.dataset.ridx);
       openEditReadingModal(idx);
     }
-  });
+  };
 }
 
 function openMeterModal(type) {
@@ -5292,6 +5299,12 @@ document.getElementById('saveMeterBtn').addEventListener('click', () => {
   const type = document.getElementById('m-type').value;
   const ex   = meters.find(m => m.type === type);
   const nextReading = document.getElementById('m-nextreading').value;
+  if(nextReading && !validDate(nextReading)){alert('Bitte gültiges Ablesedatum wählen.');return;}
+  for(const id of ['m-unit-price','m-base-price','m-monthly-pay','m-start-reading','m-gas-factor']) {
+    const raw=document.getElementById(id).value.trim(),n=strictNumber(raw);
+    if(raw && (n===null || n<0 || (id==='m-gas-factor' && n===0))){alert('Bitte gültige, nicht negative Tarifwerte eingeben; der Gasfaktor muss größer als null sein.');return;}
+  }
+
 
   // Legacy price für Rückwärtskompatibilität erhalten
   const unitPrice = parseDE(document.getElementById('m-unit-price').value) || null;
@@ -5373,33 +5386,22 @@ function openEditReadingModal(idx) {
   openModal('readingModal');
 }
 
-// Echtzeit-Validierung im Reading Modal
-document.getElementById('r-value').addEventListener('input', () => {
-  const val = parseDE(document.getElementById('r-value').value);
-  const warn = document.getElementById('readingWarning');
-  if (!val && val !== 0) { warn.style.display = 'none'; return; }
-  const meter = meters.find(m => m.type === activeMeterType);
-  if (!meter) return;
-  const readings = (meter.readings || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-  // Im Bearbeitungsmodus: eigenen Eintrag ausblenden für Vergleich
-  const compareReadings = editReadingIdx !== null
-    ? readings.filter((_, i) => i !== editReadingIdx)
-    : readings;
-  const latest = compareReadings[compareReadings.length - 1];
-  if (latest && val < latest.value) {
-    warn.style.display = 'block';
-    warn.textContent = `⚠️ Eingegebener Wert (${val}) liegt unter dem letzten gespeicherten Stand (${latest.value}). Rückwärtiger Zähler?`;
-  } else if (latest && val - latest.value > 1000) {
-    warn.style.display = 'block';
-    warn.textContent = `⚠️ Sehr hoher Verbrauch: +${(val - latest.value).toFixed(1)} ${meter.unit}. Bitte prüfen.`;
-  } else {
-    warn.style.display = 'none';
-  }
-});
+function validateReadingForm() {
+  const meter=meters.find(m=>m.type===activeMeterType);
+  if(!meter)return '';
+  const value=strictNumber(document.getElementById('r-value').value);
+  const date=document.getElementById('r-date').value;
+  const sorted=(meter.readings || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const error=readingError(meter,date,value,editReadingIdx===null?null:sorted[editReadingIdx]);
+  const warn=document.getElementById('readingWarning');warn.style.display=error?'block':'none';warn.textContent=error;
+  return error;
+}
+document.getElementById('r-value').addEventListener('input',validateReadingForm);
+document.getElementById('r-date').addEventListener('input',validateReadingForm);
 
 document.getElementById('saveReadingBtn').addEventListener('click', () => {
-  const val = parseDE(document.getElementById('r-value').value);
-  if (!val && val !== 0) { alert('Bitte Zählerstand eingeben.'); return; }
+  const error=validateReadingForm(); if(error){alert(error);return;}
+  const val = strictNumber(document.getElementById('r-value').value);
   const meter = meters.find(m => m.type === activeMeterType);
   if (!meter) return;
   if (!meter.readings) meter.readings = [];
@@ -5408,6 +5410,7 @@ document.getElementById('saveReadingBtn').addEventListener('click', () => {
     // Bearbeiten: sortiertes Array, Index ermitteln und Originalarray aktualisieren
     const sorted = meter.readings.slice().sort((a, b) => a.date.localeCompare(b.date));
     const targetReading = sorted[editReadingIdx];
+    if(!targetReading){alert("Ablesung nicht mehr vorhanden. Bitte erneut öffnen.");return;}
     // Originalindex im unsorted meter.readings-Array finden
     const origIdx = meter.readings.findIndex(r =>
       r.date === targetReading.date &&
@@ -5432,7 +5435,6 @@ document.getElementById('saveReadingBtn').addEventListener('click', () => {
 
   save('vh_meters', meters);
   if (editReadingIdx === null) rewardDragon('meter', { id: meter.id + ':' + document.getElementById('r-date').value }); // nur neue Messwerte
-  incrementBackupCounter(10); // Zählerstand → Backup empfehlen
   closeModal('readingModal');
   renderMeters();
   renderAmpel();
@@ -5939,6 +5941,8 @@ document.getElementById('btnSettings').addEventListener('click', () => {
   openModal('settingsModal');
 });
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+  const syncUrl=document.getElementById('s-syncurl').value.trim();
+  if(syncUrl && !safeWebUrl(syncUrl)){alert('Bitte eine gültige HTTP- oder HTTPS-Serveradresse eingeben.');return;}
   settings.partnerName    = document.getElementById('s-partnername').value.trim() || 'Partner';
   settings.splitPct       = Math.min(99, Math.max(1, parseInt(document.getElementById('s-splitpct').value) || 50));
   save('vh_settings', settings);
@@ -5948,35 +5952,13 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
       document.getElementById('s-syncurl').value.trim().replace(/\/+$/, ''),
       document.getElementById('s-synctoken').value.trim()
     );
-  } catch (e) {}
+  } catch (e) {alert('Synchronisierungseinstellungen konnten nicht gespeichert werden: '+e.message);return;}
   applyRecipeModuleState();
   closeModal('settingsModal');
   renderHome();
 });
 document.getElementById('cancelSettingsBtn').addEventListener('click', () => closeModal('settingsModal'));
-document.getElementById('clearDataBtn').addEventListener('click', () => {
-  if (!confirm('⚠️ Alle Daten wirklich löschen?\n\nTipp: Erstelle vorher ein Backup über den Export-Button (⬇️).\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) return;
-  // Alle Daten zurücksetzen
-  contracts = []; meters = []; expenses = []; shopLists = { items: [] };
-  budgets = {}; priceMemory = {}; recurring = []; transfers = [];
-  settings = { partnerName: 'Partner', splitPct: 50 };
-  // LocalStorage vollständig bereinigen inkl. Settings
-  ['vh_contracts', 'vh_meters', 'vh_expenses', 'vh_shoplists', 'vh_budgets', 'vh_prices', 'vh_recurring', 'vh_settings', 'vh_transfers'].forEach(k => localStorage.removeItem(k));
-  // HOMEHUB DRAGON – Dragon zurücksetzen
-  localStorage.removeItem('vh_dragon');
-  dragon = Object.assign({}, DRAGON_DEFAULTS);
-  saveDragon();
-  closeModal('settingsModal');
-  // Alle Bereiche neu rendern
-  const _sp2 = document.getElementById('sharedPill'); if (_sp2) _sp2.textContent = '👫 Partner';
-  renderAmpel();
-  renderHome();
-  renderContracts();
-  // Kasse + Zähler + Analyse nur wenn aktiv, sonst beim nächsten Öffnen
-  if (activePage === 'kasse') renderKasse();
-  if (activePage === 'meters') renderMeters();
-  if (activePage === 'analysis') renderAnalysis();
-});
+
 
 
 // ════════════════════════════════════════════
@@ -6096,12 +6078,12 @@ function renderConcertHero() {
     const maps = (c.city && c.venueId && cities[c.city] && cities[c.city].venues && cities[c.city].venues[c.venueId]) ? cities[c.city].venues[c.venueId].maps : '';
     if (isDayMode) {
       h += `<div class="tk-hero-actions">`;
-      if (maps) h += `<a class="tk-hero-btn" href="${esc(maps)}" target="_blank" rel="noopener">Route</a>`;
-      h += `<button class="tk-hero-btn" data-tkact="focus" data-cid="${c.id}">Ticketstatus</button>`;
-      h += `<button class="tk-hero-btn" data-tkact="edit" data-cid="${c.id}">Notiz</button>`;
+      if (maps) h += `<a class="tk-hero-btn" href="${esc(safeWebUrl(maps))}" target="_blank" rel="noopener">Route</a>`;
+      h += `<button class="tk-hero-btn" data-tkact="focus" data-cid="${esc(c.id)}">Ticketstatus</button>`;
+      h += `<button class="tk-hero-btn" data-tkact="edit" data-cid="${esc(c.id)}">Notiz</button>`;
       h += `</div>`;
     } else {
-      h += `<button class="tk-hero-btn tk-hero-details" data-tkact="focus" data-cid="${c.id}">Details</button>`;
+      h += `<button class="tk-hero-btn tk-hero-details" data-tkact="focus" data-cid="${esc(c.id)}">Details</button>`;
     }
     h += `</div>`;
     return h;
@@ -6197,8 +6179,8 @@ function renderConcertList() {
           const mine = isMine(t.owner);
           let badges = '';
           if (!mine) {
-            badges += `<span class="tk-b tap ${t.paid ? 'paid' : 'unpaid'}" data-tkact="togglepaid" data-cid="${c.id}" data-tix="${i}">${t.paid ? '✓ bezahlt' : '✗ offen'}</span>`;
-            badges += `<span class="tk-b tap ${t.handedOver ? 'given' : ''}" data-tkact="togglegiven" data-cid="${c.id}" data-tix="${i}">${t.handedOver ? '✓ übergeben' : 'übergeben?'}</span>`;
+            badges += `<span class="tk-b tap ${t.paid ? 'paid' : 'unpaid'}" data-tkact="togglepaid" data-cid="${esc(c.id)}" data-tix="${i}">${t.paid ? '✓ bezahlt' : '✗ offen'}</span>`;
+            badges += `<span class="tk-b tap ${t.handedOver ? 'given' : ''}" data-tkact="togglegiven" data-cid="${esc(c.id)}" data-tix="${i}">${t.handedOver ? '✓ übergeben' : 'übergeben?'}</span>`;
           }
           html += `<div class="tk-tix-row"><span class="who">${esc(mineLabel(t.owner))}</span><div class="tk-badges">${badges}</div></div>`;
         });
@@ -6207,12 +6189,12 @@ function renderConcertList() {
       if (c.note) html += `<div class="tk-venue" style="margin-top:8px">📝 ${esc(c.note)}</div>`;
       html += renderInlineVenueInfo(c.city, c.venueId);
       html += '<div class="tk-actions">';
-      html += `<button class="tk-edit" data-tkact="edit" data-cid="${c.id}">Bearbeiten</button>`;
+      html += `<button class="tk-edit" data-tkact="edit" data-cid="${esc(c.id)}">Bearbeiten</button>`;
       if (c.city && c.venueId) html += `<button class="tk-venuebtn" data-tkact="editvenue" data-city="${esc(c.city)}" data-venue="${esc(c.venueId)}">🎪 Venue bearbeiten</button>`;
       html += '</div>';
     }
 
-    html += `<button class="tk-toggle" data-tkact="toggle" data-cid="${c.id}">${expanded ? 'Schließen' : 'Öffnen'}</button>`;
+    html += `<button class="tk-toggle" data-tkact="toggle" data-cid="${esc(c.id)}">${expanded ? 'Schließen' : 'Öffnen'}</button>`;
     html += '</div>';
     return html;
   };
@@ -6238,7 +6220,7 @@ function renderInlineVenueInfo(cityName, venueName) {
   if (city && city.note) h += `<div class="tk-venue" style="margin-top:6px">🏙 ${esc(city.note)}</div>`;
 
   if (v) {
-    if (v.maps) h += `<div class="tk-venue" style="margin-top:6px">📍 <a href="${esc(v.maps)}" target="_blank" rel="noopener">Route öffnen ↗</a></div>`;
+    if (v.maps) h += `<div class="tk-venue" style="margin-top:6px">📍 <a href="${esc(safeWebUrl(v.maps))}" target="_blank" rel="noopener">Route öffnen ↗</a></div>`;
     const rows = [];
     if (asp.parking && asp.parking.rating) rows.push(`🅿️ ${stars(asp.parking.rating)}`);
     if (asp.food && asp.food.rating) rows.push(`🍔 ${stars(asp.food.rating)}${asp.food.where ? ' · ' + esc(asp.food.where) : ''}`);
@@ -6322,7 +6304,7 @@ function renderVenueList() {
         if (a.note) val += `<div class="tk-anote">${esc(a.note)}</div>`;
         return `<span class="k">${icon} ${label}</span><span class="v">${val || '—'}</span>`;
       };
-      if (v.maps) h += `<span class="k">📍 Route</span><span class="v"><a href="${esc(v.maps)}" target="_blank" rel="noopener">Route öffnen ↗</a></span>`;
+      if (v.maps) h += `<span class="k">📍 Route</span><span class="v"><a href="${esc(safeWebUrl(v.maps))}" target="_blank" rel="noopener">Route öffnen ↗</a></span>`;
       h += row('🅿️', 'Parken', asp.parking);
       h += row('💶', 'Preise', asp.prices);
       h += row('🍔', 'Essen', asp.food);
@@ -6349,13 +6331,14 @@ function renderOpenTickets() {
     (c.tickets || []).forEach(t => {
       if (!t) return;
       const owner = (t.owner || '').trim();
-      if (isMine(owner)) return;
+      const holderMine=isMine(c.ticketHolder);
+      if(holderMine ? isMine(owner) : !isMine(owner))return;
       if (t.paid) return;
       const hasPrice = t.price !== null && t.price !== undefined && t.price !== '';
-      if (!hasPrice) { missing.push({ name: owner, concert: c.artist || 'Konzert' }); return; }
+      if (!hasPrice) { missing.push({ name: holderMine?owner:c.ticketHolder, concert: c.artist || 'Konzert' }); return; }
       const amt = Number(t.price || 0);
       if (!amt) return;
-      const entry = { name: owner, concert: c.artist || 'Konzert', amount: amt };
+      const entry = { name: holderMine?owner:c.ticketHolder, concert: c.artist || 'Konzert', amount: amt };
       if (isMine(c.ticketHolder)) toMe.push(entry);
       else iOweList.push(entry);
     });
@@ -6396,7 +6379,7 @@ function venueDlOptions(cityName) {
 
 function concertFormHtml(id) {
   const c = id ? concerts.find(x => x.id === id) : null;
-  formTickets = c && c.tickets ? JSON.parse(JSON.stringify(c.tickets)) : [{ owner: 'Ich', price: '', paid: true, handedOver: false }];
+  formTickets = c && c.tickets ? JSON.parse(JSON.stringify(c.tickets)) : [{ owner: 'Ich', price: '', paid: false, handedOver: false }];
   const cityNames = Object.keys(cities).sort();
   const cityDl = cityNames.map(n => `<option value="${esc(n)}">`).join('');
   const peopleOpts = ['Ich', ...ticketPeople.filter(pp => !isMine(pp))];
@@ -6415,7 +6398,7 @@ function concertFormHtml(id) {
   h += '<option value="__new"' + (!peopleOpts.some(o => o === curHolder || (isMine(o) && iHold)) ? ' selected' : '') + '>+ Andere Person …</option>';
   h += '</select><input autocomplete="off" id="tkfHolderNew" placeholder="Name eingeben" style="display:none;margin-top:7px" value="' + (iHold ? '' : esc(curHolder)) + '"></div>';
   // Ticket-Besitzer-Bereich NUR wenn ich die Tickets halte
-  h += '<div id="tkfTixSection" style="display:' + (iHold ? 'block' : 'none') + '">';
+  h += '<div id="tkfTixSection">';
   // Ein Preis gilt für alle Tickets des Konzerts
   const prices = [...new Set(formTickets.map(t => (t.price !== '' && t.price != null) ? String(t.price) : null).filter(v => v !== null))];
   const priceAll = prices.length === 1 ? prices[0] : '';
@@ -6425,7 +6408,7 @@ function concertFormHtml(id) {
   h += '<div class="tkf-row"><label>Notiz (optional)</label><textarea id="tkfNote" placeholder="Sitzplatz, Block …">' + esc(c ? c.note || '' : '') + '</textarea></div>';
   h += '<div style="display:flex;gap:9px;margin-top:6px">';
   h += '<button type="button" class="tk-edit" style="flex:0 0 auto;padding:11px 16px" data-tkact="canceledit">Abbrechen</button>';
-  if (id) h += '<button type="button" class="tk-del-btn" data-tkact="delete" data-cid="' + id + '">Löschen</button>';
+  if (id) h += '<button type="button" class="tk-del-btn" data-tkact="delete" data-cid="' + esc(id) + '">Löschen</button>';
   h += '<button type="button" class="tk-add" style="margin:0" data-tkact="save">Speichern</button></div>';
   return h;
 }
@@ -6440,6 +6423,9 @@ function renderFormTickets() {
     // auch wenn der Name (noch) leer ist (isMine('') wäre sonst true)
     const isNew = !!t._isNew;
     const mine = !isNew && isMine(t.owner);
+    const holderSelect=document.getElementById('tkfHolder');
+    const holder=holderSelect?.value==='__new'?document.getElementById('tkfHolderNew').value:holderSelect?.value;
+    const sameHolder = isMine(holder) ? mine : t.owner === holder;
     h += '<div class="tkf-tix"><div class="tkf-tix-hd"><span>Ticket ' + (i + 1) + '</span>' +
       (formTickets.length > 1 ? '<button type="button" data-tkact="rmtix" data-tix="' + i + '">entfernen</button>' : '') + '</div>';
     // Für wen — select + optionales Freitextfeld
@@ -6451,7 +6437,7 @@ function renderFormTickets() {
     h += `<input autocomplete="off" class="tkfTixOwnerNew" data-tix="${i}" placeholder="Name" style="display:${showNew ? 'block' : 'none'};margin-top:6px" value="${showNew ? esc(t.owner || '') : ''}"></div>`;
     // Bezahlt-Checkbox nur bei fremden Tickets ("+ Andere" gilt als fremd)
     h += '<div class="tkf-row" style="margin:0"><div class="tkf-checks">' +
-      (mine ? '<span style="font-size:12px;color:#888">✓ bezahlt (mir)</span>'
+      (sameHolder ? '<span style="font-size:12px;color:#888">Eigenes Ticket – kein Ausgleich nötig</span>'
             : '<label><input autocomplete="off" type="checkbox" class="tkfTixPaid" data-tix="' + i + '" ' + (t.paid ? 'checked' : '') + '> bezahlt</label>') +
       '</div></div>';
     h += '</div>';
@@ -6522,10 +6508,10 @@ function afterConcertForm() {
     if (ni) ni.style.display = isNew ? 'block' : 'none';
     // Ticket-Besitzer-Bereich nur wenn ICH die Tickets halte
     const holderMine = isMine(isNew ? (ni ? ni.value : '') : sel.value);
-    if (section) section.style.display = holderMine ? 'block' : 'none';
+    if (section) section.style.display = 'block';
   }
-  sel.addEventListener('change', () => { refresh(); if (sel.value === '__new' && ni) ni.focus(); });
-  if (ni) ni.addEventListener('input', refresh);
+  sel.addEventListener('change', () => { syncFormTickets();refresh();renderFormTickets();if(sel.value==='__new' && ni)ni.focus(); });
+  if (ni) ni.addEventListener('input', () => {syncFormTickets();refresh();renderFormTickets();});
   refresh();
   renderFormTickets();
 }
@@ -6547,17 +6533,12 @@ function saveConcertForm() {
   const date = document.getElementById('tkfDate').value;
   if (!artist && !date) { alert('Bitte mindestens Künstler oder Datum angeben.'); return; }
   let holder = document.getElementById('tkfHolder').value;
-  if (holder === '__new') holder = (document.getElementById('tkfHolderNew').value || '').trim() || 'Ich';
+  if (holder === '__new') holder = (document.getElementById('tkfHolderNew').value || '').trim();
   const iHold = isMine(holder);
-  // Tickets nur speichern, wenn ich sie halte; sonst leer
-  let tickets = [];
-  if (iHold) {
-    tickets = formTickets.map(t => {
-      const owner = (t.owner || 'Ich').trim() || 'Ich';
-      const mine = isMine(owner);
-      return { owner, price: t.price !== '' && t.price != null ? Number(t.price) : null, paid: mine ? true : !!t.paid, handedOver: !!t.handedOver };
-    });
-  }
+  if(!holder.trim()){alert('Bitte die Person angeben, die die Tickets hält.');return;}
+  if(formTickets.some(t=>!String(t.owner || '').trim())){alert('Bitte für jedes Ticket einen Namen angeben.');return;}
+  if(formTickets.some(t=>t.price!=='' && t.price!=null && (strictNumber(t.price)===null || strictNumber(t.price)<0))){alert('Bitte gültige Ticketpreise eingeben.');return;}
+  const tickets=formTickets.map(t=>({owner:t.owner.trim(),price:t.price==='' || t.price==null?null:strictNumber(t.price),paid:!!t.paid,handedOver:!!t.handedOver}));
   const obj = {
     id: (editConcertId && editConcertId !== '__new') ? editConcertId : tkUid(),
     artist, venueId, city, date,
@@ -6813,82 +6794,8 @@ document.getElementById('importFile').addEventListener('change', function () {
         throw new Error('Ungültige Struktur – kein HomeHub-Backup erkannt.');
       }
 
-      // Mindestens eines der Kern-Arrays muss vorhanden sein
-      const hasContracts = Array.isArray(data.contracts);
-      const hasExpenses  = Array.isArray(data.expenses);
-      const hasMeters    = Array.isArray(data.meters);
-      if (!hasContracts && !hasExpenses && !hasMeters) {
-        throw new Error('Pflichtfelder fehlen – keine Verträge, Ausgaben oder Zähler gefunden. Falsches Backup?');
-      }
-
-      // Typen der Elemente stichprobenartig prüfen
-      if (hasContracts && data.contracts.length > 0) {
-        const sample = data.contracts[0];
-        if (typeof sample !== 'object' || Array.isArray(sample) || !sample.id) {
-          throw new Error('Vertrags-Daten haben ein unerwartetes Format (fehlendes id-Feld).');
-        }
-      }
-      if (hasExpenses && data.expenses.length > 0) {
-        const sample = data.expenses[0];
-        if (typeof sample !== 'object' || Array.isArray(sample)) {
-          throw new Error('Ausgaben-Daten haben ein unerwartetes Format.');
-        }
-      }
-
-      // ── Ab hier: Alle Checks bestanden → State überschreiben ──
-      // Migration auf neue Datenfelder anwenden (rückwärtskompatibel)
-      contracts   = migrateContracts(hasContracts ? data.contracts : []);
-      meters      = hasMeters    ? data.meters    : [];
-      expenses    = migrateExpenses(hasExpenses  ? data.expenses  : []);
-      shopLists   = (data.shopLists   && typeof data.shopLists   === 'object' && !Array.isArray(data.shopLists))   ? data.shopLists   : { items: [] };
-      budgets     = (data.budgets     && typeof data.budgets     === 'object' && !Array.isArray(data.budgets))     ? data.budgets     : {};
-      priceMemory = (data.priceMemory && typeof data.priceMemory === 'object' && !Array.isArray(data.priceMemory)) ? data.priceMemory : {};
-      recurring   = Array.isArray(data.recurring)  ? data.recurring  : [];
-      transfers   = Array.isArray(data.transfers)  ? data.transfers  : [];
-      // Abwärtskompatibel: ältere Backups ohne recipes/weekPlan
-      recipes     = Array.isArray(data.recipes)    ? data.recipes    : [];
-      weekPlan    = (data.weekPlan && typeof data.weekPlan === 'object' && !Array.isArray(data.weekPlan))
-                     ? data.weekPlan : { Mo:null,Di:null,Mi:null,Do:null,Fr:null,Sa:null,So:null };
-      // KONZERTE – abwärtskompatibel
-      concerts     = Array.isArray(data.concerts) ? data.concerts : [];
-      venues       = (data.venues && typeof data.venues === 'object' && !Array.isArray(data.venues)) ? data.venues : {};
-      cities       = (data.cities && typeof data.cities === 'object' && !Array.isArray(data.cities)) ? data.cities : {};
-      migrateCitiesFromVenues();
-migrateCitiesV2();
-      ticketPeople = Array.isArray(data.ticketPeople) ? data.ticketPeople : [];
-      // HOMEHUB DRAGON – Dragon-Daten importieren (Fälle A/B/C)
-      // Fall A: data.dragon vorhanden → merge
-      // Fall B: data.dragon fehlt     → Defaults
-      // Fall C: data.dragon unvollständig → merge + Unter-Objekte auffüllen
-      loadDragon(data.dragon);
-
-      if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
-        const raw = data.settings;
-        settings = {
-          partnerName: typeof raw.partnerName === 'string' && raw.partnerName.trim()
-            ? raw.partnerName.trim() : 'Partner',
-          splitPct: typeof raw.splitPct === 'number' && isFinite(raw.splitPct)
-            ? Math.min(99, Math.max(1, Math.round(raw.splitPct))) : 50,
-        };
-        const _sp = document.getElementById('sharedPill'); if (_sp) _sp.textContent = '👫 ' + settings.partnerName;
-      }
-
-      save('vh_contracts',  contracts);
-      save('vh_meters',     meters);
-      save('vh_expenses',   expenses);
-      save('vh_shoplists',  shopLists);
-      save('vh_budgets',    budgets);
-      save('vh_prices',     priceMemory);
-      save('vh_recurring',  recurring);
-      save('vh_transfers',  transfers);
-      save('vh_settings',   settings);
-      save('vh_recipes',    recipes);
-      save('vh_weekplan',   weekPlan);
-      save('vh_concerts',   concerts);
-      save('vh_venues',     venues);
-      save('vh_cities',     cities);
-      save('vh_ticketpeople', ticketPeople);
-
+      applyAppSnapshot(data);
+      onAppDataSaved('vh_recipes');
       st.className = 'alert-box ab-green'; st.style.display = 'block';
       st.textContent = `✅ Import erfolgreich: ${contracts.length} Verträge, ${meters.length} Zähler, ${expenses.length} Ausgaben.`;
 
@@ -6899,11 +6806,13 @@ migrateCitiesV2();
       if (activePage === 'kasse') renderKasse();
       if (activePage === 'meters') renderMeters();
       if (activePage === 'analysis') renderAnalysis();
+      if (activePage === 'tickets') renderTickets();
+      if (activePage === 'recipes') renderRecipes();
 
     } catch (err) {
       // Fix Bug 4: Bei Fehler NICHTS überschreiben – Fehlermeldung anzeigen
       st.className = 'alert-box ab-red'; st.style.display = 'block';
-      st.textContent = '❌ Import abgebrochen: ' + err.message + ' Deine bestehenden Daten wurden nicht verändert.';
+      st.textContent = '❌ Import abgebrochen: ' + err.message + ' Falls eine Übernahme begonnen hatte, liegt der vorherige Stand unter Einstellungen → Sicherung vor.';
     }
   };
   reader.readAsText(file);
@@ -7088,6 +6997,7 @@ function migrateCitiesFromVenues() {
   save('vh_concerts', concerts);
 }
 migrateCitiesFromVenues();
+migrateCitiesV2();
 
 let recipes   = load('vh_recipes', []);
 let weekPlan  = load('vh_weekplan', { Mo:null,Di:null,Mi:null,Do:null,Fr:null,Sa:null,So:null });
@@ -7141,7 +7051,7 @@ function autoTagsFromSchema(schema) {
   if (/gluten.free|glutenfrei/i.test(kw)) tags.add('glutenfrei');
   if (/meal.prep/i.test(kw)) tags.add('mealprep');
   // Zutaten auswerten
-  const ing = (schema.recipeIngredient || []).join(' ').toLowerCase();
+  const ing = recipeLines(schema.recipeIngredient).join(' ').toLowerCase();
   if (/lachs|kabeljau|thunfisch|garnele|fisch/i.test(ing)) tags.add('fisch');
   if (/hähnchen|hühnchen|pute|chicken/i.test(ing)) tags.add('geflügel');
   if (/rind|schwein|hackfleisch|steak|lammfleisch/i.test(ing)) tags.add('fleisch');
@@ -7150,7 +7060,7 @@ function autoTagsFromSchema(schema) {
 
 function parseDuration(iso) {
   if (!iso) return null;
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+  const m = String(iso).match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
   if (!m) return null;
   return (parseInt(m[1] || 0) * 60) + parseInt(m[2] || 0);
 }
@@ -7222,7 +7132,7 @@ async function fetchRecipeFromUrl(url) {
 
       // Auch verschachtelte @graph innerhalb von Kandidaten prüfen
       for (const c of candidates) {
-        if (Array.isArray(c['@graph'])) candidates.push(...c['@graph']);
+        if (c && Array.isArray(c['@graph'])) candidates.push(...c['@graph']);
       }
 
       schema = candidates.find(x => {
@@ -7272,18 +7182,7 @@ async function fetchRecipeFromUrl(url) {
   }
 
   // Zubereitung: array of HowToStep | string[]
-  let steps = '';
-  if (schema.recipeInstructions) {
-    const instr = schema.recipeInstructions;
-    if (Array.isArray(instr)) {
-      steps = instr.map(s => {
-        if (typeof s === 'string') return s;
-        return s.text || s.name || '';
-      }).filter(Boolean).join('\n');
-    } else if (typeof instr === 'string') {
-      steps = instr;
-    }
-  }
+  const steps = recipeLines(schema.recipeInstructions).join('\n');
 
   return {
     title:       schema.name || ogTitle || '',
@@ -7292,7 +7191,7 @@ async function fetchRecipeFromUrl(url) {
     tags:        autoTagsFromSchema(schema),
     time:        totalMin,
     servings,
-    ingredients: (schema.recipeIngredient || []).join('\n'),
+    ingredients: recipeLines(schema.recipeIngredient).join('\n'),
     steps,
     sourceUrl:   url,
     fromUrl:     true,
@@ -7330,8 +7229,13 @@ function updateStarUI(n) {
 
 // ── Rezept-Modal öffnen ────────────────────
 function openRecipeModal(id) {
+  recipeImportSession++;
   const r = id ? recipes.find(x => x.id === id) : null;
   editRecipeId = id || null;
+  document.getElementById('recipeImportPreview').hidden = true;
+  document.getElementById('r-paste').value = '';
+  document.getElementById('r-servings')._originalServings = r?.originalServings ?? null;
+  document.getElementById('r-servings')._ingredientsRaw = r?.ingredientsRaw ?? null;
   currentRecipeTags = r?.tags ? [...r.tags] : [];
   currentRecipeStar = r?.stars || 0;
 
@@ -7342,8 +7246,8 @@ function openRecipeModal(id) {
   document.getElementById('r-time').value        = r?.time || '';
   document.getElementById('r-servings').value    = r?.servings || '';
   document.getElementById('recipe-note').value        = r?.note || '';
-  document.getElementById('r-ingredients').value = r?.ingredients || '';
-  document.getElementById('r-steps').value       = r?.steps || '';
+  document.getElementById('r-ingredients').value = getRecipeIngredientLines(r).join('\n');
+  document.getElementById('r-steps').value       = getRecipeStepLines(r).join('\n');
   document.getElementById('r-imageurl').value    = r?.imageUrl || '';
   document.getElementById('recipeImportStatus').textContent = '';
   document.getElementById('recipeImportStatus').className = 'import-status';
@@ -7353,9 +7257,84 @@ function openRecipeModal(id) {
 }
 
 // ── Import-Button ──────────────────────────
+const recipeImportFields = [
+  ['title', 'Titel', 'r-title'], ['servings', 'Portionen', 'r-servings'],
+  ['ingredients', 'Zutaten', 'r-ingredients'], ['steps', 'Zubereitung', 'r-steps'],
+  ['time', 'Minuten', 'r-time'], ['note', 'Notizen', 'recipe-note'],
+  ['imageUrl', 'Bild-URL', 'r-imageurl'], ['tags', 'Tags', null]
+];
+let recipeImportDraft = null;
+let recipeImportSession = 0;
+function parsePastedRecipe(text) {
+  const input = text.trim();
+  if (!input) throw new Error('Bitte zuerst Rezepttext einfügen.');
+  if (/^[\[{]/.test(input)) {
+    let raw;
+    try { raw = JSON.parse(input); } catch (_) { throw new Error('Das JSON ist unvollständig oder ungültig.'); }
+    const queue = Array.isArray(raw) ? [...raw] : [raw];
+    let r;
+    while (queue.length) {
+      const x = queue.shift();
+      if (!x || typeof x !== 'object') continue;
+      if (x['@graph']) queue.push(...(Array.isArray(x['@graph']) ? x['@graph'] : [x['@graph']]));
+      if ([].concat(x['@type'] || []).includes('Recipe') || x.ingredients || x.recipeIngredient) { r = x; break; }
+    }
+    if (!r) throw new Error('Keine Rezeptdaten im JSON gefunden.');
+    const img = Array.isArray(r.image) ? r.image[0] : r.image;
+    return {title:r.title || r.name || '', ingredients:getRecipeIngredientLines({ingredients:r.ingredients || r.recipeIngredient, ingredientsRaw:r.ingredientsRaw}).join('\n'),
+      steps:recipeLines(r.steps || r.recipeInstructions).join('\n'), servings:parseInt(r.servings || r.recipeYield) || '',
+      time:r.time || parseDuration(r.totalTime) || '', note:r.note || r.description || '',
+      imageUrl:r.imageUrl || (typeof img === 'string' ? img : img?.url) || '', tags:Array.isArray(r.tags) ? r.tags : autoTagsFromSchema(r)};
+  }
+  const result = {title:'', ingredients:[], steps:[], note:[], servings:'', time:''};
+  let section = 'note';
+  for (const line of input.split(/\r?\n/).map(x => x.trim()).filter(Boolean)) {
+    if (/^(zutaten|ingredients)\s*:?(?:\s+für.*)?$/i.test(line)) { section='ingredients'; continue; }
+    if (/^(zubereitung|anleitung|zubereitungsschritte|instructions|directions)\s*:?$/i.test(line)) { section='steps'; continue; }
+    const portions = line.match(/^(?:portionen|servings)\s*:?\s*(\d+)|^(\d+)\s*portionen$/i);
+    if (portions) { result.servings=Number(portions[1] || portions[2]); continue; }
+    const minutes = line.match(/^(?:zeit|zubereitungszeit|gesamtzeit)\s*:?\s*(\d+)\s*(?:min|minuten)?$/i);
+    if (minutes) { result.time=Number(minutes[1]); continue; }
+    if (!result.title && section === 'note') { result.title=line; continue; }
+    result[section].push(line.replace(/^[•*]\s*/, ''));
+  }
+  return {...result, ingredients:result.ingredients.join('\n'), steps:result.steps.join('\n'), note:result.note.join('\n')};
+}
+function showRecipeImportPreview(data) {
+  recipeImportDraft = data;
+  const preview = document.getElementById('recipeImportPreview');
+  preview.innerHTML = '<p><strong>Import prüfen</strong> – ausgewählte Angaben werden ins Formular übernommen. Gespeichert wird erst mit „Rezept speichern“.</p>' +
+    recipeImportFields.map(([key,label,id]) => {
+      const value = Array.isArray(data[key]) ? data[key].join(key === 'tags' ? ', ' : '\n') : String(data[key] ?? '');
+      const existing = id ? document.getElementById(id).value.trim() : currentRecipeTags.length;
+      return '<label style="display:block;margin:10px 0"><input type="checkbox" data-import-field="'+key+'" '+(value && !existing ? 'checked ' : '')+(!value ? 'disabled ' : '')+'>'+label+(existing ? ' (eigene Angabe vorhanden)' : '')+'</label><div style="white-space:pre-wrap;max-height:140px;overflow:auto;font-size:12px">'+esc(value || 'Nicht gefunden')+'</div>';
+    }).join('') + '<p>Portionen und Zutaten gehören zusammen. Wenn du beides ersetzt, wähle beide Felder aus.</p><button type="button" class="btn-s" id="applyRecipeImportBtn">Auswahl übernehmen</button>';
+  preview.hidden = false;
+}
+document.getElementById('parseRecipeTextBtn').addEventListener('click', () => {
+  const status = document.getElementById('recipeImportStatus');
+  try { showRecipeImportPreview(parsePastedRecipe(document.getElementById('r-paste').value)); status.textContent='Vorschau bereit. Bitte Angaben prüfen.'; }
+  catch(e) { status.textContent=e.message; }
+});
+document.getElementById('recipeImportPreview').addEventListener('click', e => {
+  if (!e.target.closest('#applyRecipeImportBtn') || !recipeImportDraft) return;
+  recipeImportFields.forEach(([key,label,id]) => {
+    if (!document.querySelector('[data-import-field="'+key+'"]').checked) return;
+    if (key === 'tags') {
+      currentRecipeTags = (recipeImportDraft.tags || []).filter(t => TAG_MAP[t]);
+      document.getElementById('recipeTagPicker').innerHTML=renderTagPicker(currentRecipeTags);
+    } else document.getElementById(id).value = Array.isArray(recipeImportDraft[key]) ? recipeImportDraft[key].join('\n') : recipeImportDraft[key] ?? '';
+  });
+  const el=document.getElementById('r-servings');
+  el._originalServings=parseInt(el.value) || null;
+  el._ingredientsRaw=document.getElementById('r-ingredients').value;
+  document.getElementById('recipeImportPreview').hidden=true;
+  document.getElementById('recipeImportStatus').textContent='Übernommen. Passe Zutaten, Schritte, Portionen und Notizen nach deinen Wünschen an und speichere das Rezept.';
+});
 document.getElementById('importRecipeUrlBtn').addEventListener('click', async () => {
+  const session = recipeImportSession;
   const url = document.getElementById('r-url').value.trim();
-  if (!url || !url.startsWith('http')) {
+  if (!/^https?:\/\/[^\s/]+/i.test(url)) {
     document.getElementById('recipeImportStatus').textContent = '⚠ Bitte eine gültige URL eingeben.';
     document.getElementById('recipeImportStatus').className = 'import-status err';
     return;
@@ -7366,28 +7345,13 @@ document.getElementById('importRecipeUrlBtn').addEventListener('click', async ()
 
   try {
     const raw  = await fetchRecipeFromUrl(url);
+    if (session !== recipeImportSession) return;
     // Zutatenmengen NICHT verändern — Original-Portionen beibehalten
     // baseServings = originalServings, damit Skalierung korrekt vom Original ausgeht
     const data = raw.partial ? raw : setRecipeBaseline(raw);
-    document.getElementById('r-title').value       = data.title       || '';
-    document.getElementById('r-time').value        = data.time        || '';
-    document.getElementById('r-servings').value    = data.servings    || '';
-    document.getElementById('recipe-note').value        = data.note        || '';
-    document.getElementById('r-ingredients').value = data.ingredients || '';
-    document.getElementById('r-steps').value       = data.steps       || '';
-    document.getElementById('r-imageurl').value    = data.imageUrl    || '';
-    currentRecipeTags = data.tags || [];
-    document.getElementById('recipeTagPicker').innerHTML = renderTagPicker(currentRecipeTags);
-    if (data.partial) {
-      st.textContent = '⚠ Nur Basisdaten importiert – bitte Zutaten & Zubereitung ergänzen.';
-      st.className = 'import-status err';
-    } else {
-      const portMsg = data.servings ? ` · ${data.servings} Portionen` : '';
-      const autoMsg = data.tags?.length ? ` · ${data.tags.length} Tags` : '';
-      st.textContent = '✅ Importiert' + portMsg + autoMsg; st.className = 'import-status ok';
-    }
-    document.getElementById('r-servings')._originalServings = data.originalServings;
-    document.getElementById('r-servings')._ingredientsRaw   = data.ingredientsRaw || data.ingredients || '';
+    showRecipeImportPreview(data);
+    st.textContent = data.partial ? 'Nur Basisdaten gefunden. Bitte Vorschau prüfen und ergänzen.' : 'Vorschau bereit. Wähle die Angaben, die du übernehmen möchtest.';
+    st.className = 'import-status ok';
   } catch(e) {
     // Benutzerfreundliche Fehlermeldung — kein Absturz
     const msg = (e.message || 'Unbekannter Fehler').split('\n')[0];
@@ -7427,7 +7391,7 @@ document.getElementById('saveRecipeBtn').addEventListener('click', async () => {
     const entry = await buildRecipeEntry({
       id:          editRecipeId || uid(),
       title,
-      sourceUrl:   document.getElementById('r-url').value.trim(),
+      sourceUrl:   safeWebUrl(document.getElementById('r-url').value.trim()),
       time:        parseInt(document.getElementById('r-time').value) || null,
       servings:    parseInt(sEl.value) || 2,
       originalServings: sEl._originalServings ?? existing?.originalServings ?? null,
@@ -7435,7 +7399,7 @@ document.getElementById('saveRecipeBtn').addEventListener('click', async () => {
       note:        document.getElementById('recipe-note').value.trim(),
       ingredients: document.getElementById('r-ingredients').value.trim(),
       steps:       document.getElementById('r-steps').value.trim(),
-      imageUrl:    document.getElementById('r-imageurl').value.trim(),
+      imageUrl:    safeWebUrl(document.getElementById('r-imageurl').value.trim(),true),
       tags:        [...currentRecipeTags],
       stars:       currentRecipeStar,
     }, existing);
@@ -7486,22 +7450,25 @@ function addRecipeToShoppingList(recipeId) {
 // ════════════════════════════════════════════
 // REZEPT HELPER — robuste Datenleser
 // ════════════════════════════════════════════
+function recipeLines(value) {
+  if (typeof value === 'string') return value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  if (!Array.isArray(value)) {
+    if (!value || typeof value !== 'object') return [];
+    if (value.itemListElement) return recipeLines(value.itemListElement);
+    return recipeLines(value.text || value.name || '');
+  }
+  return value.flatMap(x => {
+    if (x && typeof x === 'object' && ('amount' in x || 'unit' in x))
+      return [[x.amount, x.unit, x.name].filter(v => v !== undefined && v !== null && v !== '').join(' ')];
+    return recipeLines(x);
+  });
+}
 function getRecipeIngredientLines(r) {
   if (!r) return [];
-  if (typeof r.ingredients === 'string')
-    return r.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
-  if (Array.isArray(r.ingredients))
-    return r.ingredients.map(i => typeof i === 'string' ? i : [i.amount,i.unit,i.name].filter(Boolean).join(' ')).filter(Boolean);
-  return [];
+  const lines = recipeLines(r.ingredients);
+  return lines.length ? lines : recipeLines(r.ingredientsRaw);
 }
-function getRecipeStepLines(r) {
-  if (!r) return [];
-  if (typeof r.steps === 'string')
-    return r.steps.split('\n').map(l => l.trim()).filter(Boolean);
-  if (Array.isArray(r.steps))
-    return r.steps.map(s => typeof s === 'string' ? s : (s.text || s.name || '')).filter(Boolean);
-  return [];
-}
+function getRecipeStepLines(r) { return recipeLines(r?.steps); }
 
 // ════════════════════════════════════════════
 // PORTIONEN-SKALIERUNG
@@ -7511,18 +7478,14 @@ let _rvCurrentServings = 2;  // aktuell angezeigte Portionen in der Kochansicht
 
 // Robuster Mengen-Parser (deutsch, Brüche, Kommazahlen)
 function parseAmount(str) {
-  if (!str) return null;
-  const s = str.trim().replace(',', '.');
-  // Brüche: "½" "1/2" "3/4"
-  if (s === '½' || s === '1/2') return 0.5;
-  if (s === '¼' || s === '1/4') return 0.25;
-  if (s === '¾' || s === '3/4') return 0.75;
-  if (s === '⅓' || s === '1/3') return 1/3;
-  if (s === '⅔' || s === '2/3') return 2/3;
-  const frac = s.match(/^(\d+)\/(\d+)$/);
-  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
-  const n = parseFloat(s);
-  return isNaN(n) ? null : n;
+  const symbols={'½':0.5,'¼':0.25,'¾':0.75,'⅓':1/3,'⅔':2/3,'⅛':0.125,'⅜':0.375,'⅝':0.625,'⅞':0.875};
+  const s=String(str ?? '').trim();
+  if(Object.hasOwn(symbols,s))return symbols[s];
+  const mixed=s.match(/^(\d+)\s*(½|¼|¾|⅓|⅔|⅛|⅜|⅝|⅞)$/);
+  if(mixed)return Number(mixed[1])+symbols[mixed[2]];
+  const frac=s.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
+  if(frac)return Number(frac[3]) ? Number(frac[1] || 0)+Number(frac[2])/Number(frac[3]) : null;
+  return strictNumber(s);
 }
 
 // Zahl schön formatieren (Komma statt Punkt, keine unnötigen Nachkommastellen)
@@ -7535,19 +7498,9 @@ function fmtAmount(n) {
 
 // Zeile skalieren: "250 g rote Linsen" mit factor 0.5 → "125 g rote Linsen"
 function scaleIngredientLine(line, factor) {
-  if (factor === 1) return line;
-  const trim = line.trim();
-  // Muster: [Menge] [Einheit] [Name] — Menge kann Zahl/Bruch/Kommazahl sein
-  // Einheit optional (g, ml, L, l, EL, TL, Stk, Bund, Prise, Pkg, …)
-  const re = /^([\d½¼¾⅓⅔][,.\d\/½¼¾⅓⅔]*)\s*([a-zA-ZäöüÄÖÜ.]*\.?)?\s+(.+)$/;
-  const m  = trim.match(re);
-  if (!m) return line; // nicht skalierbar → unverändert
-  const origAmt = parseAmount(m[1]);
-  if (origAmt === null) return line;
-  const scaled = origAmt * factor;
-  const unit   = m[2] || '';
-  const name   = m[3];
-  return [fmtAmount(scaled), unit, name].filter(Boolean).join(' ');
+  if(factor===1)return line;
+  const p=parseIngredientLine(line),n=parseAmount(p.amount);
+  return n===null?line:[fmtAmount(n*factor),p.unit,p.name].filter(Boolean).join(' ');
 }
 
 // Zutaten eines Rezepts auf targetServings skalieren → Zeilen-Array
@@ -7603,7 +7556,7 @@ function openRecipeView(id) {
 
   const imgArea = document.getElementById('rvImageArea');
   imgArea.innerHTML = rm.imageUrl
-    ? `<img class="rv-image" src="${esc(rm.imageUrl)}" alt="${esc(rm.title)}" onerror="this.style.display='none'">`
+    ? `<img class="rv-image" src="${esc(safeWebUrl(rm.imageUrl,true))}" alt="${esc(rm.title)}" onerror="this.style.display='none'">`
     : `<div class="rv-image-placeholder">🍳</div>`;
 
   document.getElementById('rvTitle').textContent = rm.title || '';
@@ -7617,7 +7570,7 @@ function openRecipeView(id) {
 
   // Source-Link
   const srcLink = document.getElementById('rvSourceLink');
-  if (rm.sourceUrl) { srcLink.href = rm.sourceUrl; srcLink.style.display = 'flex'; }
+  if (rm.sourceUrl) { srcLink.href = safeWebUrl(rm.sourceUrl) || "#"; srcLink.style.display = 'flex'; }
   else               srcLink.style.display = 'none';
 
   renderRvMeta(rm);
@@ -7759,29 +7712,15 @@ function updateCookMode() {
 // ingredientsToLines(recipe)         → ["200g Milch", "3 Eier", …]
 
 function parseIngredientLine(line) {
-  // Erkennt: "200g Milch", "200 ml Milch", "3 Eier", "1/2 TL Salz", "etwas Butter"
-  const m = line.trim().match(/^(\d[\d.,/]*)\s*([a-zA-ZäöüÄÖÜg]*\.?)\s+(.+)$/);
-  if (m) return { name: m[3].trim(), amount: m[1].trim(), unit: m[2].trim() };
-  // Nur Zahl + Name: "3 Eier"
-  const m2 = line.trim().match(/^(\d+)\s+(.+)$/);
-  if (m2) return { name: m2[2].trim(), amount: m2[1].trim(), unit: '' };
-  return { name: line.trim(), amount: '', unit: '' };
+  const text=String(line).trim();
+  const m=text.match(/^((?:\d+\s+)?\d+\/\d+|\d*\s*[½¼¾⅓⅔⅛⅜⅝⅞]|\d+(?:[.,]\d+)?)\s*(.*)$/);
+  if(!m || !m[2] || parseAmount(m[1])===null)return {name:text,amount:'',unit:''};
+  const rest=m[2].trim();
+  const u=rest.match(/^(kg|g|mg|ml|cl|dl|l|EL|TL|Stk\.?|Stück|Bund|Prise[n]?|Dose[n]?|Packung[en]*|Pck\.?|Pkg\.?|Becher)\s+(.+)$/i);
+  return {name:u?u[2]:rest,amount:m[1].trim(),unit:u?u[1]:''};
 }
 
-function ingredientsToLines(recipe) {
-  if (!recipe.ingredients) return [];
-  if (typeof recipe.ingredients === 'string') {
-    return recipe.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
-  }
-  // Array von {name, amount, unit} → wieder zu Zeilen
-  if (Array.isArray(recipe.ingredients)) {
-    return recipe.ingredients.map(i => {
-      if (typeof i === 'string') return i;
-      return [i.amount, i.unit, i.name].filter(Boolean).join(' ');
-    });
-  }
-  return [];
-}
+function ingredientsToLines(recipe) { return getRecipeIngredientLines(recipe); }
 
 // Thumbnail: lädt Bild in Canvas, skaliert auf max. 600px, JPEG 75%
 // Gibt Data-URL zurück oder '' bei Fehler
@@ -7886,28 +7825,15 @@ function pushLinesToShoppingList(lines, sourceTitle) {
 
 // ── Zutaten addieren (für Wochenplan: gleiche Zutaten zusammenführen) ────
 function mergeIngredientLines(allLines) {
-  // Versucht Mengen gleichnamiger Zutaten zu addieren
-  const merged = {}; // name.lower → { name, totalNum, unit, rawLines[] }
-  allLines.forEach(line => {
-    const { name, amount, unit } = parseIngredientLine(line);
-    const key = name.toLowerCase();
-    if (!merged[key]) merged[key] = { name, totalNum: 0, hasNum: false, unit, rawLines: [] };
-    const n = parseFloat(amount.replace(',','.'));
-    if (!isNaN(n)) {
-      merged[key].totalNum += n;
-      merged[key].hasNum = true;
-      if (unit) merged[key].unit = unit; // letzten Unit-Wert gewinnt
-    }
-    merged[key].rawLines.push(line);
-  });
-  return Object.values(merged).map(m => {
-    if (m.hasNum && m.totalNum > 0) {
-      const numStr = Number.isInteger(m.totalNum) ? String(m.totalNum) : m.totalNum.toFixed(1);
-      return [numStr, m.unit, m.name].filter(Boolean).join(' ');
-    }
-    // Nicht addierbar → alle Rohzeilen behalten
-    return m.rawLines.join('\n');
-  }).join('\n').split('\n').filter(Boolean);
+  const groups=new Map(),output=[];
+  for(const line of allLines) {
+    const p=parseIngredientLine(line),n=parseAmount(p.amount);
+    if(n===null){output.push({raw:line});continue;}
+    const key=p.name.toLocaleLowerCase('de')+'|'+p.unit.toLocaleLowerCase('de');
+    if(groups.has(key))groups.get(key).total+=n;
+    else {const group={...p,total:n};groups.set(key,group);output.push(group);}
+  }
+  return output.map(p=>p.raw ?? [fmtAmount(p.total),p.unit,p.name].filter(Boolean).join(' '));
 }
 
 // ── Einzel-Rezept → Einkaufsliste (mit Auswahldialog) ───────────────────
@@ -7957,18 +7883,18 @@ async function buildRecipeEntry(formData, existingEntry) {
     imageUrl = await makeThumb(imageUrl).catch(() => formData.imageUrl);
   }
   const servings   = formData.servings || existingEntry?.servings || 2;
-  const base       = formData.baseServings     ?? existingEntry?.baseServings     ?? servings;
+  const base       = servings;
   const origServ   = formData.originalServings ?? existingEntry?.originalServings ?? servings;
-  const ingRaw     = formData.ingredientsRaw   ?? existingEntry?.ingredientsRaw   ?? formData.ingredients ?? '';
+  const ingRaw     = recipeLines(formData.ingredients).join('\n');
   return {
     id:               formData.id || uid(),
     title:            formData.title,
     sourceUrl:        formData.sourceUrl   || '',
     sourceName:       formData.sourceName  || '',
     imageUrl,
-    ingredients:      formData.ingredients || '',
+    ingredients:      recipeLines(formData.ingredients),
     ingredientsRaw:   ingRaw,
-    steps:            formData.steps       || '',
+    steps:            recipeLines(formData.steps),
     note:             formData.note        || '',
     tags:             formData.tags        || [],
     stars:            formData.stars       || 0,
@@ -8002,8 +7928,8 @@ function openWeekPicker(day) {
   document.getElementById('weekPickerTitle').textContent = `Rezept für ${day}`;
   const sorted = [...recipes].sort((a,b) => (a.title||'').localeCompare(b.title||''));
   document.getElementById('weekPickerList').innerHTML = sorted.length
-    ? sorted.map(r => `<div class="ct-item" data-wpick="${r.id}" style="margin-bottom:6px">
-        <div style="font-size:22px">${r.imageUrl ? `<img src="${esc(r.imageUrl)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">` : '🍳'}</div>
+    ? sorted.map(r => `<div class="ct-item" data-wpick="${esc(r.id)}" style="margin-bottom:6px">
+        <div style="font-size:22px">${r.imageUrl ? `<img src="${esc(safeWebUrl(r.imageUrl,true))}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">` : '🍳'}</div>
         <div style="flex:1"><div style="font-weight:600;font-size:13px">${esc(r.title)}</div>
           <div style="font-size:11px;color:var(--muted)">${r.time ? r.time+'Min' : ''} ${r.stars ? renderStars(r.stars) : ''}</div></div>
       </div>`).join('')
@@ -8120,11 +8046,11 @@ function recipeCardHTML(r, compact) {
   }).join('');
   const starsHtml = r.stars ? `<span class="recipe-stars">${renderStars(r.stars)}</span>` : '';
   const img = r.imageUrl
-    ? `<img class="recipe-thumb" src="${esc(r.imageUrl)}" alt="${esc(r.title)}" loading="lazy" onerror="this.style.display='none'">`
+    ? `<img class="recipe-thumb" src="${esc(safeWebUrl(r.imageUrl,true))}" alt="${esc(r.title)}" loading="lazy" onerror="this.style.display='none'">`
     : `<div class="recipe-thumb-placeholder">🍳</div>`;
 
   if (compact) {
-    return `<div class="recipe-card" data-rid="${r.id}">
+    return `<div class="recipe-card" data-rid="${esc(r.id)}">
       ${img}
       <div class="recipe-body">
         <div class="recipe-title">${esc(r.title)}</div>
@@ -8133,7 +8059,7 @@ function recipeCardHTML(r, compact) {
       </div>
     </div>`;
   }
-  return `<div class="recipe-card" data-rid="${r.id}">
+  return `<div class="recipe-card" data-rid="${esc(r.id)}">
     ${img}
     <div class="recipe-body">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
@@ -8149,7 +8075,7 @@ function recipeCardHTML(r, compact) {
       <div class="recipe-tags">${tags}</div>
       <div style="display:flex;gap:7px;margin-top:10px">
         ${r.ingredients ? `<button data-shopadd="1" style="flex:1;padding:10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;min-height:44px">🛒 Zutaten</button>` : ''}
-        ${r.sourceUrl ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener" class="rcp-link-btn" style="padding:10px 12px;font-size:12px">🔗</a>` : ''}
+        ${r.sourceUrl ? `<a href="${esc(safeWebUrl(r.sourceUrl))}" target="_blank" rel="noopener" class="rcp-link-btn" style="padding:10px 12px;font-size:12px">🔗</a>` : ''}
       </div>
     </div>
   </div>`;
@@ -8185,8 +8111,8 @@ function normalizeAppData() {
   transfers   = clean('vh_transfers', transfers);
   meters      = clean('vh_meters', meters).map(m => { if (!Array.isArray(m.readings)) m.readings = []; return m; });
   recipes     = clean('vh_recipes', recipes).map(r => {
-    if (!Array.isArray(r.ingredients)) r.ingredients = [];
-    if (!Array.isArray(r.steps)) r.steps = [];
+    r.ingredients = getRecipeIngredientLines(r);
+    r.steps = getRecipeStepLines(r);
     return r;
   });
   concerts    = clean('vh_concerts', concerts).map(c => { if (!Array.isArray(c.tickets)) c.tickets = []; return c; });
@@ -8230,6 +8156,10 @@ const hhSync = (function () {
     catch (e) { return {}; }
   }
   function setCfg(url, token) {
+    url=String(url || '').trim().replace(/\/+$/,'');
+    if(url && !safeWebUrl(url))throw new Error('Bitte eine gültige HTTP- oder HTTPS-Serveradresse eingeben.');
+    const previous=cfg();
+    if(previous.url!==url || previous.token!==token)localStorage.removeItem('vh_sync_at');
     localStorage.setItem('vh_sync', JSON.stringify({ url, token }));
     if (url && token) { setTimeout(() => run(true), 300); }
   }
@@ -8251,74 +8181,11 @@ const hhSync = (function () {
   }
 
   // ---------- Daten einsammeln (gleiche Struktur wie das Backup) ----------
-  function collect() {
-    return {
-      contracts, meters, expenses, shopLists, budgets, priceMemory,
-      recurring, settings, transfers, recipes, weekPlan,
-      concerts, venues, cities, ticketPeople,
-      dragon: (typeof dragon === 'object' ? dragon : undefined),
-      exported: new Date().toISOString(),
-    };
-  }
-
+  function collect() { return collectAppSnapshot(); }
   function hasLocalData() {
-    return (contracts && contracts.length) || (expenses && expenses.length) ||
-           (meters && meters.length) || (concerts && concerts.length) ||
-           (shopLists && shopLists.items && shopLists.items.length);
+    return snapshotHasData(collect());
   }
-
-  // ---------- Daten übernehmen ----------
-  function apply(data) {
-    if (!data || typeof data !== 'object') return false;
-    if (Array.isArray(data.contracts))  contracts  = migrateContracts(data.contracts);
-    if (Array.isArray(data.meters))     meters     = data.meters;
-    if (Array.isArray(data.expenses))   expenses   = migrateExpenses(data.expenses);
-    if (data.shopLists && typeof data.shopLists === 'object') shopLists = data.shopLists;
-    if (data.budgets && typeof data.budgets === 'object') budgets = data.budgets;
-    if (data.priceMemory && typeof data.priceMemory === 'object') priceMemory = data.priceMemory;
-    if (Array.isArray(data.recurring))  recurring  = data.recurring;
-    if (Array.isArray(data.transfers))  transfers  = data.transfers;
-    if (Array.isArray(data.recipes))    recipes    = data.recipes;
-    if (data.weekPlan && typeof data.weekPlan === 'object' && !Array.isArray(data.weekPlan)) weekPlan = data.weekPlan;
-    if (Array.isArray(data.concerts))   concerts   = data.concerts;
-    if (data.venues && typeof data.venues === 'object' && !Array.isArray(data.venues)) venues = data.venues;
-    if (data.cities && typeof data.cities === 'object' && !Array.isArray(data.cities)) cities = data.cities;
-    if (Array.isArray(data.ticketPeople)) ticketPeople = data.ticketPeople;
-    if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
-      settings = {
-        partnerName: typeof data.settings.partnerName === 'string' && data.settings.partnerName.trim()
-          ? data.settings.partnerName.trim() : 'Partner',
-        splitPct: typeof data.settings.splitPct === 'number' && isFinite(data.settings.splitPct)
-          ? Math.min(99, Math.max(1, Math.round(data.settings.splitPct))) : 50,
-      };
-      const pill = document.getElementById('sharedPill');
-      if (pill) pill.textContent = '👫 ' + settings.partnerName;
-    }
-    if (data.dragon && typeof loadDragon === 'function') loadDragon(data.dragon);
-
-    try { migrateCitiesFromVenues(); migrateCitiesV2(); } catch (e) {}
-
-    save('vh_contracts', contracts);   save('vh_meters', meters);
-    save('vh_expenses', expenses);     save('vh_shoplists', shopLists);
-    save('vh_budgets', budgets);       save('vh_prices', priceMemory);
-    save('vh_recurring', recurring);   save('vh_transfers', transfers);
-    save('vh_settings', settings);     save('vh_recipes', recipes);
-    save('vh_weekplan', weekPlan);     save('vh_concerts', concerts);
-    save('vh_venues', venues);         save('vh_cities', cities);
-    save('vh_ticketpeople', ticketPeople);
-
-    try {
-      renderAmpel(); renderHome(); renderContracts();
-      if (typeof activePage !== 'undefined') {
-        if (activePage === 'kasse') renderKasse();
-        if (activePage === 'meters') renderMeters();
-        if (activePage === 'analysis') renderAnalysis();
-        if (activePage === 'tickets') renderTickets();
-        if (activePage === 'recipes') renderRecipes();
-      }
-    } catch (e) {}
-    return true;
-  }
+  function apply(data) { return applyAppSnapshot(data); }
 
   // ---------- Netz ----------
   async function pull() {
@@ -8335,6 +8202,7 @@ const hhSync = (function () {
   }
   async function push(force) {
     const c = cfg();
+    const dirtyBefore=changedAt();
     // Schutz: nach einem Absturz nie versehentlich leere Daten hochladen
     if (!force && !hasLocalData() && localStorage.getItem('vh_sync_hadData') === '1') {
       status('Sicherheitsstopp: keine Daten auf dem Gerät — nichts hochgeladen.', '#991b1b');
@@ -8353,9 +8221,10 @@ const hhSync = (function () {
     if (r.status === 401) throw new Error('Passwort stimmt nicht');
     if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
     const res = await r.json();
+    if(!res.savedAt)throw new Error("Server bestätigt keinen Speicherzeitpunkt.");
     if (res.savedAt) {
       localStorage.setItem('vh_sync_at', res.savedAt);
-      localStorage.removeItem('vh_sync_dirty');
+      if(changedAt()===dirtyBefore)localStorage.removeItem('vh_sync_dirty');
       if (hasLocalData()) localStorage.setItem('vh_sync_hadData', '1');
     }
     return res;
@@ -8364,7 +8233,8 @@ const hhSync = (function () {
   // ---------- Sicherungspunkte ----------
   async function makeSnapshot() {
     const c = cfg();
-    await push();                                   // erst aktuellen Stand hochladen
+    if(!await run(true))throw new Error('Abgleich nicht abgeschlossen. Sicherungspunkt wurde nicht erstellt.');
+    if(changedAt())throw new Error('Bitte zuerst den Synchronisierungskonflikt lösen.');
     const d = new Date();
     const name = d.toISOString().slice(0, 10) + '_' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0');
     let r;
@@ -8392,6 +8262,10 @@ const hhSync = (function () {
   }
 
   async function restore(name) {
+    if(busy)throw new Error('Ein Abgleich läuft bereits. Bitte kurz warten.');
+    busy=true;
+    const before=changedAt();
+    try {
     const c = cfg();
     let r;
     try { r = await fetch(c.url + '/load?app=' + APP + '&snap=' + encodeURIComponent(name), { headers: { 'X-Sync-Token': c.token } }); }
@@ -8399,9 +8273,15 @@ const hhSync = (function () {
     if (!r.ok) throw new Error('Server antwortet mit ' + r.status);
     const data = await r.json();
     if (!data || data.empty) throw new Error('Sicherungspunkt ist leer');
+    prepareAppSnapshot(data);
+    const current=await pull();
+    if(before!==changedAt())throw new Error('Auf diesem Gerät wurden inzwischen Daten geändert. Bitte Wiederherstellung erneut starten.');
+    if(current && !current.empty){prepareAppSnapshot(current);saveRecoverySnapshot(current,'hh_recovery_cloud');}
     apply(data);
+    touch();
     await push();
     return true;
+    } finally {busy=false;}
   }
 
   // ---------- Abgleich ----------
@@ -8415,23 +8295,29 @@ const hhSync = (function () {
     if (manual) status('Wird abgeglichen …');
     try {
       const cloud = await pull();
-      const dirty = changedAt() && changedAt() > syncedAt();
+      const dirty = !!changedAt();
 
       if (cloud && cloud.empty) {
-        if (hasLocalData()) { await push(); rewardDragon('backup'); status('Daten hochgeladen ✓', '#166534'); }
+        if (hasLocalData()) { await push(); status('Daten hochgeladen ✓', '#166534'); }
         else status('Noch keine Daten vorhanden.');
       } else {
+        if(!cloud || typeof cloud!=='object')throw new Error('Ungültiger Serverstand.');
+        prepareAppSnapshot(cloud);
         const cloudAt = cloud._savedAt || '';
+        if(!cloudAt)throw new Error('Serverstand ohne Änderungszeitpunkt. Bitte Server prüfen.');
         const cloudNewer = cloudAt && cloudAt > syncedAt();
-        if (cloudNewer && dirty) {
+        if (cloudNewer && (dirty || (!syncedAt() && hasLocalData()))) {
+          if(!manual){status('Konflikt: Gerät und Server enthalten Daten. Bitte Jetzt abgleichen wählen.', '#991b1b');return;}
+          saveRecoverySnapshot(cloud,'hh_recovery_cloud');
           const ok = confirm(
             'Auf dem Server liegt ein neuerer Stand (' + new Date(cloudAt).toLocaleString('de-DE') + '),\n' +
             'aber auf diesem Gerät gibt es ungespeicherte Änderungen.\n\n' +
             'OK = Server-Stand übernehmen (lokale Änderungen gehen verloren)\n' +
-            'Abbrechen = eigenen Stand hochladen'
+            'Abbrechen = lokalen Stand behalten (Upload separat bestätigen)' 
           );
           if (ok) { apply(cloud); localStorage.setItem('vh_sync_at', cloudAt); localStorage.removeItem('vh_sync_dirty'); status('Server-Stand übernommen ✓', '#166534'); }
-          else { await push(); rewardDragon('backup'); status('Eigener Stand hochgeladen ✓', '#166534'); }
+          else if(confirm('Lokalen Stand wirklich auf den Server übertragen? Der bisherige Serverstand wurde lokal gesichert.')) { await push(); status('Eigener Stand hochgeladen ✓', '#166534'); }
+          else {status('Abgleich abgebrochen – beide Stände bleiben erhalten.');return false;}
         } else if (cloudNewer) {
           apply(cloud);
           if (hasLocalData()) localStorage.setItem('vh_sync_hadData', '1');
@@ -8439,24 +8325,28 @@ const hhSync = (function () {
           localStorage.removeItem('vh_sync_dirty');
           status('Neuer Stand geladen ✓', '#166534');
         } else if (dirty) {
-          await push(); rewardDragon('backup'); status('Änderungen hochgeladen ✓', '#166534');
+          saveRecoverySnapshot(cloud,'hh_recovery_cloud');
+          await push(); status('Änderungen hochgeladen ✓', '#166534');
         } else {
           if (manual) status('Alles aktuell ✓', '#166534');
         }
       }
+      return true;
     } catch (err) {
       status('Fehler: ' + err.message, '#991b1b');
       console.warn('[Sync]', err);
+      return false;
     }
-    busy = false;
+    finally { busy = false; }
   }
 
   // ---------- Änderung merken + zeitversetzt hochladen ----------
   function touch() {
+    if(window.__hhApplying)return;
+    localStorage.setItem('vh_sync_dirty', String(Date.now())+'-'+Math.random().toString(36).slice(2));
     if (!active()) return;
-    localStorage.setItem('vh_sync_dirty', new Date().toISOString());
     clearTimeout(timer);
-    timer = setTimeout(() => { push().then(showStatus).catch(e => console.warn('[Sync]', e)); }, 4000);
+    timer = setTimeout(() => run(false), 4000);
   }
 
   return { cfg, setCfg, run, touch, showStatus, push, pull, apply, active, makeSnapshot, snapshots, restore };
@@ -8476,10 +8366,10 @@ async function hhSnapList(force) {
     if (!list.length) { box.innerHTML = '<div style="font-size:12px;color:#999">Noch keine Sicherungspunkte vorhanden.</div>'; return; }
     box.innerHTML = '<div style="font-size:11.5px;color:#888;margin-bottom:6px">Zum Wiederherstellen antippen:</div>' +
       list.slice(0, 25).map(n =>
-        '<button type="button" data-snaprestore="' + n + '" style="display:block;width:100%;text-align:left;margin-bottom:5px;padding:8px 10px;border:1px solid #e5e5ec;border-radius:8px;background:#fff;font-size:12.5px;cursor:pointer">↩️ ' + n.replace('_', ' um ') + '</button>'
+        '<button type="button" data-snaprestore="' + esc(n) + '" style="display:block;width:100%;text-align:left;margin-bottom:5px;padding:8px 10px;border:1px solid #e5e5ec;border-radius:8px;background:#fff;font-size:12.5px;cursor:pointer">↩️ ' + esc(n.replace('_', ' um ')) + '</button>'
       ).join('');
   } catch (err) {
-    box.innerHTML = '<div style="font-size:12px;color:#991b1b">' + err.message + '</div>';
+    box.innerHTML = '<div style="font-size:12px;color:#991b1b">' + esc(err.message) + '</div>';
   }
 }
 
@@ -8517,7 +8407,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('visibilitychange', () => {
   try {
     if (document.hidden) {
-      if (localStorage.getItem('vh_sync_dirty')) hhSync.push().catch(() => {});
+      if (localStorage.getItem('vh_sync_dirty')) hhSync.run(false);
     } else {
       hhSync.run(false);
     }
@@ -8525,37 +8415,8 @@ document.addEventListener('visibilitychange', () => {
 });
 setTimeout(() => { try { hhSync.run(false); } catch (e) {} }, 1200);
 
-// --- Änderungserkennung: jede Datenänderung stößt einen Upload an ---
-// Falls der Browser das Überschreiben verweigert, greift der Fallback weiter unten.
-(function () {
-  const IGNORE = { vh_sync: 1, vh_sync_at: 1, vh_sync_dirty: 1 };
-  try {
-    const origSet = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function (k, v) {
-      origSet(k, v);
-      if (typeof k === 'string' && k.indexOf('vh_') === 0 && !IGNORE[k] && !window.__eggSilentWrite) {
-        try { hhSync.touch(); } catch (e) {}
-      }
-    };
-    const probe = 'vh_synccheck';
-    localStorage.setItem(probe, '1');
-    localStorage.removeItem(probe);
-  } catch (err) {
-    console.warn('[Sync] Speicher-Überwachung nicht möglich, nutze Zeitprüfung:', err);
-    let last = '';
-    setInterval(() => {
-      try {
-        const now = ['vh_contracts','vh_expenses','vh_meters','vh_shoplists','vh_concerts',
-                     'vh_cities','vh_recipes','vh_budgets','vh_recurring',
-                     'vh_transfers','vh_weekplan','vh_prices','vh_ticketpeople','vh_venues']
-          .map(k => (localStorage.getItem(k) || '').length).join('|');
-        if (last && now !== last) hhSync.touch();
-        last = now;
-      } catch (e) {}
-    }, 15000);
-  }
-})();
-
+// Änderungen werden explizit nach erfolgreichem Speichern gemeldet.
+window.__hhReady=true;
 </script>
 </body>
 </html>
