@@ -1,5 +1,5 @@
 /* =========================================================================
-   dragon-game.js — HomeHub EI-EVOLUTION (ersetzt den Drachen)
+   dragon-game.js — HomeHub DEIN BEGLEITER (ersetzt den Drachen)
    Vanilla JS · Kontrakt: window.DRAGON_DEFAULTS, dragon, saveDragon(),
    loadDragon(d), rewardDragon(action), renderDragonCard()
    Speicher: localStorage 'vh_dragon' · Backup-Marker: dragon.egg === true
@@ -7,19 +7,19 @@
    ========================================================================= */
 
 /* =========================================================================
-   HomeHub — EI-EVOLUTION  PROTOTYP-SANDBOX (egg-sandbox.jsx)  v1
+   HomeHub — DEIN BEGLEITER  PROTOTYP-SANDBOX (egg-sandbox.jsx)  v1
    -------------------------------------------------------------------------
-   Langzeit-Gamification: EIN Ei, 6 Evolutionsstufen über ~2 Jahre.
+   Ein persönlicher Begleiter mit sechs Entwicklungsstufen.
      0 Ur-Ei            (0 XP)      leblos, geheimnisvoll
-     1 Beobachtendes Ei (300)       Augen erscheinen, blinzeln im Dunkeln
-     2 Watschelndes Ei  (1.200)     bekommt Füßchen, wackelt
-     3 Greifendes Ei    (3.000)     bekommt Ärmchen, greift
-     4 Rissiges Ei      (6.000)     riesig, leuchtende Risse, Drachen-Schatten innen
-     5 Kosmisches Ei    (10.000)    funkelnde Entität, taucht den Raum in Licht
+     1 Beobachtendes Ei (200)       Augen erscheinen, blinzeln im Dunkeln
+     2 Watschelndes Ei  (700)       bekommt Füßchen, wackelt
+     3 Greifendes Ei    (1.600)     bekommt Ärmchen, greift
+     4 Rissiges Ei      (3.200)     riesig, leuchtende Risse, Drachen-Schatten innen
+     5 Kosmisches Ei    (5.500)     funkelnde Entität, taucht den Raum in Licht
    Render-Stack 1:1 aus dragon-sandbox: buildSprite (Outline + manuelles AA +
    Rim-Light), Höhle/Fackel/Nest, drawDragonShadow (Bayer-AO).
-   XP steigt nur (nie runter). "Strom" = reiner Engagement-Puffer: bei 0 geht
-   nur das Licht aus (Ei friert optisch ein) – KEIN XP-Verlust.
+   Abwesenheit erzeugt Entdeckungen und Ruhe. Pflege beeinflusst die Stimmung;
+   echte HomeHub-Nutzung trägt Entwicklung, Persönlichkeit und Erinnerungen.
    ========================================================================= */
 
 const PAL = {
@@ -932,7 +932,12 @@ function updateWalk(t, canWalk) {
     if (Math.abs(walk.x - walk.tx) < 1.5) {
       if (t > walk.until) {
         if (Math.random() < 0.45) walk.until = t + 1500 + Math.random() * 3500;          // kurz stehen (nach vorne schauen)
-        else { walk.tx = 44 + Math.random() * (CW - 88); walk.until = t + 7000; }          // neues Ziel
+        else {
+          const c=dragon.companion,favorite=c?.world.favorite,event=c?.events[0]?.type;
+          const place=event||favorite, destinations={plant:136,rug:90,poster:46,nightlight:126,toy:112};
+          walk.tx=destinations[place] && Math.random()<.45?destinations[place]:44+Math.random()*(CW-88);
+          walk.until=t+(companionCharacter()==="gemütlich"?11000:7000);
+        }          // neues Ziel
       }
     } else {
       const hp = (t % 520) / 520;                                     // Hop-Zyklus: 72% Flug, 28% Boden
@@ -945,12 +950,15 @@ function updateWalk(t, canWalk) {
 /* ---------- Leerlauf-Gesten: nervöses Fußwippen / auf imaginäre Uhr schauen ---------- */
 let idle = { act: "none", until: 0, next: 4000, toy: null, startT: 0 };
 function updateIdle(t, canIdle, hasArms, toys) {
-  if (!canIdle) { idle.act = "none"; return; }
+  if (!canIdle && !(idle.act==="play" && t<idle.until)) { idle.act = "none"; return; }
   if (idle.act === "none") {
     if (t > idle.next) {
       const opts = ["tap", "tap", "wobble"];
+      const character=dragon.companion?companionCharacter():"";
+      if(character==="verspielt" && toys?.length)opts.push("play","play");
+      if(character==="gemütlich")opts.push("wobble");
       if (hasArms) opts.push("watch");
-      if (hasArms && toys && toys.length) { opts.push("play"); opts.push("play"); }
+      if (toys && toys.length) { opts.push("play"); opts.push("play"); }
       idle.act = opts[Math.floor(Math.random() * opts.length)];
       if (idle.act === "play") idle.toy = toys[Math.floor(Math.random() * toys.length)];
       idle.startT = t;
@@ -1291,7 +1299,7 @@ function drawCandling(ctx, S, t, cx, eb, P, k) {
   ctx.globalAlpha = 0.38 * k;                                        // Schale glüht durchscheinend
   pe(ctx, cx, eCy, P.rb * 0.96, (P.ht + P.rb) / 2 * 0.96, "#ffc060");
   ctx.globalAlpha = 1;
-  const prog = Math.max(0, Math.min(1, (S.xp || 0) / 1200));         // Silhouette wächst mit (verstecktem) Fortschritt
+  const prog = Math.max(0, Math.min(1, (S.xp || 0) / 700));         // Silhouette wächst mit (verstecktem) Fortschritt
   const beat = 1 + Math.sin(t / 300) * 0.06;                          // Herzschlag
   const col = `rgba(74,40,16,${0.85 * k})`;
   ctx.fillStyle = col;
@@ -1422,7 +1430,7 @@ function drawEgg(ctx, S, t) {
   const ovOn = Math.abs(ovAng) > 0.001;
   if (ovOn) { ctx.save(); ctx.translate(cx, ovAy); ctx.rotate(ovAng); ctx.translate(-cx, -ovAy); }   // Overlays rotieren mit der Schale
   drawShellCracks(ctx, cx, ebA - Math.round(P.ht + P.rb), P.ht, S.stage);
-  if (S.stage === 4) drawBioSpots(ctx, cx, ebA, t, P, Math.min(1, Math.max(0, (S.xp - 6000) / 4000)));
+  if (S.stage === 4) drawBioSpots(ctx, cx, ebA, t, P, Math.min(1, Math.max(0, (S.xp - 3200) / 2300)));
   if (S.prestige > 0) drawPrestigeBadge(ctx, cx, ebA - Math.round(P.ht + P.rb) + 5, S.prestige);
   if (S.krank) {                                                     // kränklich-grüner Teint über der Schale
     const eCy2 = ebA - Math.round((P.ht + P.rb) / 2);
@@ -1453,7 +1461,7 @@ function drawEgg(ctx, S, t) {
     else if (watching2) drawWatchArm(ctx, cx + Math.round(P.rb * 0.86), armY, 1, P, t);
     else if (playing) drawPlayArm(ctx, cx + pSign * Math.round(P.rb * 0.86), armY, pSign, t, idle.toy, P);
   }
-  if (idle.act === "play" && idle.toy === "ball") { const hx = cx - Math.round(P.rb * 0.86) - 7; updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
+  if (P.arms && idle.act === "play" && idle.toy === "ball") { const hx = cx - Math.round(P.rb * 0.86) - 7; updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
   if (P.eyes) {
     const sleeping = isNightTime() && !S.krank && !S.expActive;
     const track = sleeping ? null : (watching ? { x: fly.x, y: fly.y } : (idle.act === "watch" ? { x: cx, y: armY - 2 } : (idle.act === "play" ? playTrackPoint(cx, armY, t) : null)));
@@ -1563,7 +1571,7 @@ function drawEgg(ctx, S, t) {
 /* =======================================================================
    ÖKONOMIE
    ======================================================================= */
-const EGG_XP = [0, 300, 1200, 3000, 6000, 10000];
+const EGG_XP = [0, 200, 700, 1600, 3200, 5500];
 const STAGE_REWARDS = [0, 5, 5, 8, 10, 15];
 function localDayKey(date) {
   const d = date instanceof Date ? date : new Date(date || Date.now());
@@ -1626,9 +1634,8 @@ function nextExpItem(p) {
   return chain.find(it => !u[it.id]) || null;
 }
 function costumeWorn(costumes) {
-  if (!costumes) return null;
-  const c = COSTUMES.find(c => costumes[c.id] && inSeason(c));
-  return c ? c.id : null;
+  const chosen=dragon?.companion?.world?.equippedCostume;
+  return chosen && costumes && costumes[chosen] ? chosen : null;
 }
 const WALL_SEASON_ITEMS = [                                     // saisonale Wanddeko, ab Prestige 1
   { id: "eggarland", label: "🥚 Eier-Girlande", cost: 8,  months: [2, 3],    desc: "Bunte Eier an der Schnur" },
@@ -1652,18 +1659,8 @@ const WALL_ITEMS = [                                              // exklusiv ab
 
 // Offline-Decay: % pro Sekunde
 const KRANK_DEVOLVE_MS = 7 * 86400 * 1000;                       // erst nach 7 unbehandelten Tagen eine Stufe zurück
-function applyKrankDevolve(p, now) {
-  if (!p.krank || !p.krankSeit) return p;
-  let stage = p.stage, xp = p.xp, seit = p.krankSeit, hit = false;
-  while (now - seit >= KRANK_DEVOLVE_MS && stage > 0) {
-    stage -= 1; xp = EGG_XP[stage]; seit += KRANK_DEVOLVE_MS; hit = true;
-  }
-  if (!hit) return p;
-  setTimeout(() => flash("💔 Zu lange krank — das Ei ist eine Stufe zurückgefallen!"), 60);
-  return { ...p, stage, xp, krankSeit: seit };
-}
-const DECAY_PS = { power: 1/432, hunger: 1/576, sauberkeit: 1/864 };   // Strom 12h, Hunger 16h, Sauberkeit 24h
-
+function applyKrankDevolve(p) { return p; } // Abwesenheit nimmt keine Entwicklung zurück.
+const DECAY_PS = { power: 0, hunger: 4/86400, sauberkeit: 3/86400 };
 
 /* =========================================================================
    HOMEHUB-INTEGRATION (Vanilla) — Kontrakt wie dragon-game.js:
@@ -1678,15 +1675,14 @@ const DECAY_PS = { power: 1/432, hunger: 1/576, sauberkeit: 1/864 };   // Strom 
 // gestaffelt nach Seltenheit/Aufwand — dafür ist der reine "App geöffnet"-Streakbonus
 // entfallen (siehe checkDailyStreak(), jetzt an echte Aktionen gekoppelt).
 const EGG_ACTIONS = {
-  shoppingItem:   { xp: 0,  label: "Artikel abgehakt", expedition: false },
-  shoppingComplete:{ xp: 4, label: "Einkauf abgeschlossen", stardustChance: 0.25, expedition: true },
-  expense:        { xp: 3,  label: "Ausgabe erfasst", stardustChance: 0.25, expedition: true },
-  recipe:         { xp: 10, label: "Rezept angelegt", stardust: 1, expedition: true },
-  recipeCooked:   { xp: 10, label: "Rezept gekocht", stardust: 1, expedition: true, dailyPerItem: true },
-  meter:          { xp: 25, label: "Zählerstand erfasst", stardust: 2, expedition: true },
-  contractCreate: { xp: 40, label: "Vertrag angelegt", stardust: 3, expedition: true },
-  contractUpdate: { xp: 20, label: "Vertrag geprüft", stardust: 1, expedition: true, cooldownDays: 30 },
-  backup:         { xp: 3,  label: "Sicherung erstellt", daily: true, expedition: true },
+  expense: { xp:6, label:"Es sortiert einen kleinen Beleg.", limit:5, trait:"fleißig" },
+  shoppingComplete: { xp:10, label:"Es untersucht neugierig die Einkaufstasche.", limit:2, trait:"neugierig" },
+  recipe: { xp:16, label:"Ein neuer Duft weckt seine Neugier.", trait:"neugierig" },
+  recipeCooked: { xp:12, label:"Es schaut zufrieden auf den fertigen Teller.", dailyPerItem:true, trait:"gemütlich" },
+  meter: { xp:24, label:"Es verfolgt aufmerksam die Messanzeige.", trait:"fleißig" },
+  contractCreate: { xp:24, label:"Es nimmt das neue Klemmbrett unter die Lupe.", trait:"fleißig" },
+  contractUpdate: { xp:12, label:"Es hilft beim Ordnen der Unterlagen.", cooldownDays:30, trait:"fleißig" },
+  backup: { xp:3, label:"Die Sicherung ist angekommen. Es lässt ein Kontrolllicht blinken.", trait:"fleißig" }
 };
 
 window.DRAGON_DEFAULTS = {
@@ -1711,6 +1707,7 @@ function markDirty() { uiDirty = true; dragonDirty = true; }
 // touchLastSeen=true nur bei echten Ereignissen (Aktion, Hintergrund, Check-in),
 // NICHT bei jedem Autosave — sonst wäre jeder Autosave selbst eine Änderung.
 function saveDragon(opts) {
+  if(companionSaveBlocked)return false;
   const force = opts === true || (opts && opts.force);
   const touchLastSeen = opts === true || (opts && opts.touchLastSeen);
   const silent = !!(opts && opts.silent);   // stille Buchhaltung (Verfall/lastSeen) löst KEINEN Cloud-Sync aus
@@ -1722,7 +1719,9 @@ function saveDragon(opts) {
     // nicht als "echte Änderung" werten und keinen Sync-Konflikt provozieren.
     if (silent) window.__eggSilentWrite = true;
     localStorage.setItem("vh_dragon", json);
-    if(!silent && typeof onAppDataSaved === "function" && json!==lastSavedDragonJson)onAppDataSaved("vh_dragon");
+    if(!silent && typeof onAppDataSaved === "function" && json!==lastSavedDragonJson){
+      try{onAppDataSaved("vh_dragon");}catch(err){window.__hhCompanionMigrationPending=true;console.warn("[Begleiter] Online-Abgleich wird erneut vorgemerkt:",err.message);}
+    }
     window.__eggSilentWrite = false;
     lastSavedDragonJson = json;
     dragonDirty = false;
@@ -1794,43 +1793,31 @@ function sanitizeDragon() {
 
 // Übernimmt nur echte Plain Objects (keine Arrays/Strings) und kopiert tief,
 // damit keine Referenz aus dem Import bestehen bleibt. Gefährliche Schlüssel raus.
-function safePlainObject(src) {
-  const out = {};
-  if (!src || typeof src !== "object" || Array.isArray(src)) return out;
-  for (const k in src) {
-    if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
-    if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
-    const v = src[k];
-    const tv = typeof v;
-    if (v === null || tv === "number" || tv === "string" || tv === "boolean") out[k] = v;
-    else if (Array.isArray(v)) out[k] = v.slice();
-    else if (tv === "object") out[k] = safePlainObject(v);
-  }
-  return out;
+function safePlainObject(src,depth=0) {
+  const clean=(v,n)=>{
+    if(n>24)return null;
+    if(Array.isArray(v))return v.slice(0,512).map(x=>clean(x,n+1));
+    if(v&&typeof v==="object"){
+      const out={};for(const k of Object.keys(v))if(!["__proto__","constructor","prototype"].includes(k))out[k]=clean(v[k],n+1);return out;
+    }
+    if(typeof v==="number")return Number.isFinite(v)?v:0;
+    return ["string","boolean"].includes(typeof v)||v===null?v:null;
+  };
+  return src && typeof src==="object" && !Array.isArray(src)?clean(src,depth):{};
 }
-
 function loadDragon(d) {
+  const previous=dragon;
   const base = JSON.parse(JSON.stringify(window.DRAGON_DEFAULTS));
-  // Ungültige Haupttypen (String, Array, Zahl, null) → kontrolliert Neustart
-  if (d && typeof d === "object" && !Array.isArray(d) && d.egg === true) {
-    dragon = Object.assign(base, safePlainObject(d));
-    dragon.statLog  = Object.assign(
-      { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
-      safePlainObject(d.statLog)
-    );
-    dragon.statLog.byAction = safePlainObject(dragon.statLog.byAction);
-    dragon.mess        = Array.isArray(d.mess) ? d.mess.slice() : [];
-    dragon.deko        = safePlainObject(d.deko);
-    dragon.toys        = safePlainObject(d.toys);
-    dragon.costumes    = safePlainObject(d.costumes);
-    dragon.toyCooldown = safePlainObject(d.toyCooldown);
-    dragon.unlocked    = migrateUnlocked(dragon);
-  } else {
-    dragon = base;                                    // altes Drachen-Format oder leer -> Neustart bei 0
-  }
-  window.dragon = dragon;
-  sanitizeDragon();
-  eggCheckIn(); markDirty();   // eggCheckIn liest lastSeen und speichert am Ende selbst
+  try {
+  dragon = Object.assign(base, d && d.egg===true ? safePlainObject(d) : {});
+  window.dragon=dragon; sanitizeDragon();
+  dragon.unlocked=migrateUnlocked(dragon);
+  companionNormalize(dragon);
+  // Import and cloud hydration are pure: time advances only on a real contact/tick.
+  uiDirty=true; dragonDirty=false;
+  lastSavedDragonJson=JSON.stringify(dragon);
+  prestigeAnim={st:"none",startT:0};expAnim={st:"in",startT:0};idle.act="none";ball.active=false;
+  } catch(err){dragon=previous;window.dragon=previous;throw err;}
 }
 
 /* ---------- Toast ---------- */
@@ -1844,323 +1831,281 @@ function flash(msg) {
 }
 
 /* ---------- Kernlogik ---------- */
-// bypassSick: für echte HomeHub-Aktionen (rewardDragon) — krank blockiert weiterhin
-// die Spiel-Interaktionen (Füttern, Wenden, Spielen …), aber nicht die echte Arbeit
-// in der App, sonst könnte man bei 0 ✨ nie wieder die 5 ✨ für die Medizin verdienen.
-function recordStatBucket(bucket, key, amount) {
-  const L = dragon.statLog = dragon.statLog || {};
-  L[bucket] = L[bucket] || {};
-  L[bucket][key] = (L[bucket][key] || 0) + amount;
-}
-function grantStageRewards(oldStage, newStage) {
-  if (newStage <= oldStage) return 0;
-  let stars = 0;
-  for (let stage = oldStage + 1; stage <= newStage; stage++) stars += STAGE_REWARDS[stage] || 0;
-  if (stars) {
-    dragon.stardust = (dragon.stardust || 0) + stars;
-    recordStatBucket("starsEarned", "Entwicklung", stars);
+// Versionierter Begleiterzustand; alte Felder bleiben für Renderer und Backups erhalten.
+const COMPANION_DAY=86400000;
+const COMPANION_TRAITS=["neugierig","verspielt","gemütlich","fleißig","chaotisch","abenteuerlustig","anhänglich"];
+const COMPANION_FINDS=["Glatter Kiesel","Schimmernde Feder","Kleiner Messingknopf","Sternsplitter","Duftendes Blatt","Winzige Muschel","Bernstein","Saisonales Andenken"];
+const COMPANION_TRIPS={near:{label:"Runde ums Haus",hours:3},garden:{label:"Gartenpfad",hours:10},stars:{label:"Sternenweg",hours:22}};
+var companionSaveBlocked=false;
+function companionNumber(v,f,min=0,max=8.64e15) {return Number.isFinite(Number(v))?clampI(Number(v),min,max):f;}
+function companionNormalize(p) {
+  const now=Date.now(), old=p.companion;
+  if(old && Number(old.version)>1)throw new Error("Dieser Begleiterstand benötigt eine neuere HomeHub-Version.");
+  if(!old || old.version!==1) {
+    const remaining=4*3600000*(1-clampI(p.expProgress/Math.max(1,p.expGoal),0,1));
+    p.companion={version:1,generationId:"egg-"+p.prestige+"-"+now,migratedAt:now,
+      clocks:{lastSimulatedAt:now,lastContactAt:now},personality:{scores:{},evidence:{}},
+      events:[],reactions:[],world:{objects:{},favorite:"",equippedCostume:""},
+      collection:{finds:[],events:[],forms:[{id:"form:"+p.stage,label:EGG_PAL[p.stage].name}],moments:[]},
+      journey:{days:[],weeklyAt:0,highestStage:p.stage,generations:[],spontaneous:0},
+      ledger:{processed:[],day:"",xp:0,counts:{},seq:0,backupAt:sameLocalDay(p.lastBackupReward,localDayKey())?now:0},
+      expedition:p.expActive?{id:"legacy-exp",type:"near",startedAt:now,returnAt:now+remaining,originalDuration:remaining,result:{find:0,item:"ball",stars:3,xp:20},status:"away"}:null};
+    p.hunger=Math.max(65,p.hunger);p.sauberkeit=Math.max(70,p.sauberkeit);p.power=Math.max(75,p.power);
+    p.krank=false;p.krankSeit=0;p.hungerZeroSince=0;p.sauberkeitZeroSince=0;
+    if(p.stage>=2){p.toys.ball=true;p.deko.rug=true;p.deko.plant=true;Object.assign(p.unlocked,{ball:true,rug:true,plant:true});}
+    p.unlocked.rug=true;p.unlocked.plant=true;
+    p.mess=p.mess.slice(0,2);
+    p.companion.reactions.push({id:"welcome",type:"welcome",at:now,text:"Dein Begleiter ist angekommen. Die nächste Entdeckung beginnt ganz nebenbei."});
   }
-  dragon.shards = 5;
-  setTimeout(() => flash("🎉 Entwicklung! " + EGG_PAL[stg(newStage)].name + (stars ? " · +" + stars + " Sterne" : "")), 500);
-  return stars;
+  const c=p.companion=safePlainObject(p.companion);
+  c.version=1;c.generationId=String(c.generationId||"egg-"+p.prestige).slice(0,80);
+  c.clocks=safePlainObject(c.clocks);
+  for(const k of ["lastSimulatedAt","lastContactAt"])c.clocks[k]=companionNumber(c.clocks[k],now);
+  c.personality=safePlainObject(c.personality);c.personality.scores=safePlainObject(c.personality.scores);c.personality.evidence=safePlainObject(c.personality.evidence);
+  for(const k of COMPANION_TRAITS)c.personality.scores[k]=companionNumber(c.personality.scores[k],0,0,100);
+  c.world=safePlainObject(c.world);c.world.objects=safePlainObject(c.world.objects);
+  c.world.equippedCostume=String(c.world.equippedCostume||"").slice(0,40);
+  c.collection=safePlainObject(c.collection);
+  for(const k of ["finds","events","forms","moments"])c.collection[k]=(Array.isArray(c.collection[k])?c.collection[k]:[]).filter(x=>x&&typeof x.id==="string").map(x=>({id:x.id.slice(0,100),label:String(x.label||"").slice(0,220),at:companionNumber(x.at,0)})).slice(-50);
+  c.events=(Array.isArray(c.events)?c.events:[]).filter(x=>x&&["plant","rug","toy","nightlight","poster","corner","season","chaos"].includes(x.type)&&[0,1].includes(x.phase)&&Number.isFinite(x.dueAt)).slice(-2);
+  c.events=c.events.map(x=>({id:String(x.id||"event").slice(0,100),type:x.type,phase:x.phase,startedAt:companionNumber(x.startedAt,now),dueAt:companionNumber(x.dueAt,now),find:companionNumber(x.find,0,0,COMPANION_FINDS.length-1)|0}));
+  c.reactions=(Array.isArray(c.reactions)?c.reactions:[]).filter(x=>x&&typeof x.type==="string"&&Number.isFinite(x.at)).map(x=>({id:String(x.id||"").slice(0,100),type:x.type.slice(0,40),at:x.at,text:String(x.text||"").slice(0,220)})).slice(-8);
+  c.journey=safePlainObject(c.journey);c.journey.days=(Array.isArray(c.journey.days)?c.journey.days:[]).filter(x=>typeof x==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x)).slice(-90);
+  c.journey.generations=(Array.isArray(c.journey.generations)?c.journey.generations:[]).slice(-10);
+  c.ledger=safePlainObject(c.ledger);c.ledger.processed=(Array.isArray(c.ledger.processed)?c.ledger.processed:[]).filter(x=>typeof x==="string").map(x=>x.slice(0,180)).slice(-300);
+  c.ledger.counts=safePlainObject(c.ledger.counts);c.ledger.xp=companionNumber(c.ledger.xp,0,0,120);c.ledger.seq=companionNumber(c.ledger.seq,0,0,1e12);
+  c.ledger.backupAt=companionNumber(c.ledger.backupAt,0);
+  const e=c.expedition;
+  if(e && (!COMPANION_TRIPS[e.type] || !Number.isFinite(e.returnAt) || !Number.isFinite(e.startedAt) || !e.result || !["away","returned"].includes(e.status)))c.expedition=null;
+  if(c.expedition){c.expedition.originalDuration=companionNumber(c.expedition.originalDuration,4*3600000,0,24*3600000);c.expedition.shortened=companionNumber(c.expedition.shortened,0,0,c.expedition.originalDuration*.25);c.expedition.result.story=String(c.expedition.result.story||"Es hat einen neuen Weg erkundet.").slice(0,140);c.expedition.result.find=companionNumber(c.expedition.result.find,0,0,COMPANION_FINDS.length-1)|0;c.expedition.result.xp=companionNumber(c.expedition.result.xp,20,0,40);c.expedition.result.stars=companionNumber(c.expedition.result.stars,3,0,8);}
+  while(new Blob([JSON.stringify(c)]).size>60000 && c.collection.moments.length)c.collection.moments.shift();
+  while(new Blob([JSON.stringify(c)]).size>60000 && c.ledger.processed.length)c.ledger.processed.shift();
+  if(new Blob([JSON.stringify(c)]).size>64000)throw new Error("Begleiterzustand ist zu groß.");
+  p.expActive=!!(c.expedition&&c.expedition.status==="away");
+  return p;
 }
-function eggBookXp(n, label, options) {
-  const p=dragon,opts=options || {},gain=Math.max(0,Number(n)||0),oldStage=stg(p.stage);
-  p.statLog=p.statLog || {};
-  if(opts.action) {
-    p.statLog.acts=(p.statLog.acts || 0)+1;
-    recordStatBucket("byAction",label,1);
+function companionCommit(fn,silent=false) {
+  if(companionSaveBlocked || window.__hhApplying)return false;
+  const previous=dragon, oldJson=lastSavedDragonJson,oldDirty=dragonDirty;
+  dragon=JSON.parse(JSON.stringify(previous));window.dragon=dragon;
+  try {
+    companionAdvance(Date.now(),false);
+    const result=fn(dragon);
+    if(result===false){dragon=previous;window.dragon=dragon;return false;}
+    sanitizeDragon();companionNormalize(dragon);markDirty();
+    if(!saveDragon({force:true,silent}))throw new Error("Speichern fehlgeschlagen");
+    companionHint();return true;
+  } catch(err){dragon=previous;window.dragon=dragon;lastSavedDragonJson=oldJson;dragonDirty=oldDirty;uiDirty=true;console.warn("[Begleiter] Änderung zurückgenommen:",err.message);return false;}
+}
+function companionRemember(category,id,label,at=Date.now()) {
+  const a=dragon.companion.collection[category];
+  if(!a.some(x=>x.id===id)){a.push({id,label,at});if(a.length>50)a.shift();}
+}
+function companionReact(type,text,now=Date.now()) {
+  const c=dragon.companion;
+  c.reactions=c.reactions.filter(x=>now-x.at<7*COMPANION_DAY && x.type!==type);
+  c.reactions.push({id:c.generationId+":"+(++c.ledger.seq),type,text,at:now});c.reactions=c.reactions.slice(-8);
+}
+function companionTrait(trait,now=Date.now()) {
+  const p=dragon.companion.personality,key=localDayKey(now)+":"+trait;
+  if(p.evidence[key])return;
+  p.evidence[key]=true;p.scores[trait]=Math.min(100,p.scores[trait]+2);
+  const keys=Object.keys(p.evidence);if(keys.length>56)for(const k of keys.slice(0,keys.length-56))delete p.evidence[k];
+}
+function companionCharacter() {
+  const scores=dragon.companion.personality.scores;
+  const top=COMPANION_TRAITS.slice().sort((a,b)=>scores[b]-scores[a])[0];
+  return scores[top]>=6?top:"lernt dich kennen";
+}
+function companionSeed(id) {let n=2166136261;for(const ch of String(id))n=Math.imul(n^ch.charCodeAt(0),16777619);return (n>>>0)/4294967296;}
+function recordStatBucket(bucket,key,amount) {
+  const L=dragon.statLog;L[bucket]=L[bucket]||{};L[bucket][key]=(Number(L[bucket][key])||0)+amount;
+}
+function eggBookXp(n,label,options={}) {
+  const p=dragon,old=p.stage,gain=Math.max(0,Number(n)||0);
+  if(options.action){p.statLog.acts=(Number(p.statLog.acts)||0)+1;recordStatBucket("byAction",label,1);}
+  p.xp+=gain;if(gain)recordStatBucket("xpEarned",label,gain);
+  p.stage=Math.max(old,stageForXp(p.xp));
+  if(p.stage>old) {
+    let stars=0;for(let i=old+1;i<=p.stage;i++){stars+=STAGE_REWARDS[i];companionRemember("forms","form:"+i,EGG_PAL[i].name+(companionCharacter()!=="lernt dich kennen"?" · "+companionCharacter():""));}
+    p.stardust+=stars;recordStatBucket("starsEarned","Entwicklung",stars);
+    p.companion.journey.highestStage=Math.max(p.stage,p.companion.journey.highestStage||0);
+    companionReact("development","Es hat sich entwickelt: "+EGG_PAL[p.stage].name+".");
+    if(p.stage>=2&&!p.toys.ball){p.toys.ball=true;p.unlocked.ball=true;}
   }
-  if(gain)recordStatBucket("xpEarned",label,gain);
-  p.xp=Math.max(0,(p.xp || 0)+gain);
-  p.stage=stg(Math.max(oldStage,stageForXp(p.xp)));
-  grantStageRewards(oldStage,p.stage);
-  if(p.expActive && opts.expedition)p.expProgress+=1;
-  if(!opts.deferExp)checkExpDone();
-  markDirty();
   return gain;
 }
-function eggAddXp(n, label, options) {
-  const opts = typeof options === "object" ? options : { bypassSick: !!options };
-  const p = dragon;
-  if (p.power <= 0) { flash("🔌 Kein Strom! Erst die Stromzelle laden."); return false; }
-  if (p.krank && !opts.bypassSick) { flash("🤒 Krank! Erst Medizin geben."); return false; }
-  const gain=eggBookXp(n,label,{action:true,expedition:opts.expedition===true});
-  if (gain) flash("+" + gain + " XP · " + label);
-  markDirty(); checkExpDone(); saveDragon();
-  return true;
-}
-
-function checkExpDone() {
-  const p = dragon;
-  if (!p.expActive || p.expProgress < p.expGoal) return;
-  const rewards = { 2:{xp:30,stars:5}, 3:{xp:35,stars:6}, 4:{xp:40,stars:7}, 5:{xp:50,stars:8} };
-  const r = rewards[p.stage] || rewards[2], found = nextExpItem(p), oldStage = p.stage;
-  p.stardust = (p.stardust || 0) + r.stars;
-  p.expActive=false;
-  eggBookXp(r.xp,"Expedition",{deferExp:true});
-  recordStatBucket("starsEarned", "Expedition", r.stars);
-  p.expActive = false; p.expProgress = 0;
-  if (found) p.unlocked = Object.assign({}, p.unlocked, { [found.id]: true });
-  p.statLog = p.statLog || {}; p.statLog.exps = (p.statLog.exps || 0) + 1;
-  setTimeout(() => flash(found ? "🎁 Mitbringsel: " + found.label + "! · +" + r.xp + " XP · +" + r.stars + " Sterne" : "🎁 Expedition zurück! +" + r.xp + " XP · +" + r.stars + " Sterne"), 60);
-}
-
-// Streak-Bonus NUR bei echter HomeHub-Aktion (nicht beim bloßen Öffnen der App) —
-// dadurch verdient man sich die Sterne wirklich durch Arbeiten mit der App.
-// Bonus reduziert (vorher 2/3 ✨), weil echte Aktionen jetzt zusätzlich eigene
-// garantierte Sterne geben (siehe EGG_ACTIONS) — sonst würde die Summe zu hoch.
-function checkDailyStreak() {
-  const p = dragon, now = Date.now(), today = localDayKey();
-  if (sameLocalDay(p.lastLogin, today)) return;
-  const yd = new Date(); yd.setDate(yd.getDate() - 1);
-  p.streak = sameLocalDay(p.lastLogin, localDayKey(yd)) ? (p.streak || 0) + 1 : 1;
-  const starBonus = p.streak >= 7 ? 2 : 1, xpBonus = p.streak >= 7 ? 4 : 3, oldStage = p.stage;
-  p.stardust = (p.stardust || 0) + starBonus;
-  eggBookXp(xpBonus,"Tagesstreak");
-  recordStatBucket("starsEarned", "Tagesstreak", starBonus);
-  p.lastLogin = now;
-  if (p.streak > 1) setTimeout(() => flash("🔥 " + p.streak + " Tage aktiv! +" + xpBonus + " XP · +" + starBonus + " Sterne"), 900);
-}
-
-function checkWeeklyCareBonus() {
-  const p = dragon, now = Date.now();
-  if (!p.lastCareBonusAt) { p.lastCareBonusAt = now; return; }
-  if (now - p.lastCareBonusAt < 7 * 86400000) return;
-  p.lastCareBonusAt = now;
-  if (p.krank || p.hunger <= 0 || p.sauberkeit <= 0 || p.power <= 0) return;
-  const oldStage = p.stage;
-  p.stardust = (p.stardust || 0) + 2;
-  eggBookXp(10,"Wochenpflege");
-  recordStatBucket("starsEarned", "Wochenpflege", 2);
-  setTimeout(() => flash("🌿 Gute Wochenpflege! +10 XP · +2 Sterne"), 1600);
-}
-
-function rewardDragon(action, meta) {
-  const a = EGG_ACTIONS[action];
-  if (!a) return false;
-  const today = localDayKey(), info = meta || {};
-  if (a.daily && sameLocalDay(dragon.lastBackupReward, today)) return false;
-  const cooldownKey = action + ":" + (info.id || "global");
-  const last = dragon.rewardCooldowns && dragon.rewardCooldowns[cooldownKey];
-  if (a.cooldownDays && last && Date.now() - last < a.cooldownDays * 86400000) return false;
-  if (a.dailyPerItem && sameLocalDay(last, today)) return false;
-  const ok = eggAddXp(a.xp, a.label, { bypassSick:true, expedition:a.expedition === true });
-  if (!ok) return false;
-  dragon.lastRealActionDay = today;
-  checkDailyStreak();
-  checkWeeklyCareBonus();
-  let bonus = 0;
-  if (a.stardust) bonus = a.stardust;
-  else if (a.stardustChance && Math.random() < a.stardustChance) bonus = 1;
-  if (bonus) {
-    dragon.stardust = (dragon.stardust || 0) + bonus;
-    recordStatBucket("starsEarned", a.label, bonus);
-    setTimeout(() => flash("✨ +" + bonus + " Stern" + (bonus === 1 ? "" : "e") + " · " + a.label), 1300);
+function companionAdvance(now,contact=false) {
+  const p=dragon,c=p.companion,last=c.clocks.lastSimulatedAt,elapsed=Math.max(0,now-last),days=elapsed/COMPANION_DAY;
+  p.hunger=Math.max(35,p.hunger-days*4);p.sauberkeit=Math.max(40,p.sauberkeit-days*3);p.power=Math.min(100,Math.max(45,p.power)+days*12);
+  c.clocks.lastSimulatedAt=Math.max(now,last);
+  if(now-c.clocks.lastContactAt>=28*COMPANION_DAY && !p.krank){p.krank=true;p.krankSeit=now;}
+  if(p.krank && c.recoveryAt && now>=c.recoveryAt){p.krank=false;p.krankSeit=0;delete c.recoveryAt;}
+  if(contact){
+    if(p.krank&&!c.recoveryAt)c.recoveryAt=now+COMPANION_DAY;
+    if(now-c.clocks.lastContactAt>2*COMPANION_DAY)companionTrait("gemütlich",now);
+    c.clocks.lastContactAt=Math.max(now,c.clocks.lastContactAt);p.lastSeen=now;
   }
-  dragon.rewardCooldowns = dragon.rewardCooldowns || {};
-  if (a.cooldownDays || a.dailyPerItem) dragon.rewardCooldowns[cooldownKey] = Date.now();
-  if (a.daily) dragon.lastBackupReward = today;
-  markDirty(); saveDragon({ touchLastSeen:true });
-  return true;
-}
-window.rewardDragon = rewardDragon;
-window.loadDragon = loadDragon;
-window.saveDragon = saveDragon;
-
-
-/* ---------- Brutphase (Stufe 1-2): Wenden, Anklopfen, Durchleuchten ---------- */
-function eggTurn() {
-  if(dragon.power<=0 || dragon.krank){flash(dragon.krank?"Krank – erst Medizin geben.":"Erst die Stromzelle laden.");return;}
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon, now = Date.now();
-  if (p.stage >= 2) return;
-  const cd = 6 * 3600 * 1000, left = (p.lastTurn || 0) + cd - now;
-  if (left > 0) { flash("⏳ Schon gewendet — in " + Math.ceil(left / 3600000) + "h wieder."); return; }
-  p.lastTurn = now;
-  turnAnim = { on: true, startT: lastT };
-  eggAddXp(2, "Ei gewendet");
-}
-function eggKnock() {
-  if(dragon.power<=0 || dragon.krank){flash(dragon.krank?"Krank – erst Medizin geben.":"Erst die Stromzelle laden.");return;}
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
-  if (p.stage >= 2) return;
-  const today = localDayKey();
-  if (p.lastKnock === today) { flash("Es hat heute schon zurückgeklopft! 👂"); return; }
-  p.lastKnock = today;
-  knockAnim = { on: true, startT: lastT + 450 };                      // klopft mit kleiner Verzögerung zurück
-  if (Math.random() < 0.5) {
-    p.stardust = (p.stardust || 0) + 1;
-    recordStatBucket("starsEarned","Angeklopft",1);
-    setTimeout(() => flash("👂 Es klopft zurück … ✨ +1 Stern!"), 700);
-  } else {
-    setTimeout(() => flash("👂 … klopf, klopf — es lebt!"), 700);
+  const ex=c.expedition;
+  if(ex&&ex.status==="away") {
+    p.expProgress=Math.round(clampI((now-ex.startedAt)/Math.max(1,ex.returnAt-ex.startedAt),0,1)*100);p.expGoal=100;
+    if(now>=ex.returnAt){
+      ex.status="returned";p.expActive=false;p.expProgress=0;
+      const r=ex.result;p.stardust+=r.stars;eggBookXp(r.xp,"Abenteuer");recordStatBucket("starsEarned","Abenteuer",r.stars);
+      if(r.item){const item=TOY_ITEMS.concat(SHOP_ITEMS,SEASON_ITEMS,COSTUMES,WALL_ITEMS,WALL_SEASON_ITEMS).find(x=>x.id===r.item);if(item){p.unlocked[r.item]=true;if(TOY_ITEMS.includes(item))p.toys[r.item]=true;else if(COSTUMES.includes(item))p.costumes[r.item]=true;else p.deko[r.item]=true;}}
+      companionRemember("finds","find:"+r.find,COMPANION_FINDS[r.find],now);
+      companionRemember("moments",ex.id,(r.story||"Ein kleiner Ausflug mit einer großen Entdeckung.")+" Fund: "+COMPANION_FINDS[r.find],now);
+      p.statLog.exps=(Number(p.statLog.exps)||0)+1;
+      companionReact("expedition","Wieder da! "+(r.story||"Es hat einen neuen Weg erkundet.")+" Fund: "+COMPANION_FINDS[r.find]+".",now);
+      companionTrait("abenteuerlustig",now);
+    }
   }
-  eggAddXp(3, "Angeklopft");
-}
-function eggCandle() {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  if (dragon.stage >= 2 || candleAnim.on) return;
-  candleAnim = { on: true, startT: lastT };
-  flash("🔦 Du hältst das Ei vor die Lampe …");
-}
-function eggNudge() {
-  if(dragon.power<=0 || dragon.krank){flash(dragon.krank?"Krank – erst Medizin geben.":"Erst die Stromzelle laden.");return;}
-  const today = localDayKey();
-  if (dragon.lastNudge === today) { flash("Schon angestupst heute! Morgen wieder 🥚"); return; }
-  dragon.lastNudge = today;
-  eggAddXp(dragon.stage === 0 ? 4 : 3, "Anstupsen", { expedition:false });
-}
-
-function eggFeed(id) {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon, item = FOOD_ITEMS.find(f => f.id === id) || BROOD_FOOD.find(f => f.id === id);
-  if (!item) return;
-  if ((p.stardust || 0) < item.cost) { flash("Zu wenig ✨!"); return; }
-  if (p.krank) { flash("🤒 Krank — erst Medizin!"); return; }
-  p.stardust -= item.cost;
-  p.hunger = clampI(p.hunger + item.hunger, 0, 100);
-  if (item.power) p.power = clampI(p.power + item.power, 0, 100);
-  eggBookXp(item.xp,"Füttern",{action:true});
-  if(item.cost)recordStatBucket("starsSpent","Futter",item.cost);
-  p.statLog = p.statLog || {}; p.statLog.feeds = (p.statLog.feeds || 0) + 1;
-  if (item.id === "spray" || item.id === "broth") {
-    sprayAnim = { on: true, startT: lastT };
-    flash(item.id === "spray" ? "💧 Fein benebelt — die Schale glänzt!" : "🥣 Nährlösung — es gluckert zufrieden! +2 XP");
-  } else {
-    flash(item.label + " · lecker!" + (item.xp ? " +" + item.xp + " XP" : ""));
+  for(const event of c.events.slice()) {
+    if(now<event.dueAt)continue;
+    if(event.phase===0){event.phase=1;event.dueAt+=COMPANION_DAY;companionReact("event",companionEventText(event.type,1),now);c.world.objects[event.type]={state:"Spuren entdeckt",since:now};}
+    if(now>=event.dueAt && event.phase===1){
+      companionRemember("finds","find:"+event.find,COMPANION_FINDS[event.find],now);
+      companionRemember("events",event.type,companionEventText(event.type,2),now);
+      companionRemember("moments",event.id,companionEventText(event.type,2),now);
+      companionTrait(event.type==="chaos"?"chaotisch":event.type==="toy"?"verspielt":"neugierig",now);
+      c.world.favorite=event.type;c.world.objects[event.type]={state:"Vertrauter Lieblingsplatz",since:now};
+      companionReact("event",companionEventText(event.type,2)+" Fund: "+COMPANION_FINDS[event.find]+".",now);
+      p.stardust+=2;eggBookXp(12,"Entdeckung");c.events=c.events.filter(x=>x.id!==event.id);
+    }
   }
-  markDirty(); saveDragon({ touchLastSeen: true });
+  // No catch-up farm: at most one new story per contact/day, two active chains.
+  if(contact && c.events.length<2 && c.lastEventDay!==localDayKey(now)) {
+    const types=["corner","season","chaos"];
+    if(p.deko.plant)types.push("plant");if(p.deko.rug)types.push("rug");if(p.deko.nightlight)types.push("nightlight");if(p.deko.poster)types.push("poster");if(Object.values(p.toys).some(Boolean))types.push("toy");
+    const id=c.generationId+":event:"+(++c.ledger.seq),seed=companionSeed(id);
+    const trait=companionCharacter(),fav=trait==="verspielt"?"toy":trait==="gemütlich"?"rug":trait==="chaotisch"?"chaos":"plant";
+    const type=seed<0.4&&types.includes(fav)?fav:types[Math.floor(seed*types.length)];
+    if(!c.events.some(x=>x.type===type)){
+      c.events.push({id,type,phase:0,startedAt:now,dueAt:now+(8+Math.floor(seed*16))*3600000,find:Math.floor(companionSeed(id+":find")*COMPANION_FINDS.length)});
+      companionReact("event",companionEventText(type,0),now);c.world.objects[type]={state:"Wird untersucht",since:now};
+    }
+    c.lastEventDay=localDayKey(now);
+  }
+  if(contact && p.stage>=2 && Object.values(p.toys).some(Boolean) && c.lastPlayDay!==localDayKey(now)) {
+    c.lastPlayDay=localDayKey(now);c.journey.spontaneous=(Number(c.journey.spontaneous)||0)+1;
+    companionRemember("moments","play:"+localDayKey(now),"Es hat selbstständig mit seinem Spielzeug gespielt.",now);
+    companionTrait("verspielt",now);companionSceneToy();
+  }
+  c.reactions=c.reactions.filter(x=>now-x.at<7*COMPANION_DAY);
 }
-
-function eggCharge() {
-  const p = dragon;
-  if (p.power >= 100) return;
-  // Grundbedürfnis — immer kostenlos (Sterne sind nur noch für den Shop da)
-  p.power = 100;
-  flash("🔋 Aufgeladen!");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function companionEventText(type,phase) {
+  const stories={plant:["Es beobachtet die Pflanze.","Zwischen den Blättern schimmert etwas.","Es hat ein Versteck in der Pflanze entdeckt."],rug:["Es rollt sich auf dem Teppich ein.","Unter dem Teppich zeichnet sich eine kleine Beule ab.","Der Teppich ist jetzt sein Lieblingsplatz."],toy:["Es probiert sein Spielzeug selbst aus.","Das Spielzeug hat einen neuen Platz gefunden.","Es hat eine eigene Spielidee entwickelt."],nightlight:["Es wartet neben dem Nachtlicht.","Nachts tanzen kleine Schatten an der Wand.","Es hat sein Nachtlicht lieb gewonnen."],poster:["Es betrachtet das Poster.","Ein kleiner Abdruck klebt am Rahmen.","Das Poster erinnert es an eine Geschichte."],corner:["Es untersucht eine stille Ecke.","In der Ecke liegt eine geheimnisvolle Spur.","Es hat ein kleines Versteck entdeckt."],season:["Es beobachtet das Licht dieser Jahreszeit.","Draußen ist etwas Besonderes zu sehen.","Es bringt ein Andenken an die Jahreszeit mit."],chaos:["Es räumt auf seine eigene Art um.","Ein paar Dinge liegen überraschend anders.","Sein kleines Chaos hat einen Schatz freigelegt."]};
+  return (stories[type]||stories.corner)[phase];
 }
-
-function eggClean() {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon; let changed = false;
-  p.statLog = p.statLog || {};
-  // Grundbedürfnis — immer kostenlos (Sterne sind nur noch für den Shop da)
-  if (p.mess.length > 0) {
-    const targetX = p.mess[0].x, targetType = p.mess[0].type;
-    p.mess = p.mess.slice(1); p.sauberkeit = clampI(p.sauberkeit + 14, 0, 100); changed = true;
-    cleanAnim = { on: true, startT: lastT, x: targetX, pileType: targetType };
-    flash("🧹 Haufen entfernt — noch " + p.mess.length);
-  } else if (p.sauberkeit < 100) {
-    p.sauberkeit = 100; changed = true;
-    cleanAnim = { on: true, startT: lastT, x: 90, pileType: null };
-    flash("🧼 Blitzblank!");
-  } else { flash("✨ Schon alles sauber."); }
-  if (!changed) return;
-  p.statLog.cleans = (p.statLog.cleans || 0) + 1;
-  markDirty(); saveDragon({ touchLastSeen: true });
+function rewardDragon(action,meta={}) {
+  const a=EGG_ACTIONS[action];if(!a)return false;
+  return companionCommit(p=>{
+    const now=Date.now(),today=localDayKey(now),c=p.companion,L=c.ledger,id=String(meta.id||"").slice(0,120);
+    if(action==="backup" && L.backupAt && now-L.backupAt<7*COMPANION_DAY)return false;
+    const key=action+":"+id+(a.dailyPerItem?":"+today:"");
+    if(id && action!=="contractUpdate" && L.processed.includes(key))return false;
+    companionAdvance(now,true);
+    if(L.day!==today){L.day=today;L.xp=0;L.counts={};}
+    const cdKey=action+":"+(id||"global"),last=p.rewardCooldowns[cdKey]||0;
+    let allowed=!(a.cooldownDays && now-last<a.cooldownDays*COMPANION_DAY) && !(a.dailyPerItem && sameLocalDay(last,today));
+    if(action==="backup")allowed=(!L.backupAt || now-L.backupAt>=7*COMPANION_DAY);
+    const count=Number(L.counts[action])||0;
+    const gain=allowed && (!a.limit||count<a.limit)?Math.min(a.xp,120-L.xp):0;
+    L.counts[action]=count+1;L.xp+=gain;
+    if(id && action!=="contractUpdate"){L.processed.push(key);L.processed=L.processed.slice(-300);}
+    if(allowed){p.rewardCooldowns[cdKey]=now;if(action==="backup"){L.backupAt=now;p.lastBackupReward=today;}}
+    eggBookXp(gain,action,{action:true});companionReact(action,a.label,now);companionTrait(a.trait,now);
+    const areas=new Set(c.reactions.filter(x=>x.at>=now-COMPANION_DAY && EGG_ACTIONS[x.type]).map(x=>x.type));if(areas.size>=3)companionTrait("neugierig",now);
+    if(action!=="backup") {
+      if(!c.journey.days.includes(today)){c.journey.days.push(today);c.journey.days=c.journey.days.slice(-90);p.stardust++;recordStatBucket("starsEarned","Aktiver Tag",1);p.streak=(p.streak||0)+1;p.lastLogin=now;}
+      const recent=c.journey.days.filter(x=>new Date(x+"T12:00:00").getTime()>now-7*COMPANION_DAY);
+      if(recent.length>=3 && now-(c.journey.weeklyAt||0)>=7*COMPANION_DAY){eggBookXp(15,"Gemeinsame Woche");c.journey.weeklyAt=now;}
+      p.lastRealActionDay=today;
+      const e=c.expedition;if(e && e.status==="away"){const max=e.originalDuration*.25,shortened=e.shortened||0,step=Math.min(10*60000,max-shortened);e.returnAt-=step;e.shortened=shortened+step;}
+    }
+    // Old contract cooldown maps are preserved; new buckets remain bounded.
+    const ks=Object.keys(p.rewardCooldowns);if(ks.length>300)for(const k of ks.slice(0,ks.length-300))delete p.rewardCooldowns[k];
+  });
 }
-
-function eggHeal() {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
-  if (!p.krank) return;
-  // Grundbedürfnis — immer kostenlos (Sterne sind nur noch für den Shop da)
-  p.krank = false; p.krankSeit = 0;
-  flash("💊 Medizin gegeben — Erholt!");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function companionInteract(type="nudge") {
+  if(companionCommit(p=>{companionAdvance(Date.now(),true);companionTrait("anhänglich");if(type!=="nudge")companionTrait("verspielt");companionReact("interaction",type==="knock"?"Es antwortet mit einem leisen Klopfen.":"Es rückt ein Stück näher zu dir.");})){
+    idle.act="wobble";idle.startT=lastT;idle.until=lastT+2200;
+  }
 }
-
-function eggFix() {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
-  if (p.stage !== 4 || p.integrity >= 100) return;
-  // Grundbedürfnis — immer kostenlos (Sterne sind nur noch für den Shop da)
-  p.integrity = 100;
-  flash("🩹 Schale geflickt!");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function eggNudge(){companionInteract();}
+function eggTurn(){companionInteract("turn");}
+function eggKnock(){companionInteract("knock");}
+function eggCandle(){companionInteract("candle");}
+function eggFeed(id){
+  const food=FOOD_ITEMS.concat(BROOD_FOOD).find(x=>x.id===id);if(!food)return;
+  companionCommit(p=>{if(p.stardust<food.cost)return false;p.stardust-=food.cost;p.hunger=Math.min(100,p.hunger+(food.hunger||25));p.power=Math.min(100,p.power+(food.power||0));p.statLog.feeds=(Number(p.statLog.feeds)||0)+1;companionReact("care","Es genießt die kleine Aufmerksamkeit.");});
 }
-
-function eggCleanShells() {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
-  if (p.shards <= 0) return;
-  p.shards = 0; p.power = clampI(p.power + 8, 0, 100);
-  eggBookXp(2,"Schalen aufräumen",{action:true});
-  flash("🧹 Aufgeräumt! +2 XP");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function eggCharge(){companionCommit(p=>{p.power=100;companionReact("care","Es macht es sich im warmen Licht gemütlich.");});}
+function eggClean(){companionCommit(p=>{p.mess=[];p.shards=0;p.sauberkeit=100;p.statLog.cleans=(Number(p.statLog.cleans)||0)+1;companionReact("care","Das ganze Nest ist wieder aufgeräumt.");});}
+function eggCleanShells(){eggClean();}
+function eggHeal(){companionCommit(p=>{p.krank=false;p.krankSeit=0;delete p.companion.recoveryAt;companionReact("care","Es fühlt sich wieder wohl.");});}
+function eggFix(){companionCommit(p=>{p.integrity=100;});}
+function companionBuy(id,kind) {
+  const catalogs={toys:TOY_ITEMS,deko:SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),costumes:COSTUMES},item=catalogs[kind].find(x=>x.id===id);
+  if(!item)return false;
+  return companionCommit(p=>{
+    if(p[kind][id]){if(kind==="costumes")p.companion.world.equippedCostume=p.companion.world.equippedCostume===id?"":id;else if(kind==="deko"){p.companion.world.objects[id]={state:"Lieblingsplatz",since:Date.now()};p.companion.world.favorite=id;companionReact("room",companionEventText(id,0));}return;}
+    if(!p.unlocked[id] || p.stardust<item.cost)return false;
+    p.stardust-=item.cost;p[kind][id]=true;recordStatBucket("starsSpent",kind,item.cost);
+    if(kind==="costumes")p.companion.world.equippedCostume=id;
+    companionReact("room","Ein neuer Gegenstand macht sein Zuhause vertrauter.");
+  });
 }
-
-function eggBuyDeko(id, cost) {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon;
-  if ((p.stardust || 0) < cost || (p.deko && p.deko[id])) return;
-  const it = SHOP_ITEMS.find(x => x.id === id) || SEASON_ITEMS.find(x => x.id === id) || WALL_ITEMS.find(x => x.id === id) || WALL_SEASON_ITEMS.find(x => x.id === id);
-  if(!it || cost!==it.cost)return;
-  p.stardust -= cost;
-  recordStatBucket("starsSpent","Dekoration",cost);
-  p.deko = Object.assign({}, p.deko, { [id]: true });
-  flash("✨ " + (it ? it.label : id) + " dekoriert!");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function eggBuyToy(id){return companionBuy(id,"toys");}
+function eggBuyDeko(id){return companionBuy(id,"deko");}
+function eggBuyCostume(id){return companionBuy(id,"costumes");}
+function companionSceneToy(id) {
+  id=id||Object.keys(dragon.toys).find(x=>dragon.toys[x]);if(!id)return;
+  walk.tx=walk.x;walk.face=0;walk.until=lastT+6000;
+  idle.act="play";idle.toy=id;idle.startT=lastT;idle.until=lastT+5000;ball.active=false;ball.done=false;
 }
-
-function eggBuyToy(id) {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon, toy = TOY_ITEMS.find(t => t.id === id);
-  if (!toy || (p.toys && p.toys[id])) return;
-  if ((p.stardust || 0) < toy.cost) { flash("Zu wenig ✨!"); return; }
-  p.stardust -= toy.cost;
-  recordStatBucket("starsSpent","Spielzeug",toy.cost);
-  p.toys = Object.assign({}, p.toys, { [id]: true });
-  flash("🎁 " + toy.label + " gekauft!");
-  markDirty(); saveDragon({ touchLastSeen: true });
-}
-
-function eggBuyCostume(id) {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon, it = COSTUMES.find(x => x.id === id);
-  if (!it || (p.costumes && p.costumes[id])) return;
-  if ((p.stardust || 0) < it.cost) { flash("Zu wenig Sterne! (" + it.cost + ")"); return; }
-  p.stardust -= it.cost;
-  recordStatBucket("starsSpent", "Kostüm", it.cost);
-  p.costumes = Object.assign({}, p.costumes, { [id]: true });
-  flash("🎭 " + it.label + " gekauft! (−" + it.cost + " Sterne)");
-  markDirty(); saveDragon({ touchLastSeen: true });
-}
-
 function eggPlay(id) {
-  if (dragon.power <= 0) { flash("🔌 Alles dunkel — erst die Batterie laden!"); return; }
-  const p = dragon, toy = TOY_ITEMS.find(t => t.id === id);
-  if (!toy || !p.toys || !p.toys[id]) return;
-  if (p.krank) { flash("🤒 Zu krank zum Spielen."); return; }
-  if (p.stage < 3) { flash("🔒 Braucht Arme (Stufe 4)."); return; }
-  const now = Date.now(), cd = (p.toyCooldown || {})[id] || 0;
-  if (now < cd) { flash("⏳ " + toy.label + " braucht noch " + Math.ceil((cd - now) / 3600000) + "h Pause."); return; }
-  if (p.lastRealActionDay !== localDayKey()) { flash("🏠 Erst heute etwas in HomeHub erledigen, dann spielen."); return; }
-  const oldStage = p.stage;
-  eggBookXp(toy.xp,"Spielen: " + toy.label,{action:true});
-  const ds = 0;
-  p.toyCooldown = Object.assign({}, p.toyCooldown, { [id]: now + toy.cd });
-  p.statLog = p.statLog || {}; p.statLog.plays = (p.statLog.plays || 0) + 1;
-  idle.act = "play"; idle.toy = id; idle.startT = lastT;
-  idle.until = lastT + (id === "top" ? 9500 : id === "balloon" ? 5400 : 5000);
-  ball.active = false; ball.done = false;
-  flash("🎮 Gespielt! +" + toy.xp + " XP" + (ds ? " · +1 ✨" : ""));
-  markDirty(); saveDragon({ touchLastSeen: true });
+  if(!dragon.toys[id]||dragon.stage<2)return;
+  if(companionCommit(p=>{p.statLog.plays=(Number(p.statLog.plays)||0)+1;companionTrait("verspielt");companionReact("play","Es freut sich über eure gemeinsame Spielidee.");}))companionSceneToy(id);
 }
-
-function eggStartExp() {
-  const p = dragon;
-  if (p.stage < 2 || p.expActive || p.power <= 0) return;
-  const goal = [0, 0, 10, 16, 20, 25][p.stage] || 10;
-  p.expActive = true; p.expProgress = 0; p.expGoal = goal;
-  flash("🚪 Expedition! Sammle " + goal + " HomeHub-Aktionen");
-  markDirty(); saveDragon({ touchLastSeen: true });
+function eggStartExp(type="near") {
+  const trip=COMPANION_TRIPS[type];if(!trip||dragon.stage<2||dragon.expActive)return false;
+  return companionCommit(p=>{
+    const c=p.companion,now=Date.now(),id=c.generationId+":trip:"+(++c.ledger.seq),seed=companionSeed(id);
+    let find=Math.floor(seed*COMPANION_FINDS.length);
+    if(companionCharacter()==="abenteuerlustig"&&seed>.65)find=6;
+    if(type==="stars"&&seed>.8)find=3;
+    if(seed>.92)find=7;
+    const unknown=COMPANION_FINDS.map((_,i)=>i).filter(i=>!c.collection.finds.some(x=>x.id==="find:"+i));
+    c.misses=unknown.includes(find)?0:(Number(c.misses)||0)+1;
+    if((p.statLog.exps||0)<2 || c.misses>=4){if(unknown.length)find=unknown[Math.floor(seed*unknown.length)];c.misses=0;}
+    const item=nextExpItem(p),character=companionCharacter();
+    const stories={near:["Es ist einer raschelnden Spur bis zur Haustür gefolgt.","Es hat sich mit einem Vogel über den Weg unterhalten."],garden:["Zwischen Wurzeln hat es eine verborgene Mulde gefunden.","Es hat am Gartenpfad ein neues Versteck entdeckt."],stars:["Im stillen Abendlicht hat etwas zwischen den Steinen geglänzt.","Es ist einem funkelnden Licht über den Hügel gefolgt."]};
+    const story=character==="abenteuerlustig"?"Es hat mutig einen unbekannten Abzweig erkundet.":character==="gemütlich"?"Nach einer gemütlichen Pause hat es einen Schatz direkt am Rastplatz bemerkt.":stories[type][seed>.5?1:0];
+    c.expedition={id,type,startedAt:now,returnAt:now+trip.hours*3600000,originalDuration:trip.hours*3600000,shortened:0,status:"away",result:{find,story,item:item?item.id:"",stars:type==="stars"?5:3,xp:type==="stars"?30:20}};
+    p.expActive=true;p.expGoal=100;p.expProgress=0;companionTrait("abenteuerlustig");companionReact("expedition","Es macht sich auf den Weg: "+trip.label+".");
+  });
 }
+function checkExpDone() {} // Timed outcomes are committed with companionAdvance.
+function eggCheckIn(){return companionCommit(()=>companionAdvance(Date.now(),true));}
+var prestigeConfirm=false;
+function eggPrestige() {
+  if(dragon.xp<5500 || dragon.expActive || prestigeAnim.st!=="none")return;
+  if(!prestigeConfirm){prestigeConfirm=true;uiDirty=true;updateEggUI();return;}
+  prestigeConfirm=false;
+  const ok=companionCommit(p=>{
+    const now=Date.now(),n=p.prestige+1,c=p.companion;
+    p.lastReview=buildReview(p,n);c.journey.generations.push({generation:c.generationId,stage:p.stage,xp:p.xp,character:companionCharacter()});c.journey.generations=c.journey.generations.slice(-10);
+    companionRemember("moments",c.generationId+":portal","Ein neues Ei beginnt. Die Erinnerungen bleiben.");
+    p.prestige=n;p.stage=0;p.xp=0;p.hunger=100;p.sauberkeit=100;p.power=100;p.integrity=100;p.mess=[];p.shards=0;p.krank=false;p.krankSeit=0;p.stardust+=n*10;
+    c.generationId="egg-"+n+"-"+now;c.events=[];c.expedition=null;c.clocks={lastSimulatedAt:now,lastContactAt:now};c.journey.days=[];c.journey.weeklyAt=0;c.journey.highestStage=0;delete c.recoveryAt;
+    for(const k of COMPANION_TRAITS)c.personality.scores[k]=Math.round(c.personality.scores[k]*.2);
+    c.personality.evidence={};companionReact("generation","Ein neues Ei ist da. Sein Zuhause und eure Erinnerungen bleiben.");
+  });
+  if(ok){const generation=dragon.companion.generationId;prestigeAnim={st:"walk",startT:lastT};walk.tx=40;walk.until=lastT+30000;setTimeout(()=>{if(dragon.companion.generationId!==generation)return;prestigeAnim={st:"none",startT:0};walk.x=92;walk.tx=92;walk.face=0;uiDirty=true;},5200);}
+}
+window.rewardDragon=rewardDragon;window.loadDragon=loadDragon;window.saveDragon=saveDragon;
 
-/* ---------- Rückblick ---------- */
 function buildReview(p, n) {
   const L = p.statLog || {}, by = L.byAction || {};
   const lines = Object.entries(by).map(([k, v]) => "  • " + k + ": " + v + "×").join("\n");
@@ -2179,74 +2124,6 @@ function eggDownloadReview() {
     const a = document.createElement("a"); a.href = url; a.download = "ei-rueckblick.txt"; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 800);
   } catch (_) { flash("Download nicht möglich"); }
-}
-
-var prestigeConfirm = false;
-function eggPrestige() {
-  const p = dragon;
-  if (p.xp < 10000 || prestigeAnim.st !== "none" || p.expActive) return;
-  if (!prestigeConfirm) { prestigeConfirm = true; markDirty(); return; }
-  prestigeConfirm = false;
-  prestigeAnim = { st: "walk", startT: lastT };
-  walk.tx = 40; walk.until = lastT + 30000; idle.act = "none";
-  setTimeout(() => {
-    const n = (dragon.prestige || 0) + 1, bonus = n * 10;
-    const review = buildReview(dragon, n);
-    Object.assign(dragon, {
-      xp: 0, stage: 0, shards: 0, hunger: 100, sauberkeit: 100, krank: false, krankSeit: 0, mess: [],
-      power: 100, integrity: 100, expActive: false, expProgress: 0, prestige: n,
-      stardust: (dragon.stardust || 0) + bonus, lastReview: review,
-      statLog: { acts: 0, byAction: {}, feeds: 0, plays: 0, exps: 0, cleans: 0 },
-    });
-    recordStatBucket("starsEarned", "Neues Ei", bonus);
-    prestigeAnim = { st: "none", startT: 0 };
-    walk.x = 92; walk.tx = 92; walk.face = 0;
-    flash("🌀 PRESTIGE " + n + "! +" + bonus + " Sterne · Rückblick bereit 📜");
-    markDirty(); saveDragon({ touchLastSeen: true });
-  }, 5200);
-  markDirty();
-}
-
-/* ---------- Check-in (Offline-Zeit) ---------- */
-function eggCheckIn() {
-  sanitizeDragon();
-  const p = dragon, now = Date.now();
-  const last = p.lastSeen || now;
-  const elapsed = Math.max(0, (now - last) / 1000);
-  p.power = clampI(p.power - DECAY_PS.power * elapsed, 0, 100);
-  p.hunger = clampI(p.hunger - DECAY_PS.hunger * elapsed, 0, 100);
-  const altS = p.sauberkeit;
-  p.sauberkeit = clampI(p.sauberkeit - DECAY_PS.sauberkeit * elapsed, 0, 100);
-  const wasKrank = p.krank;
-  // Krankheit jetzt an anhaltende Vernachlässigung gekoppelt (voller Tag am
-  // Boden), nicht mehr an eine einzelne lange Lücke seit dem letzten Öffnen —
-  // wer mindestens 1x täglich füttert/reinigt, wird nie krank, egal wann genau.
-  p.hungerZeroSince = p.hunger <= 0 ? (p.hungerZeroSince || now) : 0;
-  p.sauberkeitZeroSince = p.sauberkeit <= 0 ? (p.sauberkeitZeroSince || now) : 0;
-  const neglectedLong = (p.hungerZeroSince && now - p.hungerZeroSince > 86400000) ||
-                        (p.sauberkeitZeroSince && now - p.sauberkeitZeroSince > 86400000);
-  p.krank = p.krank || neglectedLong;
-  p.krankSeit = p.krank ? (p.krankSeit || now) : 0;
-  const mess = Array.isArray(p.mess) ? p.mess.slice() : [];
-  const lost = altS - p.sauberkeit;
-  // Höchstens 2 neue Haufen pro Besuch — bei längerer Abwesenheit füllt sich der
-  // Vorrat über mehrere Besuche auf, statt bei der Rückkehr alles auf einmal
-  // abzuladen (das machte Reinigen zum reinen Mehrfach-Klick-Abarbeiten).
-  const neu = Math.max(0, Math.min(6 - mess.length, 2, Math.floor(lost / 10)));
-  for (let i = 0; i < neu; i++) {
-    const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "poop"];
-    mess.push({ type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) });
-  }
-  p.mess = mess;
-  // Streak-Bonus wird NICHT mehr hier vergeben (das wäre nur fürs Öffnen der App) —
-  // siehe checkDailyStreak(), aufgerufen aus rewardDragon() bei echten HomeHub-Aktionen.
-  Object.assign(p, applyKrankDevolve(p, now));
-  if (elapsed > 7200) {
-    const msg = Math.random() < 0.35 ? FLAVOR_MOMENTS[Math.floor(Math.random() * FLAVOR_MOMENTS.length)] : "👋 Willkommen zurück!";
-    setTimeout(() => flash(msg), 400);
-  }
-  p.lastSeen = now;                 // Verfall verrechnet → Zeitstempel zurücksetzen
-  markDirty(); saveDragon({ touchLastSeen: true, silent: true });
 }
 
 /* ---------- UI ---------- */
@@ -2298,121 +2175,30 @@ function eggGrid(entries) {
   return '<div class="eg-grid" style="--eg-mincol:' + minPx + 'px">' + entries.map(en => en.html).join("") + "</div>";
 }
 
+function companionMoment(){const r=dragon.companion.reactions;return r.length?r[r.length-1].text:"Es sieht sich in seinem Zuhause um.";}
+function companionHint(){const el=document.getElementById("companionHint");if(el)el.textContent=companionMoment();}
 function eggSections() {
-  const p = dragon, un = p.unlocked || {};
-  let h = '<div class="eg-pane">';
-  // Status (ohne Überschrift — der Stufenname übernimmt die Rolle)
-  h += '<div class="eg-row"><span class="eg-stagename">' + esc(EGG_PAL[stg(p.stage)].name) + "</span>" +
-       (p.prestige > 0 ? '<span class="eg-dim">Ei Nr. ' + (p.prestige + 1) + "</span>" : "") + "</div>";
-  if (EGG_PAL[stg(p.stage)].motto) h += '<div class="eg-dim" style="margin:3px 0 6px">„' + esc(EGG_PAL[stg(p.stage)].motto) + '"</div>';
-  const current = stg(p.stage), next = EGG_XP[current + 1];
-  const progress = next === undefined ? 100 : Math.max(0, Math.min(100, (p.xp - EGG_XP[current]) / (next - EGG_XP[current]) * 100));
-  h += '<div style="margin:10px 0" aria-label="Entwicklungsfortschritt">' +
-    '<div class="eg-dim">Stufe ' + (current + 1) + ' · ' + p.xp + ' XP' + (next === undefined ? ' · Voll entwickelt' : ' · Noch ' + Math.max(0, next - p.xp) + ' XP bis Stufe ' + (current + 2)) + '</div>' +
-    '<progress aria-label="Fortschritt zur nächsten Stufe" max="100" value="' + progress + '" style="width:100%;height:12px;accent-color:#9b79d1">' + Math.round(progress) + '%</progress></div>';
-  if (p.power <= 0) h += '<div class="eg-warn" style="margin:5px 0">🔌 Licht erloschen — Stromzelle laden! (kein XP-Verlust)</div>';
-  if (p.krank) h += '<div class="eg-warn eg-bad" style="margin:5px 0">KRANK — braucht Medizin! 💊 (3 Tage → Stufe zurück)</div>';
-  if (p.stage === 4) h += '<div class="eg-dim" style="margin:5px 0 3px">Schalen-Integrität ' + p.integrity + '%</div>';
-  if (p.lastReview) h += '<button class="eg-btn eg-wide" data-act="review">📜 Ei-Rückblick herunterladen</button>';
-  if (p.xp >= 10000) h += '<button class="eg-btn eg-wide eg-gold" data-act="prestige">' + (prestigeConfirm ? "🌀 Wirklich? Nochmal tippen!" : "🌀 Durchs Portal (neues Ei)") + "</button>";
-  h += '<button class="eg-btn eg-wide" data-act="nudge"' + (p.lastNudge === localDayKey() ? " disabled" : "") + '>👉 Anstupsen<br><small>' + (p.lastNudge === localDayKey() ? "Schon heute erledigt" : "+"+(p.stage===0?4:3)+" XP · 1×/Tag") + "</small></button>";
-  if (p.stage < 2) {
-    const tLeft = (p.lastTurn || 0) + 6 * 3600 * 1000 - Date.now();
-    const turnOff = tLeft > 0, knockOff = p.lastKnock === localDayKey();
-    const turnSub = turnOff ? "in " + Math.ceil(tLeft / 3600000) + "h" : "+2 XP · 6h";
-    h += '<div class="eg-divider"></div>' + eggZone("#d99a3d", "rgba(217,154,61,.4)", eggGrid([
-      { html: '<button class="eg-btn" data-act="turn"' + (turnOff ? " disabled" : "") + ">🔄 Wenden<br><small>" + turnSub + "</small></button>", len: Math.max(6, turnSub.length) },
-      { html: '<button class="eg-btn" data-act="knock"' + (knockOff ? " disabled" : "") + ">👆 Anklopfen<br><small>+3 XP · 1×/Tag</small></button>", len: Math.max(9, "+3 XP · 1×/Tag".length) },
-      { html: '<button class="eg-btn" data-act="candle">🔦 Durchleuchten<br><small>Was wächst da drin?</small></button>', len: "Was wächst da drin?".length },
-    ]));
-  }
-  // Pflege
-  if (p.power <= 0) {
-    h += '<div class="eg-divider"></div><button class="eg-btn eg-wide eg-gold" data-act="charge">🔋 Stromzelle laden</button>';
-    h += "</div>";
-    return h;
-  }
-  h += '<div class="eg-divider"></div>';
-  if (p.shards > 0) h += '<button class="eg-btn eg-wide" data-act="shells">🧹 Schalenreste wegräumen (' + p.shards + ")</button>";
-  const careEntries = [];
-  if (p.power < 100) careEntries.push({ html: '<button class="eg-btn" data-act="charge">🔋 Stromzelle laden</button>', len: "Stromzelle laden".length });
-  if (p.mess.length > 0 || p.sauberkeit < 85) {
-    const cleanTxt = p.mess.length > 0 ? "Haufen weg (" + p.mess.length + " da)" : "Wischen";
-    careEntries.push({ html: '<button class="eg-btn" data-act="clean">🧹 ' + cleanTxt + "</button>", len: cleanTxt.length });
-  }
-  if (p.krank) careEntries.push({ html: '<button class="eg-btn" data-act="heal">💊 Medizin geben</button>', len: "Medizin geben".length });
-  if (p.stage === 4 && p.integrity < 100) careEntries.push({ html: '<button class="eg-btn" data-act="fix">🩹 Schale flicken</button>', len: "Schale flicken".length });
-  if (careEntries.length === 1) h += careEntries[0].html.replace('class="eg-btn"', 'class="eg-btn eg-wide"');
-  else if (careEntries.length > 1) h += eggZone("#2aa27a", "rgba(42,162,122,.4)", eggGrid(careEntries));
-  const feedEntries = [];
-  if (p.stage < 2) {
-    for (const f of BROOD_FOOD) {
-      const blocked = p.krank || (p.stardust || 0) < f.cost;
-      const sub = f.cost ? f.cost + "✨" + (f.desc ? " · " + f.desc : "") : f.desc;
-      feedEntries.push({ html: '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label + (sub ? "<br><small>" + sub + "</small>" : "") + "</button>", len: Math.max(f.label.length - 3, sub.length) });
-    }
-  } else {
-    for (const f of FOOD_ITEMS) {
-      const blocked = p.krank || (p.stardust || 0) < f.cost;
-      feedEntries.push({ html: '<button class="eg-btn" data-act="feed" data-id="' + f.id + '"' + (blocked ? " disabled" : "") + ">" + f.label.split(" ")[0] + (f.cost ? "<br><small>" + f.cost + "✨</small>" : "") + "</button>", len: 4 });
-    }
-  }
-  h += eggZone("#3d8fd9", "rgba(61,143,217,.4)", eggGrid(feedEntries));
-  h += "</div>";
-  // Shop & Expedition — existiert erst, wenn das Ei laufen kann (Überraschungsprinzip)
-  if (p.stage >= 2) {
-    h += '<div class="eg-divider"></div>';
-    if (p.expActive) h += '<div class="eg-dim">🚪 Unterwegs … ' + p.expProgress + "/" + p.expGoal + ' Aktionen<br><small>Es kehrt mit einem Fund zurück.</small></div>';
-    else h += '<button class="eg-btn eg-wide" data-act="exp">🚪 Expedition starten</button>';
-    const shopEntries = (items, act, ownedMap, ownTxt) => items.map(it => {
-      const owned = ownedMap && ownedMap[it.id];
-      const afford = (p.stardust || 0) >= it.cost;
-      const sub = owned ? ownTxt : it.cost + " ✨";
-      return { html: '<button class="eg-btn' + (owned ? " eg-owned" : "") + '" data-act="' + act + '" data-id="' + it.id + '"' + (!owned && !afford ? " disabled" : "") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
-    });
-    // Spielzeug: eigener Renderer, weil gekaufte Spielzeuge je nach Zustand
-    // (Abklingzeit, krank, kein Strom, noch nichts in HomeHub erledigt) spielbar
-    // oder gesperrt sind — anders als Deko/Kostüme, die nur einmal gekauft werden.
-    const toyEntries = (items) => {
-      const now = Date.now();
-      return items.map(it => {
-        const owned = p.toys && p.toys[it.id];
-        if (!owned) {
-          const afford = (p.stardust || 0) >= it.cost;
-          const sub = it.cost + " ✨";
-          return { html: '<button class="eg-btn" data-act="toy" data-id="' + it.id + '"' + (afford ? "" : " disabled") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
-        }
-        const cdLeft = ((p.toyCooldown || {})[it.id] || 0) - now;
-        let reason = "";
-        if (p.power <= 0) reason = "Kein Strom";
-        else if (p.krank) reason = "Erst gesund werden";
-        else if (p.stage < 3) reason = "Braucht Arme";
-        else if (cdLeft > 0) reason = "noch " + Math.ceil(cdLeft / 3600000) + "h";
-        else if (p.lastRealActionDay !== localDayKey()) reason = "Erst HomeHub nutzen";
-        const sub = reason || "▶ Spielen";
-        return { html: '<button class="eg-btn eg-owned" data-act="toy" data-id="' + it.id + '"' + (reason ? " disabled" : "") + ">" + it.label + "<br><small>" + sub + "</small></button>", len: Math.max(it.label.length - 3, sub.length) };
-      });
-    };
-    const toysU = TOY_ITEMS.filter(t2 => un[t2.id]);
-    const dekoU = SHOP_ITEMS.filter(it => un[it.id]);
-    const seasU = SEASON_ITEMS.filter(it => inSeason(it) && un[it.id]);
-    const cosU  = COSTUMES.filter(it => inSeason(it) && un[it.id]);
-    const wallU = (p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS.filter(inSeason)].filter(it => un[it.id]) : [];
-    if (toysU.length) h += eggZone("#9163d9", "rgba(145,99,217,.4)", eggGrid(toyEntries(toysU)));
-    if (dekoU.length) h += eggZone("#d9569a", "rgba(217,86,154,.4)", eggGrid(shopEntries(dekoU, "deko", p.deko, "✓")));
-    if (seasU.length) h += eggZone("#5fae3d", "rgba(95,174,61,.4)", eggGrid(shopEntries(seasU, "deko", p.deko, "✓")));
-    if (cosU.length)  h += eggZone("#d9a13d", "rgba(217,161,61,.4)", eggGrid(shopEntries(cosU, "costume", p.costumes, "✓ getragen")));
-    if (wallU.length) h += eggZone("#5c7a9e", "rgba(92,122,158,.4)", eggGrid(shopEntries(wallU, "deko", p.deko, "✓ hängt")));
-    if (!toysU.length && !dekoU.length && !seasU.length && !cosU.length && !wallU.length)
-      h += '<div class="eg-dim" style="margin-top:7px"><small>🎒 Von Expeditionen bringt das Ei Funde mit …</small></div>';
-    const albumTotal = TOY_ITEMS.length + SHOP_ITEMS.length + SEASON_ITEMS.length + COSTUMES.length + ((p.prestige || 0) >= 1 ? WALL_ITEMS.length + WALL_SEASON_ITEMS.length : 0);
-    const albumGot = TOY_ITEMS.filter(it => un[it.id]).length + SHOP_ITEMS.filter(it => un[it.id]).length +
-      SEASON_ITEMS.filter(it => un[it.id]).length + COSTUMES.filter(it => (p.costumes || {})[it.id]).length +
-      ((p.prestige || 0) >= 1 ? [...WALL_ITEMS, ...WALL_SEASON_ITEMS].filter(it => un[it.id]).length : 0);
-    h += '<button class="eg-btn eg-wide" data-act="album" style="margin-top:9px">📖 Sammelalbum<br><small>' + albumGot + " von " + albumTotal + " Fundstücken</small></button>";
-  }
-  h += "</div>";
-  return h;
+  if(companionSaveBlocked)return '<p class="eg-warn">Der Begleiterstand konnte nicht sicher übernommen werden. Deine gespeicherten Daten bleiben erhalten. Bitte Speicherplatz bzw. App-Version prüfen und neu laden.</p>';
+  const p=dragon,c=p.companion,current=p.stage,next=EGG_XP[current+1],progress=next===undefined?100:clampI((p.xp-EGG_XP[current])/(next-EGG_XP[current])*100,0,100);
+  const button=(act,label,id="",disabled=false)=>'<button class="eg-btn" data-act="'+act+'" data-id="'+esc(id)+'"'+(disabled?' disabled':'')+'>'+label+'</button>';
+  let h='<div class="eg-pane"><div class="eg-row"><strong>'+esc(EGG_PAL[current].name)+'</strong><span>'+p.stardust+' Sterne</span></div>';
+  h+='<p class="eg-moment" role="status" aria-live="polite">'+esc(companionMoment())+'</p>';
+  h+='<p class="eg-dim">'+(p.krank?'Ruht sich aus · erholt sich nach der Rückkehr von selbst':p.hunger<50?'Gemütlich und etwas hungrig':'Fühlt sich wohl')+' · '+esc(companionCharacter())+(p.prestige?' · Ei '+(p.prestige+1):'')+'</p>';
+  h+='<div class="eg-dim">'+Math.round(p.xp)+' XP'+(next===undefined?' · Voll entwickelt':' · Noch '+Math.max(0,next-p.xp)+' bis zur nächsten Form')+'</div><progress aria-label="Entwicklung" max="100" value="'+progress+'"></progress>';
+  h+='<div class="eg-companion-nav">'+button("nudge","Interagieren")+button("album","Album")+'</div>';
+  const toys=TOY_ITEMS.filter(x=>p.unlocked[x.id]),deko=SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS).filter(x=>p.unlocked[x.id]),costumes=COSTUMES.filter(x=>p.unlocked[x.id]||p.costumes[x.id]);
+  h+='<details data-panel="room"><summary>Raum und Spielzeug</summary><p class="eg-dim">Gekauftes Spielzeug nutzt es auch selbstständig. Gefundene Gegenstände aus Abenteuern gehören dir direkt.</p><div class="eg-grid">';
+  for(const it of toys)h+=button("toy",esc(it.label)+'<small>'+ (p.toys[it.id]?'Gemeinsam spielen':it.cost+' Sterne')+'</small>',it.id,!p.toys[it.id]&&p.stardust<it.cost);
+  for(const it of deko)h+=button("deko",esc(it.label)+'<small>'+(p.deko[it.id]?'Im Raum · '+esc(c.world.objects[it.id]?.state||"vertraut"):it.cost+' Sterne')+'</small>',it.id,!p.deko[it.id]&&p.stardust<it.cost);
+  for(const it of costumes)h+=button("costume",esc(it.label)+'<small>'+(p.costumes[it.id]?(c.world.equippedCostume===it.id?'Ausziehen':'Anziehen'):it.cost+' Sterne')+'</small>',it.id,!p.costumes[it.id]&&p.stardust<it.cost);
+  h+='</div></details><details data-panel="adventure"><summary>Abenteuer</summary>';
+  if(p.expActive){const ex=c.expedition;h+='<p>'+esc(COMPANION_TRIPS[ex.type].label)+' · Rückkehr ungefähr '+esc(new Date(ex.returnAt).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}))+'</p><p class="eg-dim">Die Rückkehr und der Fund werden automatisch gespeichert.</p>';}
+  else if(p.stage>=2){h+='<div class="eg-grid">';for(const [id,it] of Object.entries(COMPANION_TRIPS))h+=button('exp',it.label+'<small>Etwa '+it.hours+' Stunden</small>',id);h+='</div>';}
+  else h+='<p class="eg-dim">Sobald es laufen kann, erkundet es die Umgebung.</p>';
+  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten · freiwillig</summary><div class="eg-grid">'+button('feed','Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+' · Energie '+Math.round(p.power)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
+  h+='<details data-panel="history"><summary>Erinnerungen und Verlauf</summary><p class="eg-dim">'+(p.statLog.acts||0)+' bisherige Aktionen · '+(p.statLog.plays||0)+' gemeinsame Spielrunden · '+(c.journey.spontaneous||0)+' selbstständige Spielmomente · '+(p.statLog.exps||0)+' Abenteuer. Aktivitätstage: '+p.streak+'.</p>'+(p.lastReview?button('review','Rückblick herunterladen'):'')+'</details>';
+  if(p.xp>=5500)h+=button('prestige',prestigeConfirm?'Neues Ei wirklich beginnen?':'Durchs Portal · neues Ei');
+  return h+'</div>';
 }
 
 function updateEggUI() {
@@ -2426,7 +2212,11 @@ function updateEggUI() {
 function updateEggUIInner() {
   const se = document.getElementById("eggSections");
   if (!se) return;
+  const open=new Set(Array.from(se.querySelectorAll("details[open]")).map(x=>x.dataset.panel));
+  const focus=document.activeElement, act=focus && focus.dataset && focus.dataset.act, id=focus && focus.dataset && focus.dataset.id;
   se.innerHTML = eggSections();
+  se.querySelectorAll("details").forEach(x=>{x.open=open.has(x.dataset.panel);});
+  if(act){const target=Array.from(se.querySelectorAll("[data-act]")).find(x=>x.dataset.act===act&&x.dataset.id===id);if(target)target.focus({preventScroll:true});}
   uiDirty = false;
 }
 
@@ -2438,22 +2228,14 @@ function eggAlbumEntry(it, owned, note) {
   return { html, len: Math.max(it.label.length - 3, 12) };
 }
 function eggAlbumHtml() {
-  const p = dragon, un = p.unlocked || {};
-  const cats = [
-    ["#9163d9", "rgba(145,99,217,.4)", TOY_ITEMS, (it) => un[it.id]],
-    ["#d9569a", "rgba(217,86,154,.4)", SHOP_ITEMS, (it) => un[it.id]],
-    ["#5fae3d", "rgba(95,174,61,.4)", SEASON_ITEMS, (it) => un[it.id]],
-    ["#d9a13d", "rgba(217,161,61,.4)", COSTUMES, (it) => (p.costumes || {})[it.id]],
-  ];
-  if ((p.prestige || 0) >= 1) {
-    cats.push(["#5c7a9e", "rgba(92,122,158,.4)", [...WALL_ITEMS, ...WALL_SEASON_ITEMS], (it) => un[it.id]]);
+  const p=dragon,c=p.companion;
+  let h='<div class="eg-album"><p>Einige Entdeckungen bleiben noch im Verborgenen.</p>';
+  const section=(title,rows)=>'<h3>'+title+'</h3><div class="eg-grid">'+rows.map(x=>'<div class="eg-album-entry">'+x+'</div>').join('')+'</div>';
+  for(const [title,items,map] of [["Spielzeuge",TOY_ITEMS,p.toys],["Dekoration",SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),p.deko],["Kostüme",COSTUMES,p.costumes]]) {
+    h+=section(title,items.map(it=>p.unlocked[it.id]||map[it.id]?esc(it.label)+'<small>'+(map[it.id]?(title==='Dekoration'?'Besitzt du · im Raum':'Besitzt du'):'Entdeckt · im Raum erhältlich')+'</small>':'<span class="eg-dim">Ein unbekannter '+(title==='Spielzeuge'?'Spielgefährte':'Gegenstand')+'</span>'));
   }
-  let total = 0, got = 0, h = "";
-  cats.forEach(([c, g, items, isOwned]) => {
-    const entries = items.map(it => { const o = isOwned(it); total++; if (o) got++; return eggAlbumEntry(it, o); });
-    h += eggZone(c, g, eggGrid(entries));
-  });
-  return '<div class="eg-dim" style="margin-bottom:8px">' + got + " von " + total + " Fundstücken gesammelt</div>" + h;
+  for(const [key,title] of [["finds","Fundstücke"],["events","Besondere Ereignisse"],["forms","Entwicklungsformen"],["moments","Erinnerungen"]])h+=section(title,c.collection[key].length?c.collection[key].map(x=>esc(x.label)):['Noch eine verborgene Geschichte']);
+  return h+'</div>';
 }
 
 function eggHandleClick(e) {
@@ -2473,13 +2255,13 @@ function eggHandleClickInner(e) {
   else if (act === "fix") eggFix();
   else if (act === "shells") eggCleanShells();
   else if (act === "feed") eggFeed(id);
-  else if (act === "exp") eggStartExp();
+  else if (act === "exp") eggStartExp(id || "near");
   else if (act === "deko") { const it = SHOP_ITEMS.concat(SEASON_ITEMS, WALL_ITEMS, WALL_SEASON_ITEMS).find(x => x.id === id); if (it) eggBuyDeko(id, it.cost); }
   else if (act === "toy") { if (dragon.toys && dragon.toys[id]) eggPlay(id); else eggBuyToy(id); }
   else if (act === "costume") eggBuyCostume(id);
   else if (act === "review") eggDownloadReview();
   else if (act === "prestige") eggPrestige();
-  else if (act === "album") { if (typeof openKasseModal === "function") openKasseModal("📖 Sammelalbum", eggAlbumHtml()); }
+  else if (act === "album") { if (typeof openKasseModal === "function") openKasseModal("Sammelalbum", eggAlbumHtml()); }
 }
 
 function renderDragonCard() {
@@ -2489,7 +2271,7 @@ function renderDragonCardInner() {
   const card = document.getElementById("dragonCard");
   if (!card) return;
   card.innerHTML =
-    '<div class="eg-head">HomeHub · <span style="color:#b3720a">EI-EVOLUTION</span></div>' +
+    '<div class="eg-head">HomeHub · <span style="color:#b3720a">DEIN BEGLEITER</span></div>' +
     '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas></div>' +
     '<div id="eggToast" class="eg-toast"></div>' +
     '<div id="eggSections"></div>';
@@ -2497,6 +2279,8 @@ function renderDragonCardInner() {
   eggStopLoop();
   card.removeEventListener("click", eggHandleClick);   // doppelte Listener vermeiden
   card.addEventListener("click", eggHandleClick);
+  updateEggUI();
+  companionHint();
   eggCanvas = document.getElementById("eggCanvas");
   if (!eggCanvas || !eggCanvas.getContext) { eggCtx = null; return; }
   eggCtx = eggCanvas.getContext("2d");
@@ -2516,6 +2300,7 @@ function eggStartLoop() {
   if (!eggCtx || !document.getElementById("eggCanvas")) return;
   eggRenderErrors = 0;
   eggStart = (typeof performance !== "undefined" ? performance.now() : Date.now()) - (eggElapsed || 0);
+  if(companionReducedMotion()){eggFrame();return;}
   eggRafId = requestAnimationFrame(eggLoop);
 }
 
@@ -2526,6 +2311,7 @@ function eggStopLoop() {
 
 function eggLoop() {
   if (!eggRafId) return;                       // nach Stop nicht weiterlaufen
+  if(companionReducedMotion()){eggStopLoop();eggFrame();return;}
   eggRafId = requestAnimationFrame(eggLoop);
   try {
     eggFrame();
@@ -2549,23 +2335,19 @@ function eggFrame() {
     return;
   }
   if (!eggCardVisible()) { eggStopLoop(); return; }
-  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) - eggStart;
+  const t = companionReducedMotion() ? 0 : (typeof performance !== "undefined" ? performance.now() : Date.now()) - eggStart;
   eggElapsed = t;
   const St = dragon;
   eggCtx.clearRect(0, 0, CW, CH);
-  if (St.power > 0) {
+  {
     drawRoom(eggCtx, t, St.stage, St.power);
     if (St.deko) drawDeko(eggCtx, t, St.deko, St.prestige || 0);
     if (St.mess && St.mess.length) drawMess(eggCtx, St.mess);
-    if ((St.xp || 0) >= 10000) drawPrestigePortal(eggCtx, t);
+    if ((St.xp || 0) >= 5500) drawPrestigePortal(eggCtx, t);
     drawEgg(eggCtx, St, t);
     drawDim(eggCtx, St.power, t, St.deko);
     drawPowerTube(eggCtx, St.power, t);
-    drawHud(eggCtx, St, t);
-  } else {
-    drawPowerOff(eggCtx, St, t);
-    drawPowerTube(eggCtx, St.power, t);
-    drawHud(eggCtx, St, t);
+    drawCompanionScene(eggCtx, St, t);
   }
   if (uiDirty) updateEggUI();
 }
@@ -2577,9 +2359,8 @@ function eggFrame() {
      gestartet (Schutz gegen doppelte Skripteinbindung, s.u.).
    • Jeder Timer fängt Fehler lokal ab und sichert den Zustand vorher mit
      sanitizeDragon() ab, bevor er auf Arrays/Objekte zugreift.
-   • Der Sicherheits-Autosave schreibt NUR bei dragonDirty === true — kein
-     minütlicher Schreibvorgang ohne echte Änderung, damit der Cloud-Sync
-     der Haupt-App nicht unnötig anspringt.
+   • Ein Minutentakt projiziert Bedürfnisse und Zeit lokal. Nur dauerhafte
+     Ereignisabschlüsse lösen einen Cloud-Sync aus; kein Frame schreibt Daten.
    • lastSeen wird nur bei echten Ereignissen gesetzt (Hintergrund,
      Check-in) — nicht bei jedem Autosave.
    ══════════════════════════════════════════════════════════════════════ */
@@ -2596,46 +2377,40 @@ function eggEvery(ms, fn) {
 }
 
 function eggStartTimers() {
-  if (eggTimers.length) return;              // schon gestartet
-
-  eggEvery(432000, () => {                   // Strom: nach etwa 12h komplett leer
-    const p = dragon;
-    p.power = clampI(p.power - 1, 0, 100);
-    markDirty(); saveDragon();
+  if(eggTimers.length)return;
+  eggEvery(60000,()=>{
+    if(document.hidden || window.__hhApplying)return;
+    if(window.__hhCompanionMigrationPending && window.__hhReady){try{onAppDataSaved("vh_dragon");window.__hhCompanionMigrationPending=false;}catch(_) {}}
+    const c=dragon.companion,now=Date.now();
+    if(!c || companionSaveBlocked)return;
+    const due=c.events.some(x=>now>=x.dueAt) || (c.expedition?.status==="away"&&now>=c.expedition.returnAt) || (c.recoveryAt&&now>=c.recoveryAt);
+    companionCommit(()=>companionAdvance(now,false),!due);
+    if(uiDirty)updateEggUI();
+    if(companionReducedMotion()&&eggCtx)eggFrame();
   });
-
-  eggEvery(576000, () => {                   // Hunger (~16h)
-    const p = dragon;
-    p.hunger = clampI(p.hunger - 1, 0, 100);
-    if (p.stage === 4) p.integrity = clampI(p.integrity - 1, 0, 100);
-    const krank = p.krank || p.sauberkeit <= 0 || p.hunger <= 1;
-    p.krankSeit = krank ? (p.krankSeit || Date.now()) : 0;
-    p.krank = krank;
-    Object.assign(p, applyKrankDevolve(p, Date.now()));
-    markDirty(); saveDragon();
-  });
-
-  eggEvery(864000, () => {                   // Sauberkeit (~24h) + Dreck
-    const p = dragon;
-    p.sauberkeit = clampI(p.sauberkeit - 1, 0, 100);
-    if (p.sauberkeit < 96 && p.mess.length < 6 && Math.random() < 0.6) {
-      const types = p.stage < 2 ? ["shell", "shell", "slime"] : p.sauberkeit < 20 ? ["poop", "slime", "poop"] : ["poop", "shell", "shell"];
-      p.mess = [...p.mess, { type: types[Math.floor(Math.random() * types.length)], x: 18 + Math.floor(Math.random() * 140), seed: Math.floor(Math.random() * 200) }];
-    }
-    markDirty(); saveDragon();
-  });
-
-  // Sicherheits-Autosave: schreibt nur, wenn wirklich etwas offen ist
-  eggEvery(60000, () => {
-    if (dragonDirty) saveDragon();
-  });
+}
+function companionReducedMotion(){return typeof matchMedia==="function" && matchMedia("(prefers-reduced-motion: reduce)").matches;}
+function drawCompanionScene(ctx,p,t) {
+  const c=p.companion,r=c.reactions[c.reactions.length-1],type=r?.type;
+  // Pixel props make real HomeHub activity visible without pop-ups.
+  const colors={expense:"#f2dab1",shoppingComplete:"#c89760",recipe:"#8bb86d",recipeCooked:"#8bb86d",meter:"#67bec4",backup:"#67bec4",contractCreate:"#e4dfcc",contractUpdate:"#e4dfcc"};
+  if(colors[type]){
+    ctx.fillStyle=colors[type];ctx.fillRect(146,112,12,12);ctx.fillStyle="#5a4b66";
+    if(type==='shoppingComplete'){ctx.strokeRect(149,108,6,4);ctx.fillRect(150,118,4,2);}
+    else if(type==='recipe'||type==='recipeCooked'){ctx.fillStyle="#e4e7d5";ctx.fillRect(144,120,16,3);ctx.fillStyle="#91b966";ctx.fillRect(149,116,7,4);}
+    else if(type==='backup'||type==='meter'){ctx.fillRect(148,114,8,5);ctx.fillStyle="#8ddd9f";ctx.fillRect(150,116,4,2);}
+    else {ctx.fillRect(149,115,6,1);ctx.fillRect(149,118,5,1);if(type!=='expense')ctx.fillRect(150,110,4,3);}
+  }
+  if(p.stage===2&&idle.act==="play"){ctx.fillStyle="#b3d45f";ctx.fillRect(118+Math.round(Math.sin(t/260)*6),120,6,6);}
+  ctx.fillStyle="#beafd6";ctx.font="5px monospace";ctx.fillText(companionCharacter(),7,146);
+  ctx.fillText(p.stardust+" Sterne",140,146);
 }
 
 function eggHandleVisibility() {
   try {
     if (document.hidden) {
       eggStopLoop();
-      saveDragon({ touchLastSeen: true, silent: true });    // nur Zeitstempel, keine echte Aktion
+      companionCommit(()=>companionAdvance(Date.now(),false),true);
     } else {
       eggCheckIn();                           // aktualisiert lastSeen und speichert selbst
       if (document.getElementById("eggCanvas")) eggStartLoop();
@@ -2653,12 +2428,18 @@ if (window.__HOMEHUB_EGG_MODULE_INITIALIZED__) {
   window.__HOMEHUB_EGG_MODULE_INITIALIZED__ = true;
 
   document.addEventListener("visibilitychange", eggHandleVisibility);
+  if(window.matchMedia){const motion=window.matchMedia("(prefers-reduced-motion: reduce)");if(motion.addEventListener)motion.addEventListener("change",()=>{eggStopLoop();if(eggCtx)eggStartLoop();});}
 
   // Boot: gespeicherten Stand laden (loadDragon säubert selbst)
   (function eggBoot() {
     let stored = null;
     try { stored = JSON.parse(localStorage.getItem("vh_dragon") || "null"); } catch (_) {}
-    loadDragon(stored);
+    try {
+      if(stored && stored.egg && !stored.companion && !localStorage.getItem("hh_dragon_before_companion"))localStorage.setItem("hh_dragon_before_companion",JSON.stringify({savedAt:new Date().toISOString(),dragon:stored}));
+      loadDragon(stored);
+      if(stored?.egg && !stored.companion)window.__hhCompanionMigrationPending=true;
+      companionCommit(()=>companionAdvance(Date.now(),true),true);
+    } catch(err){companionSaveBlocked=true;console.warn("[Begleiter] Migration angehalten:",err.message);}
     try { lastSavedDragonJson = JSON.stringify(dragon); } catch (_) {}
     eggStartTimers();
   })();

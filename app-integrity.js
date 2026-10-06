@@ -88,6 +88,7 @@ function prepareAppSnapshot(input) {
   d.shopLists.items ??= [];
   if (!Array.isArray(d.shopLists.items) || d.shopLists.items.some(r=>!obj(r))) throw new Error('Ungültige Einkaufsliste.');
   d.shopLists.items.forEach(r=>{fields(r,'Einkauf'); if(typeof r.name !== 'string') throw new Error('Einkaufsartikel ohne Namen.');});
+  if(d.shopLists.history!==undefined){if(!obj(d.shopLists.history)||Object.values(d.shopLists.history).some(r=>!obj(r)||typeof r.name!=='string'))throw new Error('Ungültige Einkaufshistorie.');}
   const meterTypes = new Set();
   for (const m of d.meters) {
     fields(m,'Zähler');
@@ -134,11 +135,16 @@ function prepareAppSnapshot(input) {
     if(!obj(entry))throw new Error('Ungültiger Preisverlauf.');
     for(const key of ['avg','last','count'])if(entry[key]!=null && (typeof entry[key]!=='number' || !Number.isFinite(entry[key]) || entry[key]<0))throw new Error('Ungültiger Preisverlauf.');
   }
+  for (const meter of d.meters) {
+    if (meter.readingIntervalMonths != null && ![0,1,3,12].includes(meter.readingIntervalMonths)) throw new Error('Ungültiges Ableseintervall.');
+    if (meter.readingDay != null && (!Number.isInteger(meter.readingDay) || meter.readingDay < 1 || meter.readingDay > 31)) throw new Error('Ungültiger Ablesetag.');
+  }
   d.settings={...d.settings,partnerName:d.settings.partnerName || 'Partner',splitPct:Number.isFinite(d.settings.splitPct)?Math.min(99,Math.max(1,d.settings.splitPct)):50};
+  if (typeof repairKnownSnapshot === 'function') repairKnownSnapshot(d);
   return d;
 }
 function collectAppSnapshot() {
-  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:39};
+  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:44};
 }
 function snapshotHasData(d) {
   if(['contracts','meters','expenses','recurring','transfers','recipes','concerts','ticketPeople'].some(k=>d[k]?.length))return true;
@@ -147,7 +153,10 @@ function snapshotHasData(d) {
   if(Object.entries(d.settings || {}).some(([k,v])=>k==='partnerName'?v && v!=='Partner':k==='splitPct'?v!==50: v!==false && v!=null && v!==''))return true;
   const p=d.dragon || {};
   return !!(p.xp || p.stage || p.prestige || p.stardust || p.streak || p.expActive ||
-    ['deko','toys','costumes','unlocked'].some(k=>Object.values(p[k] || {}).some(Boolean)));
+    ['deko','toys','costumes','unlocked'].some(k=>Object.values(p[k] || {}).some(Boolean)) ||
+    p.companion?.events?.length || p.companion?.reactions?.length || p.companion?.journey?.days?.length ||
+    Object.values(p.companion?.collection || {}).some(x=>Array.isArray(x)&&x.length) ||
+    Object.values(p.companion?.personality?.scores || {}).some(x=>Number(x)>0));
 }
 function saveRecoverySnapshot(data, key='hh_recovery_local') {
   // If quota is exhausted, abort before replacing the user's current data.
@@ -182,6 +191,7 @@ function applyAppSnapshot(input) {
     for(const [key,value] of stored) { try { if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value); }catch(_){} }
     throw new Error('Übernahme fehlgeschlagen. Der vorherige Stand wurde gesichert: '+err.message);
   } finally { window.__hhApplying=false; }
+  if(data.dragon?.egg && !data.dragon.companion)onAppDataSaved('vh_dragon');
   if(meters.length)activeMeterType=meters[0].type;
   try {
     renderAmpel();renderHome();renderContracts();applyRecipeModuleState();
@@ -196,4 +206,12 @@ function onAppDataSaved(key) {
   if(!Object.values(HH_DATA_KEYS).includes(key)) return;
   if(window.hhSync) window.hhSync.touch();
   if(hhBackupTimer===null) hhBackupTimer=setTimeout(()=>{hhBackupTimer=null;incrementBackupCounter(2);},0);
+}
+
+function downloadDragonRecovery(){
+  const recovery=JSON.parse(localStorage.getItem('hh_dragon_before_companion') || 'null');
+  if(!recovery){alert('Noch kein Stand vor der Begleiter-Migration vorhanden.');return;}
+  const snapshot=JSON.parse(JSON.stringify(collectAppSnapshot()));snapshot.dragon=recovery.dragon;
+  const url=URL.createObjectURL(new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='homehub-vor-begleiter.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }

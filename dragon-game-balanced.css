@@ -235,3 +235,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Begleiter v44: wenige Hauptaktionen, freiwillige Details. */
+.dragon-card progress { width:100%;height:12px;accent-color:#9b79d1;margin:8px 0 12px; }
+.eg-moment { min-height:2.8em;line-height:1.5;color:var(--eg-ink); }
+.eg-companion-nav {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;}
+.dragon-card details {border-top:1px solid var(--eg-edge);padding:8px 0;}
+.dragon-card summary {min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px;font-weight:600;}
+.dragon-card details .eg-grid {--eg-mincol:130px;}
+.eg-btn small,.eg-album-entry small {display:block;margin-top:4px;font-size:11px;line-height:1.4;}
+.eg-album {--eg-font:ui-monospace,monospace;--eg-bg:#dfe3e9;--eg-bg2:#eef1f4;--eg-bg3:#c7ccd3;--eg-ink:#232a35;--eg-dim:#667080;--eg-dim2:#a4abb6;--eg-gold:#b3720a;--eg-edge:#b7bec7;--eg-good:#157a52;--eg-bad:#c0273d;color:var(--eg-ink);background:var(--eg-bg2);padding:12px;border-radius:10px;font-family:var(--eg-font);}
+.eg-album .eg-grid {--eg-mincol:130px;}
+.eg-album h3 {font-size:14px;margin:18px 0 8px;}
+.eg-album-entry {padding:10px;border:1px solid var(--eg-edge);border-radius:8px;font-size:12px;overflow-wrap:anywhere;}
+.companion-hint {display:block;width:100%;border:0;background:transparent;color:var(--muted);text-align:left;font:inherit;font-size:11px;line-height:1.4;padding:6px 2px;min-height:44px;cursor:pointer;}

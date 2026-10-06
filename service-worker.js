@@ -18,7 +18,7 @@
    (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '39';
+const APP_VERSION        = '44';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 
@@ -31,7 +31,31 @@ function scopeUrl(path) {
   return new URL(path, self.registration.scope).href;
 }
 
-const CRITICAL_PATHS = ['./', './index.html', './manifest.json', `./app-integrity.js?v=${APP_VERSION}`];
+const CRITICAL_PATHS = ['./', './index.html', './manifest.json',
+  `./app-integrity.js?v=${APP_VERSION}`,
+  `./contracts-costs.js?v=${APP_VERSION}`,
+  `./app-stability.js?v=${APP_VERSION}`,
+  `./modal-ui.js?v=${APP_VERSION}`,
+  `./data-repairs.js?v=${APP_VERSION}`,
+  `./app.css?v=${APP_VERSION}`,
+  `./app-core.js?v=${APP_VERSION}`,
+  `./contracts-helpers.js?v=${APP_VERSION}`,
+  `./navigation-home.js?v=${APP_VERSION}`,
+  `./expenses.js?v=${APP_VERSION}`,
+  `./contracts.js?v=${APP_VERSION}`,
+  `./expense-forms.js?v=${APP_VERSION}`,
+  `./shopping.js?v=${APP_VERSION}`,
+  `./meters.js?v=${APP_VERSION}`,
+  `./analysis.js?v=${APP_VERSION}`,
+  `./settings.js?v=${APP_VERSION}`,
+  `./concerts.js?v=${APP_VERSION}`,
+  `./backup-ui.js?v=${APP_VERSION}`,
+  `./concerts-data.js?v=${APP_VERSION}`,
+  `./recipe-import.js?v=${APP_VERSION}`,
+  `./recipes.js?v=${APP_VERSION}`,
+  `./app-init.js?v=${APP_VERSION}`,
+  `./sync.js?v=${APP_VERSION}`
+];
 const OPTIONAL_PATHS = [
   `./dragon-game-balanced.js?v=${APP_VERSION}`,
   `./dragon-game-balanced.css?v=${APP_VERSION}`,
