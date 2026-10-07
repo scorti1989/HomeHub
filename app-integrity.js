@@ -144,7 +144,7 @@ function prepareAppSnapshot(input) {
   return d;
 }
 function collectAppSnapshot() {
-  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:53};
+  return {contracts,meters,expenses,shopLists,budgets,priceMemory,recurring,settings,transfers,recipes,weekPlan,concerts,venues,cities,ticketPeople,dragon,exported:new Date().toISOString(),schemaVersion:56};
 }
 function snapshotHasData(d) {
   if(['contracts','meters','expenses','recurring','transfers','recipes','concerts','ticketPeople'].some(k=>d[k]?.length))return true;

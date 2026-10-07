@@ -7,6 +7,7 @@ fillCatSelect('e-cat', 'lebensmittel');
 
 function setAccount(acc) {
   currentAccount = acc;
+  document.getElementById('acc-ich').setAttribute('aria-pressed',String(acc==='ich'));document.getElementById('acc-wir').setAttribute('aria-pressed',String(acc==='wir'));
   document.getElementById('acc-ich').className = 'acc-btn' + (acc === 'ich' ? ' ai' : '');
   document.getElementById('acc-wir').className = 'acc-btn' + (acc === 'wir' ? ' aw' : '');
   // Fix Bug 3: Wenn Modus "Mein Anteil" aktiv ist, klar kommunizieren dass Buchung
@@ -29,6 +30,7 @@ function updateTripSuggestions() {
 }
 function openAddExpense(prefill) {
   editExpId = null;
+  document.getElementById('expenseDetails').open=false;
   document.getElementById('expModalTitle').textContent = 'Ausgabe eintragen';
   document.getElementById('deleteExpBtn').style.display = 'none';
   document.getElementById('e-date').value = today();
@@ -43,7 +45,7 @@ function openAddExpense(prefill) {
   const defaultAcc = activeHaushalt === 'wir' ? 'wir' : (activeHaushalt || getLastAccountForCat(cat));
   setAccount(defaultAcc);
   updateTripSuggestions();
-  openModal('expenseModal');
+  openModal('expenseModal');document.getElementById('e-amount').focus({preventScroll:true});
 }
 function openEditExpense(id) {
   const e = expenses.find(x => x.id === id);
@@ -58,16 +60,18 @@ function openEditExpense(id) {
   document.getElementById('e-group').value = e.analysisGroup || getAnalysisGroup(e.category);
   document.getElementById('e-trip').value = e.tripId || '';
   document.getElementById('e-note').value = e.note || '';
+  document.getElementById('expenseDetails').open=!!(e.note||e.tripId||(e.analysisGroup&&e.analysisGroup!==getAnalysisGroup(e.category)));
   document.getElementById('fromShoppingInfo').style.display = 'none';
   setAccount(e.account || 'ich');
   updateTripSuggestions();
-  openModal('expenseModal');
+  openModal('expenseModal');document.getElementById('e-amount').focus({preventScroll:true});
 }
 // Kategorie-Wechsel → Gruppe automatisch vorschlagen
 document.getElementById('e-cat').addEventListener('change', function() {
   document.getElementById('e-group').value = getAnalysisGroup(this.value);
 });
-document.getElementById('saveExpBtn').addEventListener('click', () => {
+document.getElementById('expenseForm').addEventListener('submit', event => {
+  event.preventDefault();
   const amount = parseDE(document.getElementById('e-amount').value);
   const desc = document.getElementById('e-desc').value.trim();
   if (!amount || !desc) { alert('Bitte Betrag und Beschreibung eingeben.'); return; }

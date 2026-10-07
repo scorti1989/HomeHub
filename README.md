@@ -1,4 +1,4 @@
-# HomeHub 53
+# HomeHub 56
 
 Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sichtbare HomeHub-Reaktionen, Persönlichkeit, mehrphasige Entdeckungen und zeitbasierte Abenteuer.
 
@@ -6,7 +6,7 @@ Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sic
 
 1. In der laufenden App den Online-Abgleich prüfen. Ein zusätzlicher manueller Export bleibt optional.
 2. Alle Dateien aus dem Hauptordner dieser ZIP gemeinsam auf dem bisherigen Hosting ersetzen: index.html, sämtliche JavaScript-/CSS-Dateien, manifest.json und Icons. Neue Fachdateien gehören zwingend dazu. Die Ordner legacy/, tests/, server/ und docs/ sowie Markdown-Dateien sind für den Betrieb nicht erforderlich und müssen nicht veröffentlicht werden.
-3. Die App einmal online neu laden. Der Service Worker installiert Version 53. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
+3. Die App einmal online neu laden. Der Service Worker installiert Version 56. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
 4. Die App verwendet die bisherigen Speicherschlüssel. Ein Import ist für die Aktualisierung bestehender lokaler Daten nicht notwendig. Bekannte Datenfehler werden bei noch passenden Originalwerten gezielt korrigiert. Der Stand davor lässt sich in den Einstellungen unter „Stand vor Datenkorrektur herunterladen“ sichern.
 5. Das separat bereitgestellte korrigierte Backup ist der Datenstand vom 06.10.2026. Importiere es nur, wenn du genau diesen Stand wiederherstellen möchtest. Ein Import ersetzt den gesamten lokalen Datenstand und ist daher ungeeignet, um später erfasste Einträge zu erhalten.
 
@@ -21,6 +21,14 @@ Hunger und Sauberkeit sinken langsam bis zu weichen Untergrenzen. Energie erholt
 Die Momentzeile direkt unter dem Ei zeigt, was es erlebt. Im Kopfbereich gibt es nur noch einen kleinen Sicherungspunkt neben dem Logo. Grün bedeutet bestätigte Online-Sicherung, Gelb einen laufenden/ausstehenden Abgleich und Rot fehlende Absicherung mit Empfehlung zum manuellen Export. Die XP-Anzeige und der Fortschrittsbalken sind ausgeblendet; die Entwicklung läuft intern weiter. Ereignisse behalten ihren Fortschritt über Neustarts. Persönlichkeit entsteht ab jetzt aus Nutzung, Spiel, Ruhe und Erkundung. Abenteuer dauern etwa 3, 10 oder 22 Stunden und enden automatisch beim nächsten Öffnen oder während sichtbarer Nutzung. Funde, Besitz, Formen und besondere Momente erscheinen im Album. Online-Sicherungen erzeugen eine Reaktion nur nach einem neu angelegten und überprüften Sicherungspunkt; ein manueller Export ist dafür nicht erforderlich.
 
 Unter Einstellungen lässt sich das Ei vor dem Umbau herunterladen. Diese Datei verbindet den gesicherten alten Ei-Zustand mit den übrigen aktuellen App-Daten; sie ist kein historischer Gesamtstand. Die vorhandene allgemeine Wiederherstellung sichert weiterhin komplette Datenstände. Details und Prüfungen: docs/BEGLEITER.md.
+
+## Ausgabenerfassung in Version 56
+
+Kompakte Ausgabenerfassung mit fester Fußzeile für Abbrechen und Speichern oberhalb der Tastatur. Konto, Betrag, Datum, Beschreibung und Kategorie stehen direkt bereit. Lebensbereich, Reise und Notiz liegen unter Weitere Angaben; beim Bearbeiten vorhandener Zusatzangaben öffnet sich der Bereich automatisch. Speichern über die Fertig-Taste der Tastatur ist möglich. Der Kontoauswahlzustand ist zugänglich beschriftet. Viewport, Formularspeicherung und Bearbeitung mit Zusatzangaben sind in der DOM-Simulation geprüft; ein echter Android-Tastaturtest steht weiterhin aus.
+
+## Stoffdarstellung in Version 54
+
+Das Geistergewand hat einen runden Kopf und durchgehenden breiten Stoffkörper statt einer Tropfenform. Es folgt Streckung, Stauchung und Drehung; die darunterliegende Schale wird beim Tragen nicht gezeichnet, damit sie nicht hervorblitzt. Bein- und Armöffnungen verwenden Stofffarben. Begrüßen und Album haben kleinere Symbole neben der Schrift und 44 Pixel hohe Buttons.
 
 ## Symbolalbum in Version 53
 
@@ -105,3 +113,6 @@ Weicht der Kassenbon vom erwarteten Gesamtpreis ab, bleiben bekannte Artikelprei
 Bestanden sind Syntax, Original-/korrigiertes Backup, Fachlogik-Regressionen, vollständige App-Ausführung in jsdom sowie Service-Worker-Simulation. Details in docs/TESTBERICHT.md.
 
 Ein echter Chromium-Klick-/Layouttest konnte nicht abgeschlossen werden: Die Browserausführung endet in dieser Umgebung mit SIGSEGV. Deshalb sind Pixel-/Layoutdarstellung, reale Browser-Zurückbedienung und die Installation auf einem physischen Handy nicht abschließend geprüft. Der Cloud-Test nutzt einen simulierten Server; es wurde kein echter Cloud-Zugang verwendet.
+
+### Version 56
+Begleitermenü und Album verwenden farbige Emojis für Gegenstände und Aktionen. Entwicklungsformen behalten ihre eigenen Ei-Symbole. Kompakte Kacheln zeigen weiterhin nur Entdecktes; Antippen im Album zeigt die Beschreibung.

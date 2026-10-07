@@ -5,12 +5,18 @@ function modalFocusables(modal) {
   return [...modal.querySelectorAll('button, input, select, textarea, summary, a[href], [tabindex]')]
     .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
 }
+function fitExpenseViewport(){
+ const modal=document.getElementById("expenseModal"),v=window.visualViewport;
+ if(modal&&v){modal.style.setProperty("--expense-viewport-height",v.height+"px");modal.style.setProperty("--expense-viewport-top",v.offsetTop+"px");}
+}
+if(window.visualViewport){window.visualViewport.addEventListener("resize",fitExpenseViewport);window.visualViewport.addEventListener("scroll",fitExpenseViewport);}
 function openModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
   if (!modal.classList.contains('open')) modalReturnFocus.set(id, document.activeElement);
   const pos = modalStack.indexOf(id); if (pos >= 0) modalStack.splice(pos,1);
   modalStack.push(id);
+  if(id==="expenseModal")fitExpenseViewport();
   modal.classList.add('open');
   modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true');
   const heading = modal.querySelector('h2, h3');

@@ -1095,28 +1095,24 @@ function drawCostume(ctx, cx, topY, t, P, id) {
     rect(ctx,cx-10,topY+4,20,1,"#ab8540");
     rect(ctx, Math.round(cx) - 7, topY + 1, 14, 2, "#a05828");       // Hutband
   } else if (id === "ghost") {
-    // Ein vollständiges Stoffkostüm; die vertrauten Augen und Gliedmaßen bleiben.
-    const width=Math.round(P.rb+2),height=Math.round(P.ht+P.rb),hem=topY+height-1;
-    const cy=topY+Math.round(height*.48),ry=Math.round(height*.50);
-    pe(ctx,cx,hem+2,width*.78,2,'rgba(40,35,60,.16)');
-    pe(ctx,cx,cy,width,ry,'#9293aa');
-    pe(ctx,cx,cy,width-1,ry-1,'#e9e7f2');
-    pe(ctx,cx-2,cy-2,width-3,ry-3,'#faf8fc');
-    // Ausgestellter Saum statt einer abgeschnittenen Haube.
-    tri(ctx,cx-width+2,cy+5,cx-width-1,hem,cx,hem,'#e9e7f2');
-    tri(ctx,cx+width-2,cy+5,cx+width+1,hem,cx,hem,'#dedbe9');
-    rect(ctx,cx-width+1,hem-7,width*2-2,6,'#eeebf5');
-    const step=(width*2-2)/5;
+    // Runde Schulterpartie, durchgehender Stoff, breiter Saum ohne Tropfenkeil.
+    const width=Math.round(P.rb+2),height=Math.round(P.ht+P.rb),cap=Math.round(height*.43),hem=topY+height;
+    for(let row=-2;row<=height;row++){
+      const q=Math.max(0,(row+2)/(cap+2));
+      const half=row<cap?Math.max(1,Math.round(width*Math.sqrt(Math.max(0,1-(1-q)*(1-q))))):Math.round(width*(.98+.05*(row-cap)/(height-cap)));
+      rect(ctx,cx-half,topY+row,half*2,1,'#a3a0b4');
+      if(half>1){rect(ctx,cx-half+1,topY+row,half*2-2,1,'#f4f1f8');rect(ctx,cx+half-4,topY+row,3,1,'#e2ddeb');}
+    }
+    const step=width*2/5;
     for(let i=0;i<5;i++){
-      const x=cx-width+1+i*step;
-      tri(ctx,x,hem-2,x+step,hem-2,x+step*.5,hem+2,i===4?'#dedbe9':'#eeebf5');
+      const x=cx-width+i*step;
+      tri(ctx,x,hem-1,x+step,hem-1,x+step*.5,hem+3,i===4?'#e2ddeb':'#f4f1f8');
     }
-    // Wenige seitliche Falten; das Gesicht bleibt ohne zusätzliche Konturen frei.
     for(const sign of [-1,1]){
-      rect(ctx,cx+sign*(width-5),cy+7,1,Math.max(3,hem-cy-10),'#c8c4d8');
-      rect(ctx,cx+sign*(width-8),hem-9,1,5,'#ddd9e9');
+      rect(ctx,cx+sign*(width-5),topY+cap+9,1,Math.max(3,height-cap-12),'#ccc5da');
+      rect(ctx,cx+sign*(width-8),hem-9,1,6,'#e0daeb');
     }
-    } else if (id === "santahat") {
+      } else if (id === "santahat") {
     const bob = Math.sin(t / 500) * 1;                               // Bommel wippt
     pe(ctx, cx, topY + 3, 10, 3, "#f4f0ea");                          // Pelzrand
     tri(ctx, cx - 9, topY + 2, cx + 9, topY + 2, cx + 3, topY - 11, "#c02030");   // Zipfel
@@ -1502,19 +1498,21 @@ function drawEgg(ctx, S, t) {
   const ebDrop = wobbling ? Math.round((1 - limbK) * 10) : 0;           // Ei sinkt auf den Boden
   const eyeY = eb + ebDrop - (P.rb + P.ht * 0.34) + breath;
   const armY = eb + ebDrop - P.rb + 1 + Math.round(walkBob);
+  const wornC=costumeWorn(S.costumes),cloth=wornC==="ghost";
+  const limbPalette=cloth?{...P,hi:"#f4f1f8",base:"#e2ddeb",dk:"#aaa1bd"}:P;
   ctx.save();
   ctx.translate(cx + sway, eb + ebDrop + breath);
   ctx.rotate(rot + rollAngle);
   ctx.scale(sqx * turnSq, sqy);
   if (S.krank) ctx.filter = "saturate(0.25) brightness(1.18)";
-  ctx.drawImage(spr.open, -EGG_CX, -BUF_BASE);
+  if(!cloth)ctx.drawImage(spr.open, -EGG_CX, -BUF_BASE);
   ctx.restore();
   const ebA = eb + ebDrop + Math.round(breath);
   const ovAng = rot + rollAngle, ovAy = eb + ebDrop + breath;
   const ovOn = Math.abs(ovAng) > 0.001;
   if (ovOn) { ctx.save(); ctx.translate(cx, ovAy); ctx.rotate(ovAng); ctx.translate(-cx, -ovAy); }   // Overlays rotieren mit der Schale
-  drawShellCracks(ctx, cx, ebA - Math.round(P.ht + P.rb), P.ht, S.stage);
-  if (S.stage === 4) drawBioSpots(ctx, cx, ebA, t, P, Math.min(1, Math.max(0, (S.xp - 3200) / 2300)));
+  if(!cloth)drawShellCracks(ctx, cx, ebA - Math.round(P.ht + P.rb), P.ht, S.stage);
+  if (!cloth && S.stage === 4) drawBioSpots(ctx, cx, ebA, t, P, Math.min(1, Math.max(0, (S.xp - 3200) / 2300)));
   if (S.prestige > 0) drawPrestigeBadge(ctx, cx, ebA - Math.round(P.ht + P.rb) + 5, S.prestige);
   if (S.krank) {                                                     // kränklich-grüner Teint über der Schale
     const eCy2 = ebA - Math.round((P.ht + P.rb) / 2);
@@ -1523,27 +1521,30 @@ function drawEgg(ctx, S, t) {
     pe(ctx, cx + P.rb * 0.35, eCy2 + 8, P.rb * 0.4, 7, "#a8b5a0");
     ctx.globalAlpha = 1;
   }
-  const wornC = costumeWorn(S.costumes);
-  if (wornC) drawCostume(ctx, cx, ebA - Math.round(P.ht + P.rb), t, P, wornC);
+  if (wornC) {
+    ctx.save();
+    if(cloth){ctx.translate(cx,ovAy);ctx.scale(sqx*turnSq,sqy);ctx.translate(-cx,-ovAy);}
+    drawCostume(ctx,cx,eb+ebDrop+breath-Math.round(P.ht+P.rb),t,P,wornC);ctx.restore();
+  }
   if (P.feet && !onStand && limbK <= 0.5) {                                       // eingezogene Gliedmaßen: nur die Löcher, fest in der Schale
     const sp2 = Math.round(P.rb * 0.22), sh2 = Math.round(P.rb * 0.97);
-    brokenHole(ctx, cx - sp2, eb + ebDrop - 3, 4, P, 31, false);
-    brokenHole(ctx, cx + sp2, eb + ebDrop - 3, 4, P, 32, false);
-    if (P.arms) { brokenHole(ctx, cx - sh2, armY, 4, P, 21, false); brokenHole(ctx, cx + sh2, armY, 4, P, 22, false); }
+    brokenHole(ctx, cx - sp2, eb + ebDrop - 3, 4, limbPalette, 31, false);
+    brokenHole(ctx, cx + sp2, eb + ebDrop - 3, 4, limbPalette, 32, false);
+    if (P.arms) { brokenHole(ctx, cx - sh2, armY, 4, limbPalette, 21, false); brokenHole(ctx, cx + sh2, armY, 4, limbPalette, 22, false); }
   }
   if (ovOn) ctx.restore();
-  if (P.feet && !onStand && limbK > 0.5) drawFeet(ctx, cx, eb + Math.round(walkBob), floorY, t, P, face, idle.act);
+  if (P.feet && !onStand && limbK > 0.5) drawFeet(ctx, cx, eb + Math.round(walkBob), floorY, t, limbPalette, face, idle.act);
   if (P.arms && limbK > 0.5) {
     const flySide = fly.x < cx ? -1 : 1;
     const shooing = watching && (S.stage === 3 || S.stage === 4) && (t % 2600) > 2100;
     const watching2 = idle.act === "watch", playing = idle.act === "play" && idle.toy, pSign = cx<CW/2?1:-1;
     const skip = (lasering || shooing) ? flySide : (watching2 ? 1 : (playing ? pSign : 0));
-    drawArms(ctx, cx, armY, t, P, skip, 0);
+    drawArms(ctx, cx, armY, t, limbPalette, skip, 0);
     const ssx = cx + flySide * Math.round(P.rb * 0.86);
     if (lasering) drawGun(ctx, ssx, armY, fly.x, fly.y, laser.st, flySide, t);
     else if (shooing) drawShoo(ctx, ssx, armY, fly.x, fly.y, flySide);
     else if (watching2) drawWatchArm(ctx, cx + Math.round(P.rb * 0.86), armY, 1, P, t);
-    else if (playing) drawPlayArm(ctx, cx + pSign * Math.round(P.rb * 0.86), armY, pSign, t, idle.toy, P);
+    else if (playing) drawPlayArm(ctx, cx + pSign * Math.round(P.rb * 0.86), armY, pSign, t, idle.toy, limbPalette);
   }
   if (P.arms && idle.act === "play" && idle.toy === "ball") { const sign=cx<CW/2?1:-1;const hx = cx + sign*(Math.round(P.rb * 0.86)+7); updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
   if (P.feet && !P.arms && idle.act === "play") drawGroundToy(ctx,cx,floorY,t,idle.toy);
@@ -2280,10 +2281,20 @@ function companionMoment(){
   const development=r.find(x=>x.type==="development" && x.at===last.at);
   return development && development!==last?development.text+" "+last.text:last.text;
 }
-const EGG_ICON_PATHS={"ball": "M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM7 7c5 0 5 10 10 10M17 7c-5 0-5 10-10 10", "yoyo": "M12 3v8m-5 5a5 5 0 1 0 10 0 5 5 0 0 0-10 0Zm3 0h4", "bubbles": "M5 16a3 3 0 1 0 6 0 3 3 0 0 0-6 0ZM13 8a4 4 0 1 0 8 0 4 4 0 0 0-8 0ZM5 5h.01", "balloon": "M6 9a6 7 0 1 0 12 0 6 7 0 0 0-12 0ZM12 16l-2 2h4l-2-2v5", "top": "m4 12 8-7 8 7-8 6-8-6Zm8-10v3m-8 7h16m-8 6v4", "rug": "M3 7h18v10H3ZM6 10h12M6 14h12M3 5v14M21 5v14", "plant": "M8 15h8l-1 6H9l-1-6Zm4 0V8m0 3C4 11 4 4 4 4c7 0 8 5 8 5m0-1c0-5 6-6 8-5 0 5-4 7-8 7", "poster": "M4 3h16v18H4ZM7 17l4-6 3 4 2-2 2 4M8 7h.01", "mobile": "M12 2v4M4 7h16M5 7v6m7-6v10m7-10v6m-16 2h4l-2 4-2-4Zm7 4h4l-2 3-2-3Zm7-4h4l-2 4-2-4Z", "nightlight": "M8 16h8v4H8ZM9 16c0-3-4-4-4-8a7 7 0 0 1 14 0c0 4-4 5-4 8M10 23h4", "easternest": "M3 15c0 9 18 9 18 0M3 15h18M6 15c-5-9 5-13 4 0m3 0c-3-12 8-12 5 0", "palm": "M12 21V9m-7 12h14M12 9C4 9 3 4 3 4c6-2 9 2 9 5m0 0c8 0 9-5 9-5-6-2-9 2-9 5m0-1c-3-6 0-6 0-6 4 1 4 4 0 6", "pumpkin": "M12 6V2m0 4c-12-4-12 16 0 14 12 2 12-18 0-14Zm-6 5h3m6 0h3m-10 5h8m-6-1v2m4-2v2", "xmastree": "m12 2-6 7h3l-5 6h4l-5 5h18l-5-5h4l-5-6h3L12 2Zm0 18v3", "bunnyears": "M9 12C0 0 12-3 10 11m5 1c9-12-3-15-1-1M5 19a7 7 0 0 1 14 0M5 19h14", "strawhat": "M3 17c0-4 18-4 18 0s-18 4-18 0ZM7 15V8c0-6 10-6 10 0v7M7 11h10", "ghost": "M4 21V10a8 8 0 0 1 16 0v11l-4-3-4 3-4-3-4 3ZM9 10h.01M15 10h.01", "santahat": "M4 18h16v4H4ZM6 18 12 3l6 11-4-2-2-4-2 10m6-4a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z", "wallclock": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm9-6v6l4 2", "photo": "M3 4h18v16H3ZM6 15l4-5 4 5 3-3 2 3M7 7h.01", "trophy": "M7 3h10v7c0 7-10 7-10 0V3Zm10 2h4v3c0 3-2 4-4 4M7 5H3v3c0 3 2 4 4 4m5 3v5m-5 1h10", "lights": "M2 5q10 10 20 0M5 8v5m7-3v5m7-7v5M4 13h2m5 2h2m5-2h2", "eggarland": "M2 5q10 9 20 0M5 8v2m7 0v2m7-4v2M3 13a2 3 0 1 0 4 0 2 3 0 0 0-4 0Zm7 2a2 3 0 1 0 4 0 2 3 0 0 0-4 0Zm7-2a2 3 0 1 0 4 0 2 3 0 0 0-4 0Z", "bunting": "M2 5q10 9 20 0M3 7l3 9 4-7m1 1 3 9 4-11", "web": "M2 2h20M2 2v20M2 2l20 20M2 2l20 10M2 2l10 20M2 8q6 0 6-6M2 14q12 0 12-12M2 20q18 0 18-18", "wreath": "M4 10a8 8 0 1 0 16 0 8 8 0 0 0-16 0Zm5 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm3 8-6-3v6l6-3 6-3v6l-6-3Z", "album": "M4 3h16v18H4ZM8 3v18m4-13 4 2-4 2", "nudge": "M5 14V9m4 5V6m4 8V5m4 9V8m-12 6c-6-4-6 1 0 6 4 4 12 2 12-4V8", "room": "m3 11 9-8 9 8M5 10v11h14V10m-9 11v-7h4v7", "adventure": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm13-4-3 5-5 3 3-5 5-3Z", "care": "M12 20C-3 11 6 0 12 8c6-8 15 3 0 12Z", "history": "M6 3h14v18H6ZM10 8h6m-6 4h6m-6 4h4M3 6h3M3 12h3M3 18h3", "feed": "M4 11h16c0 12-16 12-16 0ZM6 7V3m6 4V2m6 5V3", "clean": "M14 2 8 14m-4 0h10l4 7H2l2-7Zm2 3-1 4m5-4v4", "charge": "M9 17h6m-6 3h6M8 14C0 5 8-4 15 3c6 6 0 9 0 11M12 6v5", "heal": "M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z", "review": "M5 3h14v18H5Zm7 4v8m-3-3 3 3 3-3", "prestige": "M5 21V10a7 7 0 0 1 14 0v11M8 18l4-9 4 9m-8 0h8", "near": "m3 11 9-8 9 8M5 10v11h14V10m-9 11v-7h4v7", "garden": "M12 21V10M12 12C1 10 4 1 4 1c7 1 8 4 8 11m0-3c1-6 8-7 8-7 1 7-4 10-8 10", "stars": "m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6Z", "finds": "m4 8 8-5 8 5-8 5-8-5Zm0 0v10l8 4 8-4V8m-8 5v9", "events": "M12 2v5m0 10v5M2 12h5m10 0h5M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3", "moments": "M5 3h14v18l-7-4-7 4V3Z", "pebble": "m4 15 2-7 8-4 6 7-3 8-9 1-4-5Z", "feather": "M4 21 18 3c10 3-1 15-10 13M8 15h5m-2-4h5", "button": "M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Zm5-3h.01m6 0h.01m-6 6h.01m6 0h.01", "leaf": "M4 20C-1 5 10 3 21 3c0 13-7 20-17 17Zm0 0L17 7", "shell": "M12 21 3 11c-4-12 22-12 18 0l-9 10Zm0 0V4m0 17L7 5m5 16 5-16", "amber": "m8 3 8 1 5 9-6 8-9-3-3-8 5-7Zm2 4 5 2-2 6-5-3 2-5Z"};
+const EGG_EMOJIS={
+ ball:'⚽',yoyo:'🪀',bubbles:'🫧',balloon:'🎈',top:'🌀',
+ rug:'🧶',plant:'🪴',poster:'🖼️',mobile:'🎐',nightlight:'💡',
+ easternest:'🪺',palm:'🌴',pumpkin:'🎃',xmastree:'🎄',
+ bunnyears:'🐰',strawhat:'👒',ghost:'👻',santahat:'🎅',
+ wallclock:'🕰️',photo:'📸',trophy:'🏆',lights:'💡',eggarland:'🥚',bunting:'🎏',web:'🕸️',wreath:'🎄',
+ album:'📖',nudge:'👋',room:'🏡',adventure:'🧭',care:'💝',history:'📔',
+ feed:'🍎',clean:'🧽',charge:'💡',heal:'🩹',review:'📜',prestige:'🥚',
+ near:'🏡',garden:'🌳',stars:'🌟',finds:'🎁',events:'✨',moments:'📷',
+ pebble:'🪨',feather:'🪶',button:'🔘',leaf:'🍃',shell:'🐚',amber:'💎'
+};
 function eggIcon(key){
  if(/^form:[0-5]$/.test(key)){const stage=Number(key.split(':')[1]),color=['#ac9b69','#c5a74d','#cba04f','#b99548','#cc8c3b','#7460a7'][stage];return '<svg class="eg-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="'+color+'" d="M5 15C3 4 11-3 16 5c9 15-3 20-10 13Z"/>'+(stage>0?'<path d="M9 11h.01m6 0h.01"/>':'')+(stage>1?'<path d="m8 20-2 2m10-2 2 2"/>':'')+(stage>2?'<path d="m5 14-3 2m18-2 2 2"/>':'')+(stage>3?'<path d="m12 3-2 4 3 3-2 4"/>':'')+'</svg>';}
- return '<svg class="eg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="'+(EGG_ICON_PATHS[key]||EGG_ICON_PATHS.events)+'"/></svg>';
+ return '<span class="eg-icon eg-emoji" aria-hidden="true">'+(EGG_EMOJIS[key]||EGG_EMOJIS.events)+'</span>';
 }
 function eggSymbolButton(act,label,id,disabled,selected){
  const name=label.replace(/<small>/g,' · ').replace(/<[^>]*>/g,'');

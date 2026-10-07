@@ -1,3 +1,20 @@
+## v56 – Emojis für Begleiter und Album
+- Farbige Emoji-Symbole für Spielzeug, Dekoration, Kostüme, Abenteuer und Erinnerungen.
+- Kompakte Kacheln; eigene Entwicklungsformen und zugängliche Beschreibungen bleiben erhalten.
+
+## Version 55 – Kompakte Ausgabenerfassung
+
+- Tastaturgerechter Dialog mit scrollenden Feldern und fester Aktionszeile.
+- Weitere Angaben aufklappbar; vorhandene Reise, Notiz oder abweichender Lebensbereich beim Bearbeiten sichtbar.
+- Formularspeicherung über Tastatur, gezielter Betragsfokus und zugängliche Kontoauswahl.
+- Viewport, Speicherung und Bearbeitung in DOM-Tests geprüft.
+
+## Version 54 – Durchgehendes Geistergewand und kompakte Aktionen
+
+- Runder Kopf mit breitem Stoffkörper, keine Tropfenform.
+- Stoff folgt Bewegungstransformationen; Schale blitzt beim Tragen nicht hervor.
+- Stofffarben an Gliedmaßenöffnungen; Begrüßen und Album mit kleinen Symbolen neben der Schrift.
+
 ## Version 53 – Symbolalbum ohne offene Plätze
 
 - Nur entdeckte Inhalte als Symbolkacheln, keine unbekannten Platzhalter oder Gesamtzahlen.

@@ -313,3 +313,18 @@
 .eg-album-tile[aria-pressed="true"]{background:#eae1f5;border-color:#8b6ba8}
 .eg-album-selection{margin:0;font-size:12px;line-height:1.4;min-height:2.8em}
 .eg-album-tile:focus-visible{outline:3px solid #8b6ba8;outline-offset:2px}
+
+/* Kompakte Hauptaktionen mit Schrift neben dem Symbol. */
+.eg-companion-nav .eg-symbol-btn{flex-direction:row;gap:8px;min-height:44px;padding:8px 10px}
+.eg-companion-nav .eg-icon{width:22px;height:22px}
+.eg-companion-nav .eg-symbol-btn small{font-size:12px;color:inherit}
+
+/* Farbige, gut erkennbare Symbole mit kompakten Gegenstandskacheln. */
+.eg-emoji{display:inline-flex;align-items:center;justify-content:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:26px;line-height:1;font-weight:normal}
+.eg-panel-label .eg-emoji,.eg-companion-nav .eg-emoji{font-size:21px}
+.eg-icon-album h3 .eg-emoji{font-size:22px}
+.eg-album-tile .eg-emoji{font-size:30px}
+.dragon-card details .eg-grid{grid-template-columns:repeat(auto-fill,minmax(62px,1fr))}
+.dragon-card details .eg-symbol-btn{min-height:54px;padding:7px 8px}
+.eg-album-grid{grid-template-columns:repeat(auto-fill,58px)}
+.eg-album-tile{height:58px;min-height:58px;padding:8px}
