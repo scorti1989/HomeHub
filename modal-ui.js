@@ -2,7 +2,7 @@
 const modalReturnFocus = new Map();
 const modalStack = [];
 function modalFocusables(modal) {
-  return [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex]')]
+  return [...modal.querySelectorAll('button, input, select, textarea, summary, a[href], [tabindex]')]
     .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
 }
 function openModal(id) {

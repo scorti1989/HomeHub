@@ -1,4 +1,4 @@
-# HomeHub 47
+# HomeHub 50
 
 Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sichtbare HomeHub-Reaktionen, Persönlichkeit, mehrphasige Entdeckungen und zeitbasierte Abenteuer.
 
@@ -6,7 +6,7 @@ Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sic
 
 1. In der laufenden App den Online-Abgleich prüfen. Ein zusätzlicher manueller Export bleibt optional.
 2. Alle Dateien aus dem Hauptordner dieser ZIP gemeinsam auf dem bisherigen Hosting ersetzen: index.html, sämtliche JavaScript-/CSS-Dateien, manifest.json und Icons. Neue Fachdateien gehören zwingend dazu. Die Ordner legacy/, tests/, server/ und docs/ sowie Markdown-Dateien sind für den Betrieb nicht erforderlich und müssen nicht veröffentlicht werden.
-3. Die App einmal online neu laden. Der Service Worker installiert Version 47. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
+3. Die App einmal online neu laden. Der Service Worker installiert Version 50. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
 4. Die App verwendet die bisherigen Speicherschlüssel. Ein Import ist für die Aktualisierung bestehender lokaler Daten nicht notwendig. Bekannte Datenfehler werden bei noch passenden Originalwerten gezielt korrigiert. Der Stand davor lässt sich in den Einstellungen unter „Stand vor Datenkorrektur herunterladen“ sichern.
 5. Das separat bereitgestellte korrigierte Backup ist der Datenstand vom 06.10.2026. Importiere es nur, wenn du genau diesen Stand wiederherstellen möchtest. Ein Import ersetzt den gesamten lokalen Datenstand und ist daher ungeeignet, um später erfasste Einträge zu erhalten.
 
@@ -21,6 +21,18 @@ Hunger und Sauberkeit sinken langsam bis zu weichen Untergrenzen. Energie erholt
 Die Momentzeile direkt unter dem Ei zeigt, was es erlebt. Im Kopfbereich gibt es nur noch einen kleinen Sicherungspunkt neben dem Logo. Grün bedeutet bestätigte Online-Sicherung, Gelb einen laufenden/ausstehenden Abgleich und Rot fehlende Absicherung mit Empfehlung zum manuellen Export. Die XP-Anzeige und der Fortschrittsbalken sind ausgeblendet; die Entwicklung läuft intern weiter. Ereignisse behalten ihren Fortschritt über Neustarts. Persönlichkeit entsteht ab jetzt aus Nutzung, Spiel, Ruhe und Erkundung. Abenteuer dauern etwa 3, 10 oder 22 Stunden und enden automatisch beim nächsten Öffnen oder während sichtbarer Nutzung. Funde, Besitz, Formen und besondere Momente erscheinen im Album. Online-Sicherungen erzeugen eine Reaktion nur nach einem neu angelegten und überprüften Sicherungspunkt; ein manueller Export ist dafür nicht erforderlich.
 
 Unter Einstellungen lässt sich das Ei vor dem Umbau herunterladen. Diese Datei verbindet den gesicherten alten Ei-Zustand mit den übrigen aktuellen App-Daten; sie ist kein historischer Gesamtstand. Die vorhandene allgemeine Wiederherstellung sichert weiterhin komplette Datenstände. Details und Prüfungen: docs/BEGLEITER.md.
+
+## Schnellzugriffe in Version 50
+
+Drei gleich große Symbolbuttons mit einheitlichen Abständen: Plus in Schieferblau für die bisherige Erfassung, grüne Checkliste für Einkäufe und ockerfarbener Einkaufswagen mit Plus für neue Artikel. Zugängliche Beschriftungen und die bisherigen Aktionen bleiben erhalten.
+
+## Artikelerfassung in Version 49
+
+Der kompakte Einkaufsdialog richtet sich nach dem sichtbaren Bereich oberhalb der Handytastatur. Nur die Felder scrollen, die Fußzeile mit Abbrechen und Hinzufügen bleibt erreichbar. Die Preisnotiz ist optional eingeklappt und öffnet sich bei übernommenen Preisen. Beim Bearbeiten heißt die Schaltfläche Speichern. Der Artikelname erhält den Fokus; die Fertig-Taste kann das Formular speichern. Viewport-Anpassung, Übernahme optionaler Preise, Hinzufügen und Bearbeiten wurden in der DOM-Integration geprüft. Ein echter Android-Tastaturtest steht noch aus.
+
+## Kompakte Themenbereiche in Version 48
+
+Die Form steht oben neben „Dein Begleiter“, Sterne am rechten Rand. Der Bereich unter der Szene ist kompakter. Raum ist grün, Abenteuer blau, freiwillige Pflege warm beige und Erinnerungen violett hinterlegt. Aktionsgegenstände haben einen eigenen Bodenplatz links und werden hinter dem Ei gezeichnet, damit Pflanze und Gesicht frei bleiben.
 
 ## Stromanzeige ab Version 47
 

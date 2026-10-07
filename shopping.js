@@ -8,6 +8,12 @@ function shopSuggestions(){
  Object.keys(priceMemory).forEach(name=>{if(!map.has(shopKey(name)))map.set(shopKey(name),{name,store:'supermarkt'})});
  return [...map.values()];
 }
+function shopFitViewport(){
+ const modal=document.getElementById('shopItemModal'),viewport=window.visualViewport;
+ if(!viewport)return;
+ modal.style.setProperty('--shop-viewport-height',viewport.height+'px');modal.style.setProperty('--shop-viewport-top',viewport.offsetTop+'px');
+}
+if(window.visualViewport){window.visualViewport.addEventListener('resize',shopFitViewport);window.visualViewport.addEventListener('scroll',shopFitViewport);shopFitViewport();}
 function updatePMHint(){
  const name=document.getElementById('si-name').value, pm=priceMemory[shopKey(name)];
  document.getElementById('pmHint').textContent=pm?`Früher notiert: ${fmtEurPlain(pm.last)} · Preis gilt für die angegebene Menge.`:'';
@@ -20,6 +26,7 @@ function shopPrefill(){
   const field=document.getElementById(id);
   if(!field.dataset.manual&&(!field.value||field.dataset.autofill||id==='si-store')){field.value=value;field.dataset.autofill='1';}
  }
+ if(document.getElementById('si-price').value)document.getElementById('shopPriceDetails').open=true;
 }
 for(const id of ['si-qty','si-price'])document.getElementById(id).addEventListener('input',e=>{e.target.dataset.manual='1';delete e.target.dataset.autofill;});
 document.getElementById('si-name').addEventListener('input',shopPrefill);
@@ -27,18 +34,21 @@ document.getElementById('si-store').addEventListener('change',e=>e.target.datase
 function openAddShopItem(name=''){
  editShopIdx=null;editShopRef=null;
  document.getElementById('shopItemTitle').textContent='Artikel hinzufügen';
+ document.getElementById('saveShopBtn').textContent='Hinzufügen';document.getElementById('shopPriceDetails').open=false;
  for(const id of ['si-name','si-qty','si-price']){const field=document.getElementById(id);field.value='';delete field.dataset.manual;delete field.dataset.autofill;}
  document.getElementById('si-store').value='supermarkt';delete document.getElementById('si-store').dataset.manual;
  document.getElementById('shopNames').innerHTML=shopSuggestions().map(i=>`<option value="${esc(i.name)}"></option>`).join('');
- document.getElementById('si-name').value=typeof name==='string'?name:'';shopPrefill();openModal('shopItemModal');
+ shopFitViewport();document.getElementById('si-name').value=typeof name==='string'?name:'';shopPrefill();openModal('shopItemModal');document.getElementById('si-name').focus({preventScroll:true});
 }
 function openEditShopItem(idx){
  const item=shopLists.items[idx];if(!item)return;editShopIdx=idx;editShopRef=item;
  document.getElementById('shopItemTitle').textContent='Artikel bearbeiten';
+ document.getElementById('saveShopBtn').textContent='Speichern';
  for(const [id,key] of [['si-name','name'],['si-qty','qty'],['si-price','price'],['si-store','store']])document.getElementById(id).value=item[key]||'';
- updatePMHint();openModal('shopItemModal');
+ shopFitViewport();updatePMHint();document.getElementById('shopPriceDetails').open=!!item.price;openModal('shopItemModal');document.getElementById('si-name').focus({preventScroll:true});
 }
-document.getElementById('saveShopBtn').addEventListener('click',()=>{
+document.getElementById('shopItemForm').addEventListener('submit',e=>{
+ e.preventDefault();
  const name=document.getElementById('si-name').value.trim(),price=parseDE(document.getElementById('si-price').value);
  if(!name){alert('Bitte Artikelname eingeben.');return;}
  if(!Number.isFinite(price)||price<0){alert('Bitte einen gültigen Preis eingeben.');return;}

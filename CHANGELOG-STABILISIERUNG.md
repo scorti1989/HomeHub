@@ -1,3 +1,23 @@
+## Version 50 – Einheitliche Schnellzugriffe
+
+- Alle drei Buttons gleich groß, mit identischen Rundungen und Abständen.
+- Schieferblaues Plus, grüne Einkaufsliste, ockerfarbener Einkaufswagen mit Plus.
+- SVG-Symbole mit einheitlicher Strichstärke, zugängliche Beschriftungen und bisherige Aktionen erhalten.
+
+## Version 49 – Artikeldialog für Handytastatur
+
+- Kompakte Pflicht-/Zusatzfelder, aufklappbare Preisnotiz und feste Aktionszeile.
+- Visual-Viewport-Höhe und Versatz berücksichtigen die geöffnete Tastatur.
+- Formular lässt sich über die Fertig-Taste speichern, passende Beschriftung beim Bearbeiten.
+- Preisübernahme bleibt sichtbar; Fokus und Tastaturbedienung der Preisnotiz berücksichtigt.
+- DOM-Tests für Tastatur-Viewport, Fokus, Formularspeicherung und Bearbeitung ergänzt.
+
+## Version 48 – Kompakte Themenbereiche und freie Pflanze
+
+- Form neben „Dein Begleiter“ und Sterne im Kopf der Szene, doppelte Titelzeile entfernt.
+- Kompaktere Menüs mit thematischen Farben und weiterhin mindestens 44 Pixel hohen Bedienelementen.
+- HomeHub-Aktionsgegenstände links am Boden und hinter dem Ei statt über der Pflanze.
+
 ## Version 47 – Stromanzeige entfernt
 
 - Batterie im Raum und Energiewert im Ei-Menü entfernt.

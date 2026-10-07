@@ -2244,7 +2244,7 @@ function eggSections() {
   if(companionSaveBlocked)return '<p class="eg-warn">Der Begleiterstand konnte nicht sicher übernommen werden. Deine gespeicherten Daten bleiben erhalten. Bitte Speicherplatz bzw. App-Version prüfen und neu laden.</p>';
   const p=dragon,c=p.companion,current=p.stage;
   const button=(act,label,id="",disabled=false,selected=null)=>'<button class="eg-btn" data-act="'+act+'" data-id="'+esc(id)+'"'+(disabled?' disabled':'')+(selected===null?'':' aria-pressed="'+selected+'"')+'>'+label+'</button>';
-  let h='<div class="eg-pane"><div class="eg-row"><strong>'+esc(EGG_PAL[current].name)+'</strong><span>'+p.stardust+' Sterne</span></div>';
+  let h='<div class="eg-pane">';
   h+='<p class="eg-moment" role="status" aria-live="polite">'+esc(companionMoment())+'</p>';
   h+='<p class="eg-dim">'+(p.krank?'Ruht sich aus · erholt sich nach der Rückkehr von selbst':p.hunger<50?'Gemütlich und etwas hungrig':'Fühlt sich wohl')+' · '+esc(companionCharacter())+(p.prestige?' · Ei '+(p.prestige+1):'')+'</p>';
   h+='<div class="eg-companion-nav">'+button("nudge",p.expActive?"Unterwegs":"Begrüßen","",p.expActive)+button("album","Album")+'</div>';
@@ -2261,7 +2261,7 @@ function eggSections() {
   if(p.expActive){const ex=c.expedition;h+='<p>'+esc(COMPANION_TRIPS[ex.type].label)+' · Rückkehr ungefähr '+esc(new Date(ex.returnAt).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}))+'</p><p class="eg-dim">Die Rückkehr und der Fund werden automatisch gespeichert.</p>';}
   else if(p.stage>=2){h+='<div class="eg-grid">';for(const [id,it] of Object.entries(COMPANION_TRIPS))h+=button('exp',it.label+'<small>Etwa '+it.hours+' Stunden</small>',id);h+='</div>';}
   else h+='<p class="eg-dim">Sobald es laufen kann, erkundet es die Umgebung.</p>';
-  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten · freiwillig</summary><div class="eg-grid">'+button('feed',p.stage<2?'Befeuchten':'Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
+  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten</summary><div class="eg-grid">'+button('feed',p.stage<2?'Befeuchten':'Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
   h+='<details data-panel="history"><summary>Erinnerungen und Verlauf</summary><p class="eg-dim">'+(p.statLog.acts||0)+' bisherige Aktionen · '+(p.statLog.plays||0)+' gemeinsame Spielrunden · '+(c.journey.spontaneous||0)+' selbstständige Spielmomente · '+(p.statLog.exps||0)+' Abenteuer. Aktivitätstage: '+p.streak+'.</p>'+(p.lastReview?button('review','Rückblick herunterladen'):'')+'</details>';
   if(p.xp>=5500)h+=button('prestige',prestigeConfirm?'Neues Ei wirklich beginnen?':'Durchs Portal · neues Ei','',p.expActive);
   return h+'</div>';
@@ -2281,6 +2281,9 @@ function updateEggUIInner() {
   const open=eggOpenPanels;
   se.querySelectorAll("details").forEach(x=>{x.open?open.add(x.dataset.panel):open.delete(x.dataset.panel);});
   const focus=document.activeElement, panel=focus?.tagName==="SUMMARY"?focus.parentElement.dataset.panel:null, act=focus && focus.dataset && focus.dataset.act, id=focus && focus.dataset && focus.dataset.id;
+  const form=document.getElementById("eggFormName"),stars=document.getElementById("eggStars");
+  if(form)form.textContent="· "+EGG_PAL[dragon.stage].name;
+  if(stars)stars.textContent=dragon.stardust+" Sterne";
   se.innerHTML = eggSections();
   se.querySelectorAll("details").forEach(x=>{x.open=open.has(x.dataset.panel);});
   if(act){const target=Array.from(se.querySelectorAll("[data-act]")).find(x=>x.dataset.act===act&&x.dataset.id===id);if(target)target.focus({preventScroll:true});}
@@ -2339,7 +2342,7 @@ function renderDragonCardInner() {
   const card = document.getElementById("dragonCard");
   if (!card) return;
   card.innerHTML =
-    '<div class="eg-head">HomeHub · <span style="color:#b3720a">DEIN BEGLEITER</span></div>' +
+    '<div class="eg-head"><span>Dein Begleiter <span id="eggFormName" class="eg-form-name"></span></span><span id="eggStars" class="eg-stars"></span></div>' +
     '<div class="eg-canvas-wrap"><canvas id="eggCanvas" width="180" height="156"></canvas></div>' +
     '<div id="eggToast" class="eg-toast"></div>' +
     '<div id="eggSections"></div>';
@@ -2412,9 +2415,9 @@ function eggFrame() {
     if (St.deko) drawDeko(eggCtx, t, St.deko, St.prestige || 0);
     if (St.mess && St.mess.length) drawMess(eggCtx, St.mess);
     if ((St.xp || 0) >= 5500) drawPrestigePortal(eggCtx, t);
+    drawCompanionScene(eggCtx, St, t);
     drawEgg(eggCtx, St, t);
     drawDim(eggCtx, St.power, t, St.deko);
-    drawCompanionScene(eggCtx, St, t);
   }
   if (uiDirty) updateEggUI();
 }
@@ -2470,11 +2473,14 @@ function drawCompanionScene(ctx,p,t) {
   // Pixel props make real HomeHub activity visible without pop-ups.
   const colors={expense:"#f2dab1",shoppingComplete:"#c89760",recipe:"#8bb86d",recipeCooked:"#8bb86d",meter:"#67bec4",backup:"#67bec4",contractCreate:"#e4dfcc",contractUpdate:"#e4dfcc"};
   if(colors[type]){
+    // Eigener Bodenplatz links: freie Pflanze rechts, Ei im Vordergrund.
+    ctx.save();ctx.translate(-124,3);
     ctx.fillStyle=colors[type];ctx.fillRect(146,112,12,12);ctx.fillStyle="#5a4b66";
     if(type==='shoppingComplete'){ctx.strokeRect(149,108,6,4);ctx.fillRect(150,118,4,2);}
     else if(type==='recipe'||type==='recipeCooked'){ctx.fillStyle="#e4e7d5";ctx.fillRect(144,120,16,3);ctx.fillStyle="#91b966";ctx.fillRect(149,116,7,4);}
     else if(type==='backup'||type==='meter'){ctx.fillRect(148,114,8,5);ctx.fillStyle="#8ddd9f";ctx.fillRect(150,116,4,2);}
     else {ctx.fillRect(149,115,6,1);ctx.fillRect(149,118,5,1);if(type!=='expense')ctx.fillRect(150,110,4,3);}
+    ctx.restore();
   }
 }
 

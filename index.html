@@ -13,8 +13,8 @@
 <!-- Apple Touch Icons (inline SVG als Data-URL – keine externen Abhängigkeiten) -->
 <link rel="apple-touch-icon" href="./icon-192.png">
 <!-- Offline Fonts: System Font Stack – keine Google Fonts -->
-<link rel="stylesheet" href="app.css?v=47">
-  <link rel="stylesheet" href="dragon-game-balanced.css?v=47">
+<link rel="stylesheet" href="app.css?v=50">
+  <link rel="stylesheet" href="dragon-game-balanced.css?v=50">
 </head>
 <body>
 
@@ -123,10 +123,10 @@
 
 <!-- FAB -->
 <div class="fab-shopping-tools" aria-label="Einkaufen">
-  <button type="button" id="fabShopAdd" aria-label="Einkaufsartikel hinzufügen">Artikel +</button>
-  <button type="button" id="fabShopList" aria-label="Einkaufsliste öffnen">Liste</button>
+  <button type="button" class="fab-action fab-article" id="fabShopAdd" aria-label="Einkaufsartikel hinzufügen" title="Einkaufsartikel hinzufügen"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 4h2l2 12h11l2-8H8M8 20h.01M18 20h.01M16 2v6M13 5h6"/></svg></button>
+  <button type="button" class="fab-action fab-list" id="fabShopList" aria-label="Einkaufsliste öffnen" title="Einkaufsliste öffnen"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 1.5 1.5L7 5M10 6h11M3 12h4M10 12h11M3 18h4M10 18h11"/></svg></button>
 </div>
-<button class="fab" id="fabBtn" aria-label="Hinzufügen">＋</button>
+<button class="fab fab-action" id="fabBtn" aria-label="Hinzufügen"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v16M4 12h16"/></svg></button>
 
 <!-- NAV -->
 <nav class="nav" role="navigation" aria-label="Hauptnavigation">
@@ -307,26 +307,27 @@
 
 <!-- Shop Item Modal -->
 <div class="modal-bg" id="shopItemModal" role="dialog" aria-modal="true" aria-labelledby="shopItemTitle">
- <div class="modal">
-  <div class="modal-handle"></div>
-  <button class="modal-close-btn" aria-label="Schließen" onclick="closeModal('shopItemModal')">×</button>
+ <form class="modal shop-item-sheet" id="shopItemForm" novalidate>
+  <button type="button" class="modal-close-btn" aria-label="Schließen" onclick="closeModal('shopItemModal')">×</button>
   <h2 id="shopItemTitle">Artikel hinzufügen</h2>
-  <div class="fg"><label for="si-name">Artikel *</label><input id="si-name" list="shopNames" placeholder="z.B. Milch" autocomplete="off"></div>
-  <div class="frow">
-    <datalist id="shopNames"></datalist><div class="fg"><label for="si-qty">Menge</label><input id="si-qty" placeholder="z.B. 2x" autocomplete="off"></div>
+  <div class="shop-item-fields">
+   <div class="fg"><label for="si-name">Artikel</label><input id="si-name" list="shopNames" placeholder="Was brauchst du?" autocomplete="off" enterkeyhint="done" required></div>
+   <datalist id="shopNames"></datalist>
+   <div class="frow">
+    <div class="fg"><label for="si-qty">Menge <span class="shop-optional">optional</span></label><input id="si-qty" placeholder="z. B. 2 Stück" autocomplete="off"></div>
     <div class="fg"><label for="si-store">Geschäft</label>
-      <select id="si-store">
-        <option value="supermarkt">🟢 Supermarkt</option><option value="drogerie">🟣 Drogerie</option>
-        <option value="baumarkt">🟡 Baumarkt</option><option value="sonstiges">⚪ Sonstiges</option>
-      </select>
+     <select id="si-store"><option value="supermarkt">Supermarkt</option><option value="drogerie">Drogerie</option><option value="baumarkt">Baumarkt</option><option value="sonstiges">Sonstiges</option></select>
     </div>
+   </div>
+   <details id="shopPriceDetails" class="shop-price-details">
+    <summary>Preisnotiz <span>optional</span></summary>
+    <div class="fg"><label for="si-price">Preis für diese Menge (€)</label><input autocomplete="off" id="si-price" type="number" min="0" step=".01" placeholder="z. B. 2,49" inputmode="decimal">
+     <div id="pmHint"></div>
+    </div>
+   </details>
   </div>
-  <div class="fg"><label for="si-price">Preisnotiz für diese Menge (€), optional</label><input autocomplete="off" id="si-price" type="number" step=".01" placeholder="Optional" inputmode="decimal">
-    <div id="pmHint" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
-  </div>
-  <button class="btn-p" id="saveShopBtn">Hinzufügen</button>
-  <button class="btn-s" id="cancelShopBtn">Abbrechen</button>
- </div>
+  <div class="shop-item-footer"><button type="button" class="btn-s" id="cancelShopBtn">Abbrechen</button><button type="submit" class="btn-p" id="saveShopBtn">Hinzufügen</button></div>
+ </form>
 </div>
 
 <!-- Budget Modal -->
@@ -699,7 +700,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = 'v47';
+  var APP_VERSION = 'v50';
   window.__HOMEHUB_BOOTING__ = true;
   window.__HOMEHUB_READY__   = false;
 
@@ -845,28 +846,28 @@
   });
 })();
 </script>
-<script src="dragon-game-balanced.js?v=47"></script>
-<script src="app-integrity.js?v=47"></script>
-<script src="contracts-costs.js?v=47"></script>
-<script src="app-stability.js?v=47"></script>
-<script src="modal-ui.js?v=47"></script>
-<script src="data-repairs.js?v=47"></script>
-<script src="app-core.js?v=47"></script>
-<script src="contracts-helpers.js?v=47"></script>
-<script src="navigation-home.js?v=47"></script>
-<script src="expenses.js?v=47"></script>
-<script src="contracts.js?v=47"></script>
-<script src="expense-forms.js?v=47"></script>
-<script src="shopping.js?v=47"></script>
-<script src="meters.js?v=47"></script>
-<script src="analysis.js?v=47"></script>
-<script src="settings.js?v=47"></script>
-<script src="concerts.js?v=47"></script>
-<script src="backup-ui.js?v=47"></script>
-<script src="concerts-data.js?v=47"></script>
-<script src="recipe-import.js?v=47"></script>
-<script src="recipes.js?v=47"></script>
-<script src="app-init.js?v=47"></script>
-<script src="sync.js?v=47"></script>
+<script src="dragon-game-balanced.js?v=50"></script>
+<script src="app-integrity.js?v=50"></script>
+<script src="contracts-costs.js?v=50"></script>
+<script src="app-stability.js?v=50"></script>
+<script src="modal-ui.js?v=50"></script>
+<script src="data-repairs.js?v=50"></script>
+<script src="app-core.js?v=50"></script>
+<script src="contracts-helpers.js?v=50"></script>
+<script src="navigation-home.js?v=50"></script>
+<script src="expenses.js?v=50"></script>
+<script src="contracts.js?v=50"></script>
+<script src="expense-forms.js?v=50"></script>
+<script src="shopping.js?v=50"></script>
+<script src="meters.js?v=50"></script>
+<script src="analysis.js?v=50"></script>
+<script src="settings.js?v=50"></script>
+<script src="concerts.js?v=50"></script>
+<script src="backup-ui.js?v=50"></script>
+<script src="concerts-data.js?v=50"></script>
+<script src="recipe-import.js?v=50"></script>
+<script src="recipes.js?v=50"></script>
+<script src="app-init.js?v=50"></script>
+<script src="sync.js?v=50"></script>
 </body>
 </html>
