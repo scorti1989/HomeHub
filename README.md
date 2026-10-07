@@ -1,4 +1,4 @@
-# HomeHub 50
+# HomeHub 53
 
 Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sichtbare HomeHub-Reaktionen, Persönlichkeit, mehrphasige Entdeckungen und zeitbasierte Abenteuer.
 
@@ -6,7 +6,7 @@ Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sic
 
 1. In der laufenden App den Online-Abgleich prüfen. Ein zusätzlicher manueller Export bleibt optional.
 2. Alle Dateien aus dem Hauptordner dieser ZIP gemeinsam auf dem bisherigen Hosting ersetzen: index.html, sämtliche JavaScript-/CSS-Dateien, manifest.json und Icons. Neue Fachdateien gehören zwingend dazu. Die Ordner legacy/, tests/, server/ und docs/ sowie Markdown-Dateien sind für den Betrieb nicht erforderlich und müssen nicht veröffentlicht werden.
-3. Die App einmal online neu laden. Der Service Worker installiert Version 50. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
+3. Die App einmal online neu laden. Der Service Worker installiert Version 53. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
 4. Die App verwendet die bisherigen Speicherschlüssel. Ein Import ist für die Aktualisierung bestehender lokaler Daten nicht notwendig. Bekannte Datenfehler werden bei noch passenden Originalwerten gezielt korrigiert. Der Stand davor lässt sich in den Einstellungen unter „Stand vor Datenkorrektur herunterladen“ sichern.
 5. Das separat bereitgestellte korrigierte Backup ist der Datenstand vom 06.10.2026. Importiere es nur, wenn du genau diesen Stand wiederherstellen möchtest. Ein Import ersetzt den gesamten lokalen Datenstand und ist daher ungeeignet, um später erfasste Einträge zu erhalten.
 
@@ -21,6 +21,20 @@ Hunger und Sauberkeit sinken langsam bis zu weichen Untergrenzen. Energie erholt
 Die Momentzeile direkt unter dem Ei zeigt, was es erlebt. Im Kopfbereich gibt es nur noch einen kleinen Sicherungspunkt neben dem Logo. Grün bedeutet bestätigte Online-Sicherung, Gelb einen laufenden/ausstehenden Abgleich und Rot fehlende Absicherung mit Empfehlung zum manuellen Export. Die XP-Anzeige und der Fortschrittsbalken sind ausgeblendet; die Entwicklung läuft intern weiter. Ereignisse behalten ihren Fortschritt über Neustarts. Persönlichkeit entsteht ab jetzt aus Nutzung, Spiel, Ruhe und Erkundung. Abenteuer dauern etwa 3, 10 oder 22 Stunden und enden automatisch beim nächsten Öffnen oder während sichtbarer Nutzung. Funde, Besitz, Formen und besondere Momente erscheinen im Album. Online-Sicherungen erzeugen eine Reaktion nur nach einem neu angelegten und überprüften Sicherungspunkt; ein manueller Export ist dafür nicht erforderlich.
 
 Unter Einstellungen lässt sich das Ei vor dem Umbau herunterladen. Diese Datei verbindet den gesicherten alten Ei-Zustand mit den übrigen aktuellen App-Daten; sie ist kein historischer Gesamtstand. Die vorhandene allgemeine Wiederherstellung sichert weiterhin komplette Datenstände. Details und Prüfungen: docs/BEGLEITER.md.
+
+## Symbolalbum in Version 53
+
+Das Album enthält nur bereits entdeckte Gegenstände, Formen und erlebte Momente als Symbolkacheln. Es gibt keine unbekannten Platzhalter, Gesamtzahlen oder Vollständigkeitsanzeigen. Leere Kategorien werden nicht angezeigt. Antippen zeigt die Bezeichnung bzw. Erinnerung. Ein einheitliches SVG-Symbolsystem ersetzt die Gegenstandsnamen im Raum-Menü; Preise, Reisedauern und wichtige Aktionen bleiben verständlich. Alle Symbole besitzen zugängliche Beschriftungen.
+
+## Gegenstandsprüfung in Version 52
+
+Alle 17 Raum- und Saisonobjekte, vier Kostüme in sechs Formen und fünf Spielzeuge geprüft. Osternest, Palme und Weihnachtsbaum stehen links neben dem Nest statt am Ei. Erinnerung, Mobile, Lichterketten, Girlanden und Adventskranz haben getrennte Plätze. Das Spinnennetz wird innerhalb der Szene gezeichnet. Hasenohren haben ein Haarband und erkennbare Innenohren; Strohhut und Weihnachtsmütze mehr Stoff-/Materialdetails. Saisonale Dekoration wird außerhalb ihrer Zeit als verstaut bezeichnet. Besitz bleibt erhalten.
+
+Native Canvas-Ansichten zeigen Einzelobjekte, 24 Kostüm-/Formkombinationen sowie die vier vollständig eingerichteten Saisonräume. Die Regression prüft mehrere Animationszeitpunkte und unveränderte gespeicherte Daten. Ein realer Handytest bleibt ausstehend.
+
+## Halloween-Darstellung in Version 51
+
+Das Geisterkostüm ist ein vollständiges helles Stoffgewand mit Falten und gezacktem Saum. Die ursprünglichen Augen und Gliedmaßen bleiben erhalten; die Augenausschnitte zeigen keine gelben Schalenrisse mehr. Der größere geschnitzte Kürbis steht neben dem Teppich, hat deutlichere Rippen, Gesicht, Bodenschatten und ruhiges Kerzenlicht. Bei reduzierter Bewegung leuchtet er statisch. Besitz und Spielstand bleiben unverändert. Alle sechs Formen wurden mit der bestehenden Canvas-Zeichenlogik visuell geprüft.
 
 ## Schnellzugriffe in Version 50
 

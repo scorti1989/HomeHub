@@ -295,3 +295,21 @@
 .dragon-card details .eg-grid{gap:6px;grid-template-columns:repeat(auto-fit,minmax(min(112px,100%),1fr))}
 .dragon-card details .eg-btn{border-color:var(--eg-theme-edge);background:#ffffffc9}
 .dragon-card details .eg-btn[aria-pressed="true"]{background:#dfeee2;border-color:var(--eg-good)}
+
+/* Symbolsammlung: keine unbekannten Plätze oder Gesamtzahlen. */
+.eg-icon{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}
+.eg-symbol-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px}
+.eg-symbol-btn small{margin:0}
+.dragon-card details .eg-grid{grid-template-columns:repeat(auto-fit,minmax(62px,1fr))}
+.eg-panel-label{display:flex;align-items:center;gap:9px}
+.eg-panel-label .eg-icon{width:22px;height:22px}
+.eg-icon-album{padding:10px}
+.eg-icon-album section{margin:10px 0;border-top:1px solid #d6d0df;padding-top:8px}
+.eg-icon-album h3{margin:0 0 6px;color:#725b8f}
+.eg-icon-album h3 .eg-icon{width:24px;height:24px}
+.eg-album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:7px}
+.eg-album-tile{min-height:62px;border:1px solid #d3c7df;border-radius:10px;background:#fff;color:#735b8d;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.eg-album-tile .eg-icon{width:36px;height:36px}
+.eg-album-tile[aria-pressed="true"]{background:#eae1f5;border-color:#8b6ba8}
+.eg-album-selection{margin:0;font-size:12px;line-height:1.4;min-height:2.8em}
+.eg-album-tile:focus-visible{outline:3px solid #8b6ba8;outline-offset:2px}

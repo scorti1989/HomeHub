@@ -193,7 +193,10 @@ function drawEyes(ctx, cx, ey, t, P, mode, track, prof, sick, sleeping, mood) {
     const R = Math.max(3, Math.round(R0 * (isBack ? 1 - pm * 0.22 : 1)));
     const pr = R * 0.5;
     const ex = cx + sign * sep;
-    if (shell) brokenHole(ctx, ex, ey, R + 1, P, sign < 0 ? 11 : 12, true);
+    if (shell) {
+      if(P.ghostCloth){pe(ctx,ex,ey,R+1.6,R+1.6,"#b7b2c9");pe(ctx,ex,ey,R+.6,R+.6,"#15121f");}
+      else brokenHole(ctx, ex, ey, R + 1, P, sign < 0 ? 11 : 12, true);
+    }
     if (blink) { rect(ctx, ex - (R - 1), ey + 1, 2 * (R - 1), 1, "#cdc7da"); continue; }
     if (mode === "glow") {
       const [r, g, b] = hexRgb(P.eyeCol);
@@ -437,7 +440,7 @@ function drawDeko(ctx, t, deko, prestige) {
     if (Math.sin(t / 480) > 0.3) rect(ctx, px + 15, py + 3, 1, 1, "#ffffff");                     // blinkender Stern
   }
   if (deko.mobile) {
-    const mx = 110, sway = Math.sin(t / 950) * 3;
+    const mx = 130, sway = Math.sin(t / 950) * 3;
     rect(ctx, mx, 0, 1, 11, "#9090a0");
     rect(ctx, Math.round(mx - 10 + sway * 0.4), 11, 20, 1, "#c0b070");
     const arms = [{ dx: -9, len: 9 }, { dx: 0, len: 7 }, { dx: 9, len: 11 }];
@@ -470,7 +473,7 @@ function drawDeko(ctx, t, deko, prestige) {
     rect(ctx, ux, uy, 1, 1, "#2a2016");
   }
   if (deko.photo) {                                                 // Erinnerung ans erste Ei
-    const fx = 66, fy = 50;
+    const fx = 18, fy = 58;
     rect(ctx, fx, fy, 17, 15, "#6a4a24"); rect(ctx, fx + 1, fy + 1, 15, 13, "#f2ead6");
     pe(ctx, fx + 6, fy + 8, 3.2, 4.2, "#d8cca8"); pe(ctx, fx + 5.7, fy + 7.7, 2.6, 3.6, "#efe6cc");   // großes Ei
     pe(ctx, fx + 12, fy + 9.5, 2, 2.8, "#d8cca8"); pe(ctx, fx + 11.8, fy + 9.3, 1.6, 2.2, "#efe6cc"); // kleines Ei
@@ -491,7 +494,7 @@ function drawDeko(ctx, t, deko, prestige) {
   }
   if (deko.lights) {                                                // Lichterkette quer über die Wand
     for (let i = 0; i <= 20; i++) {
-      const q = i / 20, lxp = 56 + q * 84, lyp = 22 + Math.sin(q * Math.PI) * 7;
+      const q = i / 20, lxp = 56 + q * 84, lyp = 8 + Math.sin(q * Math.PI) * 5;
       rect(ctx, Math.round(lxp), Math.round(lyp), 1, 1, "#3a3448");                 // Kabel
       if (i % 3 === 1) {
         const ci = Math.floor(i / 3), on = Math.floor(t / 600 + ci) % 2 === 0;
@@ -507,11 +510,11 @@ function drawDeko(ctx, t, deko, prestige) {
   if (deko.eggarland && [2, 3].includes(mon)) {                     // Oster-Girlande am Wand-Spot
     for (let i = 0; i <= 12; i++) {
       const q = i / 12;
-      rect(ctx, Math.round(94 + q * 26), Math.round(53 + Math.sin(q * Math.PI) * 5), 1, 1, "#8a7050");
+      rect(ctx, Math.round(58 + q * 42), Math.round(21 + Math.sin(q * Math.PI) * 4), 1, 1, "#8a7050");
     }
     const eggC = ["#f0a0c0", "#90c8f0", "#f0dc70", "#a0e0a0"];
     for (let k = 0; k < 4; k++) {
-      const q = 0.2 + k * 0.2, ex = Math.round(94 + q * 26), ey = Math.round(55 + Math.sin(q * Math.PI) * 5);
+      const q = 0.2 + k * 0.2, ex = Math.round(58 + q * 42), ey = Math.round(23 + Math.sin(q * Math.PI) * 4);
       pe(ctx, ex, ey + 2, 1.9, 2.5, eggC[k]);
       rect(ctx, ex - 1, ey + 1, 1, 1, "#ffffff");
     }
@@ -519,20 +522,26 @@ function drawDeko(ctx, t, deko, prestige) {
   if (deko.bunting && [5, 6, 7].includes(mon)) {                    // Sommer-Wimpelkette
     for (let i = 0; i <= 12; i++) {
       const q = i / 12;
-      rect(ctx, Math.round(94 + q * 26), Math.round(53 + Math.sin(q * Math.PI) * 4), 1, 1, "#6a6a80");
+      rect(ctx, Math.round(58 + q * 42), Math.round(21 + Math.sin(q * Math.PI) * 4), 1, 1, "#6a6a80");
     }
     const wc = ["#ff5060", "#ffd040", "#50c860", "#50a0ff", "#d060e0"];
     for (let k = 0; k < 5; k++) {
-      const q = 0.1 + k * 0.2, wx2 = Math.round(94 + q * 26), wy2 = Math.round(54 + Math.sin(q * Math.PI) * 4);
+      const q = 0.1 + k * 0.2, wx2 = Math.round(58 + q * 42), wy2 = Math.round(22 + Math.sin(q * Math.PI) * 4);
       tri(ctx, wx2 - 2, wy2, wx2 + 2, wy2, wx2, wy2 + 5, wc[k]);
     }
   }
   if (deko.web && mon === 9) {                                      // Spinnennetz in der oberen rechten Ecke
-    for (const [ex2, ey2] of [[CW - 14, 0], [CW - 1, 12], [CW - 10, 9]])
-      for (let k = 0; k <= 8; k++) rect(ctx, Math.round(CW - 1 + (ex2 - (CW - 1)) * k / 8), Math.round((ey2) * k / 8), 1, 1, "#b8bcc8");
-    for (const rr of [5, 9]) for (let a = 0; a < 6; a++) {
-      const ang = 1.5708 + a * 0.16;
-      rect(ctx, Math.round(CW - 1 - Math.cos(ang - 1.5708 + 3.1416) * rr), Math.round(Math.sin(ang) * rr * 0.9), 1, 1, "#c8ccd8");
+    const wx=CW-2,wy=2;
+    for(const [ex,ey] of [[wx-18,wy],[wx-16,wy+8],[wx-10,wy+16],[wx,wy+19]]){
+      for(let i=0;i<=18;i++)rect(ctx,wx+(ex-wx)*i/18,wy+(ey-wy)*i/18,1,1,'#a4a8b8');
+    }
+    for(const radius of [6,11,16]){
+      let previous=null;
+      for(let i=0;i<=12;i++){
+        const angle=Math.PI/2+i*Math.PI/24,x=wx+Math.cos(angle)*radius,y=wy+Math.sin(angle)*radius;
+        if(previous)for(let j=0;j<=3;j++)rect(ctx,previous.x+(x-previous.x)*j/3,previous.y+(y-previous.y)*j/3,1,1,'#c7cad5');
+        previous={x,y};
+      }
     }
     const sy2 = 13 + Math.sin(t / 700) * 3;                          // Spinne pendelt
     rect(ctx, CW - 8, 9, 1, Math.round(sy2) - 9, "#9a9eae");
@@ -540,7 +549,7 @@ function drawDeko(ctx, t, deko, prestige) {
     rect(ctx, CW - 10, Math.round(sy2) + 1, 1, 1, "#2a2430"); rect(ctx, CW - 6, Math.round(sy2) + 1, 1, 1, "#2a2430");
   }
   if (deko.wreath && xmasTime()) {                                  // Adventskranz
-    const kx = 106, ky = 62;
+    const kx = 130, ky = 73;
     for (let a = 0; a < 8; a++) {
       const ang = a / 8 * 6.2832;
       pe(ctx, kx + Math.cos(ang) * 5.5, ky + Math.sin(ang) * 5.5, 2.3, 2.3, a % 2 ? "#1e5428" : "#2a7034");
@@ -551,7 +560,7 @@ function drawDeko(ctx, t, deko, prestige) {
     rect(ctx, kx + 3, ky - 5, 1, 1, "#f0c030"); rect(ctx, kx - 5, ky - 2, 1, 1, "#f0c030"); rect(ctx, kx + 4, ky + 2, 1, 1, "#f0c030");   // Kugeln
   }
   /* ---- Saison-Deko: erscheint nur in der jeweiligen Saison ---- */
-  const sx0 = 66, gy = FLOOR - 1;
+  const sx0 = 48, gy = FLOOR - 1;
   if (deko.easternest && [2, 3].includes(mon)) {                      // Ostern
     pe(ctx, sx0, gy - 2, 10, 4.5, "#7a5828"); pe(ctx, sx0, gy - 3, 8.5, 3.5, "#9a7438");
     for (let k = 0; k < 5; k++) rect(ctx, sx0 - 9 + k * 4, gy - 6, 2, 1, "#b89050");   // Halme
@@ -572,15 +581,27 @@ function drawDeko(ctx, t, deko, prestige) {
     }
     pe(ctx, px2 - 2, py2 + 2, 1.6, 1.6, "#6a4418"); pe(ctx, px2 + 2, py2 + 3, 1.6, 1.6, "#6a4418");   // Kokosnüsse
   }
-  if (deko.pumpkin && mon === 9) {                                    // Halloween
-    pe(ctx, sx0, gy - 5, 8, 6.5, "#a04808"); pe(ctx, sx0, gy - 5, 7, 5.8, "#e07018");
-    rect(ctx, Math.round(sx0) - 4, gy - 10, 1, 5, "#c05810"); rect(ctx, Math.round(sx0) + 3, gy - 10, 1, 5, "#c05810");   // Rillen
-    rect(ctx, Math.round(sx0) - 1, gy - 13, 2, 3, "#4a6a20");                             // Stiel
-    const glow = 0.55 + 0.45 * Math.sin(t / 600);
-    ctx.globalAlpha = glow;
-    rect(ctx, Math.round(sx0) - 4, gy - 8, 2, 2, "#ffd040"); rect(ctx, Math.round(sx0) + 2, gy - 8, 2, 2, "#ffd040");     // Augen
-    rect(ctx, Math.round(sx0) - 3, gy - 4, 2, 1, "#ffd040"); rect(ctx, Math.round(sx0), gy - 3, 2, 1, "#ffd040"); rect(ctx, Math.round(sx0) + 2, gy - 4, 1, 1, "#ffd040");   // Zackenmund
-    ctx.globalAlpha = 1;
+  if (deko.pumpkin && mon === 9) {
+    // Eigener Bodenplatz neben dem Teppich, deutlich geschnitztes Gesicht.
+    const px=48,py=gy-8,glow=companionReducedMotion()? .82 : .82+Math.sin(t/950)*.08;
+    ctx.save();ctx.globalAlpha=.12*glow;pe(ctx,px,py+1,16,12,'#ffb63f');ctx.globalAlpha=1;
+    pe(ctx,px,gy+1,13,2,'rgba(58,36,27,.22)');
+    pe(ctx,px,py,12,9,'#713616');
+    pe(ctx,px-5,py,6,8,'#c95e16');pe(ctx,px+5,py,6,8,'#c65a12');
+    pe(ctx,px,py,7,8,'#f48a24');
+    rect(ctx,px-7,py-4,1,8,'#e47920');rect(ctx,px+7,py-4,1,9,'#a64b14');
+    rect(ctx,px-2,py-11,3,4,'#4c6130');rect(ctx,px,py-12,3,2,'#697c39');
+    rect(ctx,px-6,py-6,2,2,'#ffae48');rect(ctx,px-3,py-7,3,1,'#ffc365');
+    tri(ctx,px-7,py-3,px-2,py-3,px-4,py-6,'#63351c');
+    tri(ctx,px+2,py-3,px+7,py-3,px+4,py-6,'#63351c');
+    tri(ctx,px-1,py,px+2,py,px,py-3,'#63351c');
+    rect(ctx,px-7,py+2,14,3,'#63351c');rect(ctx,px-5,py+5,10,1,'#63351c');
+    ctx.globalAlpha=glow;
+    rect(ctx,px-5,py-4,2,1,'#ffe6a1');rect(ctx,px+3,py-4,2,1,'#ffe6a1');
+    rect(ctx,px-5,py+3,10,2,'#ffd66c');
+    ctx.globalAlpha=1;
+    rect(ctx,px-3,py+2,2,2,'#e7791d');rect(ctx,px+2,py+4,2,2,'#df7118');
+    ctx.restore();
   }
   if (deko.xmastree && xmasTime()) {                                  // Weihnachten
     rect(ctx, Math.round(sx0) - 2, gy - 6, 4, 6, "#6a4018");                              // Stamm
@@ -1060,29 +1081,48 @@ function drawCostume(ctx, cx, topY, t, P, id) {
   if (id === "bunnyears") {
     const wig = Math.sin(t / 420) * 1.5;                            // Ohren wackeln
     for (const sg of [-1, 1]) {
-      const ox = cx + sg * 5, tilt = sg * 2 + (sg > 0 ? wig : -wig);
-      pe(ctx, ox + tilt * 0.4, topY - 9, 2.6, 8, "#e8e0d4");        // Ohr außen
-      pe(ctx, ox + tilt * 0.4, topY - 8, 1.3, 5.5, "#f0a8c0");      // Innenohr rosa
+      const ox = cx + sg * Math.max(5,Math.round(P.rb*.28)), tilt = sg * 2 + (sg > 0 ? wig : -wig);
+      pe(ctx, ox + tilt * 0.4, topY - 9, 3.2, 9, "#cbc1cd");        // Ohr außen
+      pe(ctx, ox + tilt * 0.4, topY - 9, 2.2, 7.5, "#f5eced");pe(ctx,ox+tilt*.4,topY-8,1.1,5.2,"#e5a4bb");      // Innenohr rosa
     }
+    pe(ctx,cx,topY+2,Math.max(7,P.rb*.37),2,"#ebe3e8");
   } else if (id === "strawhat") {
     pe(ctx, cx, topY + 3, 13, 3.2, "#d8b860");                       // Krempe
     pe(ctx, cx, topY + 2.4, 12, 2.4, "#e8cc78");
     pe(ctx, cx, topY - 1, 7, 4.5, "#e8cc78");                        // Kuppel
     pe(ctx, cx - 1, topY - 2, 5.5, 3, "#f4dc94");
+    for(let i=-4;i<=4;i+=2)rect(ctx,cx+i,topY-3,1,3,"#c9a655");
+    rect(ctx,cx-10,topY+4,20,1,"#ab8540");
     rect(ctx, Math.round(cx) - 7, topY + 1, 14, 2, "#a05828");       // Hutband
   } else if (id === "ghost") {
-    // A hood on the shell, with the egg's own eyes; no second floating face.
-    const hw=Math.round(P.rb*.97),cy=topY+Math.round(P.ht*.45),ry=Math.round(P.ht*.55),hem=topY+Math.round(P.ht*.82);
-    pe(ctx,cx,cy,hw,ry,'#c9cbd0');
-    pe(ctx,cx,cy,hw-1,ry-1,'#f2f2f0');
-    pe(ctx,cx-2,cy-1,hw*.78,ry*.86,'#fbfbfa');
-    for(let k=0;k<6;k++){const x=Math.round(cx-hw+4+k*(hw*2-8)/5);tri(ctx,x-3,hem,x+3,hem,x,hem+4,'#f2f2f0');}
-    rect(ctx,cx-hw+4,hem-6,1,6,'#dfe0e3');rect(ctx,cx+hw-5,hem-5,1,5,'#dfe0e3');
-  } else if (id === "santahat") {
+    // Ein vollständiges Stoffkostüm; die vertrauten Augen und Gliedmaßen bleiben.
+    const width=Math.round(P.rb+2),height=Math.round(P.ht+P.rb),hem=topY+height-1;
+    const cy=topY+Math.round(height*.48),ry=Math.round(height*.50);
+    pe(ctx,cx,hem+2,width*.78,2,'rgba(40,35,60,.16)');
+    pe(ctx,cx,cy,width,ry,'#9293aa');
+    pe(ctx,cx,cy,width-1,ry-1,'#e9e7f2');
+    pe(ctx,cx-2,cy-2,width-3,ry-3,'#faf8fc');
+    // Ausgestellter Saum statt einer abgeschnittenen Haube.
+    tri(ctx,cx-width+2,cy+5,cx-width-1,hem,cx,hem,'#e9e7f2');
+    tri(ctx,cx+width-2,cy+5,cx+width+1,hem,cx,hem,'#dedbe9');
+    rect(ctx,cx-width+1,hem-7,width*2-2,6,'#eeebf5');
+    const step=(width*2-2)/5;
+    for(let i=0;i<5;i++){
+      const x=cx-width+1+i*step;
+      tri(ctx,x,hem-2,x+step,hem-2,x+step*.5,hem+2,i===4?'#dedbe9':'#eeebf5');
+    }
+    // Wenige seitliche Falten; das Gesicht bleibt ohne zusätzliche Konturen frei.
+    for(const sign of [-1,1]){
+      rect(ctx,cx+sign*(width-5),cy+7,1,Math.max(3,hem-cy-10),'#c8c4d8');
+      rect(ctx,cx+sign*(width-8),hem-9,1,5,'#ddd9e9');
+    }
+    } else if (id === "santahat") {
     const bob = Math.sin(t / 500) * 1;                               // Bommel wippt
     pe(ctx, cx, topY + 3, 10, 3, "#f4f0ea");                          // Pelzrand
     tri(ctx, cx - 9, topY + 2, cx + 9, topY + 2, cx + 3, topY - 11, "#c02030");   // Zipfel
     tri(ctx, cx - 6, topY + 1, cx + 6, topY + 1, cx + 2, topY - 8, "#e03848");
+    tri(ctx,cx+2,topY-8,cx+5,topY-3,cx+1,topY+1,"#b01f36");
+    rect(ctx,cx-6,topY+2,10,1,"#ffffff");
     pe(ctx, cx + 4 + bob, topY - 12, 2.5, 2.5, "#ffffff");            // Bommel
   }
 }
@@ -1519,7 +1559,7 @@ function drawEgg(ctx, S, t) {
       eyeDrawY = ecy + sa * dx + ca * dy;
     }
     const mood = sleeping ? "sleeping" : eggMood(S);
-    drawEyes(ctx, eyeDrawX, eyeDrawY, t, P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank, sleeping, mood);
+    drawEyes(ctx, eyeDrawX, eyeDrawY, t, wornC==="ghost"?{...P,ghostCloth:true}:P, S.stage === 5 ? "glow" : "lit", track, 0, S.krank, sleeping, mood);
     if (sleeping) {
       const zb = (t / 900) % 3, za = Math.max(0, 1 - zb / 3);
       ctx.globalAlpha = za * 0.8;
@@ -1651,7 +1691,7 @@ const SHOP_ITEMS = [
   { id: "plant",      label: "🌱 Pflanze",    cost: 4, desc: "Topfpflanze rechts" },
   { id: "poster",     label: "🖼 Ei-Poster",  cost: 5, desc: "Poster an der Wand" },
   { id: "mobile",     label: "🌙 Mobile",     cost: 6, desc: "Schwebt an der Decke" },
-  { id: "nightlight", label: "💡 Nachtlicht", cost: 7, desc: "Glimmt bei wenig Strom" },
+  { id: "nightlight", label: "💡 Nachtlicht", cost: 7, desc: "Warmer Schein im Raum" },
 ];
 let seasonOverride = -1;                                       // Dev: Saison erzwingen (-1 = echtes Datum)
 function curMonth() { return seasonOverride >= 0 ? seasonOverride : new Date().getMonth(); }
@@ -2240,29 +2280,47 @@ function companionMoment(){
   const development=r.find(x=>x.type==="development" && x.at===last.at);
   return development && development!==last?development.text+" "+last.text:last.text;
 }
+const EGG_ICON_PATHS={"ball": "M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM7 7c5 0 5 10 10 10M17 7c-5 0-5 10-10 10", "yoyo": "M12 3v8m-5 5a5 5 0 1 0 10 0 5 5 0 0 0-10 0Zm3 0h4", "bubbles": "M5 16a3 3 0 1 0 6 0 3 3 0 0 0-6 0ZM13 8a4 4 0 1 0 8 0 4 4 0 0 0-8 0ZM5 5h.01", "balloon": "M6 9a6 7 0 1 0 12 0 6 7 0 0 0-12 0ZM12 16l-2 2h4l-2-2v5", "top": "m4 12 8-7 8 7-8 6-8-6Zm8-10v3m-8 7h16m-8 6v4", "rug": "M3 7h18v10H3ZM6 10h12M6 14h12M3 5v14M21 5v14", "plant": "M8 15h8l-1 6H9l-1-6Zm4 0V8m0 3C4 11 4 4 4 4c7 0 8 5 8 5m0-1c0-5 6-6 8-5 0 5-4 7-8 7", "poster": "M4 3h16v18H4ZM7 17l4-6 3 4 2-2 2 4M8 7h.01", "mobile": "M12 2v4M4 7h16M5 7v6m7-6v10m7-10v6m-16 2h4l-2 4-2-4Zm7 4h4l-2 3-2-3Zm7-4h4l-2 4-2-4Z", "nightlight": "M8 16h8v4H8ZM9 16c0-3-4-4-4-8a7 7 0 0 1 14 0c0 4-4 5-4 8M10 23h4", "easternest": "M3 15c0 9 18 9 18 0M3 15h18M6 15c-5-9 5-13 4 0m3 0c-3-12 8-12 5 0", "palm": "M12 21V9m-7 12h14M12 9C4 9 3 4 3 4c6-2 9 2 9 5m0 0c8 0 9-5 9-5-6-2-9 2-9 5m0-1c-3-6 0-6 0-6 4 1 4 4 0 6", "pumpkin": "M12 6V2m0 4c-12-4-12 16 0 14 12 2 12-18 0-14Zm-6 5h3m6 0h3m-10 5h8m-6-1v2m4-2v2", "xmastree": "m12 2-6 7h3l-5 6h4l-5 5h18l-5-5h4l-5-6h3L12 2Zm0 18v3", "bunnyears": "M9 12C0 0 12-3 10 11m5 1c9-12-3-15-1-1M5 19a7 7 0 0 1 14 0M5 19h14", "strawhat": "M3 17c0-4 18-4 18 0s-18 4-18 0ZM7 15V8c0-6 10-6 10 0v7M7 11h10", "ghost": "M4 21V10a8 8 0 0 1 16 0v11l-4-3-4 3-4-3-4 3ZM9 10h.01M15 10h.01", "santahat": "M4 18h16v4H4ZM6 18 12 3l6 11-4-2-2-4-2 10m6-4a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z", "wallclock": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm9-6v6l4 2", "photo": "M3 4h18v16H3ZM6 15l4-5 4 5 3-3 2 3M7 7h.01", "trophy": "M7 3h10v7c0 7-10 7-10 0V3Zm10 2h4v3c0 3-2 4-4 4M7 5H3v3c0 3 2 4 4 4m5 3v5m-5 1h10", "lights": "M2 5q10 10 20 0M5 8v5m7-3v5m7-7v5M4 13h2m5 2h2m5-2h2", "eggarland": "M2 5q10 9 20 0M5 8v2m7 0v2m7-4v2M3 13a2 3 0 1 0 4 0 2 3 0 0 0-4 0Zm7 2a2 3 0 1 0 4 0 2 3 0 0 0-4 0Zm7-2a2 3 0 1 0 4 0 2 3 0 0 0-4 0Z", "bunting": "M2 5q10 9 20 0M3 7l3 9 4-7m1 1 3 9 4-11", "web": "M2 2h20M2 2v20M2 2l20 20M2 2l20 10M2 2l10 20M2 8q6 0 6-6M2 14q12 0 12-12M2 20q18 0 18-18", "wreath": "M4 10a8 8 0 1 0 16 0 8 8 0 0 0-16 0Zm5 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm3 8-6-3v6l6-3 6-3v6l-6-3Z", "album": "M4 3h16v18H4ZM8 3v18m4-13 4 2-4 2", "nudge": "M5 14V9m4 5V6m4 8V5m4 9V8m-12 6c-6-4-6 1 0 6 4 4 12 2 12-4V8", "room": "m3 11 9-8 9 8M5 10v11h14V10m-9 11v-7h4v7", "adventure": "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm13-4-3 5-5 3 3-5 5-3Z", "care": "M12 20C-3 11 6 0 12 8c6-8 15 3 0 12Z", "history": "M6 3h14v18H6ZM10 8h6m-6 4h6m-6 4h4M3 6h3M3 12h3M3 18h3", "feed": "M4 11h16c0 12-16 12-16 0ZM6 7V3m6 4V2m6 5V3", "clean": "M14 2 8 14m-4 0h10l4 7H2l2-7Zm2 3-1 4m5-4v4", "charge": "M9 17h6m-6 3h6M8 14C0 5 8-4 15 3c6 6 0 9 0 11M12 6v5", "heal": "M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z", "review": "M5 3h14v18H5Zm7 4v8m-3-3 3 3 3-3", "prestige": "M5 21V10a7 7 0 0 1 14 0v11M8 18l4-9 4 9m-8 0h8", "near": "m3 11 9-8 9 8M5 10v11h14V10m-9 11v-7h4v7", "garden": "M12 21V10M12 12C1 10 4 1 4 1c7 1 8 4 8 11m0-3c1-6 8-7 8-7 1 7-4 10-8 10", "stars": "m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6Z", "finds": "m4 8 8-5 8 5-8 5-8-5Zm0 0v10l8 4 8-4V8m-8 5v9", "events": "M12 2v5m0 10v5M2 12h5m10 0h5M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3", "moments": "M5 3h14v18l-7-4-7 4V3Z", "pebble": "m4 15 2-7 8-4 6 7-3 8-9 1-4-5Z", "feather": "M4 21 18 3c10 3-1 15-10 13M8 15h5m-2-4h5", "button": "M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Zm5-3h.01m6 0h.01m-6 6h.01m6 0h.01", "leaf": "M4 20C-1 5 10 3 21 3c0 13-7 20-17 17Zm0 0L17 7", "shell": "M12 21 3 11c-4-12 22-12 18 0l-9 10Zm0 0V4m0 17L7 5m5 16 5-16", "amber": "m8 3 8 1 5 9-6 8-9-3-3-8 5-7Zm2 4 5 2-2 6-5-3 2-5Z"};
+function eggIcon(key){
+ if(/^form:[0-5]$/.test(key)){const stage=Number(key.split(':')[1]),color=['#ac9b69','#c5a74d','#cba04f','#b99548','#cc8c3b','#7460a7'][stage];return '<svg class="eg-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="'+color+'" d="M5 15C3 4 11-3 16 5c9 15-3 20-10 13Z"/>'+(stage>0?'<path d="M9 11h.01m6 0h.01"/>':'')+(stage>1?'<path d="m8 20-2 2m10-2 2 2"/>':'')+(stage>2?'<path d="m5 14-3 2m18-2 2 2"/>':'')+(stage>3?'<path d="m12 3-2 4 3 3-2 4"/>':'')+'</svg>';}
+ return '<svg class="eg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="'+(EGG_ICON_PATHS[key]||EGG_ICON_PATHS.events)+'"/></svg>';
+}
+function eggSymbolButton(act,label,id,disabled,selected){
+ const name=label.replace(/<small>/g,' · ').replace(/<[^>]*>/g,'');
+ const key=act==='toy'||act==='deko'||act==='costume'||act==='exp'?id:act;
+ const owned=act==='toy'?dragon.toys[id]:act==='deko'?dragon.deko[id]:act==='costume'?dragon.costumes[id]:false;
+ let note='';
+ if(['toy','deko','costume'].includes(act)){
+  if(!owned)note=label.match(/<small>(.*?)<\/small>/)?.[1]||'';
+  else if(selected===true)note='✓';
+ }else if(act==='exp')note=COMPANION_TRIPS[id].hours+' h';
+ else note=label;
+ return '<button class="eg-btn eg-symbol-btn" data-act="'+act+'" data-id="'+esc(id)+'" title="'+esc(name)+'" aria-label="'+esc(name)+'"'+(disabled?' disabled':'')+(selected===null?'':' aria-pressed="'+selected+'"')+'>'+eggIcon(key)+(note?'<small>'+note+'</small>':'')+'</button>';
+}
+
 function eggSections() {
   if(companionSaveBlocked)return '<p class="eg-warn">Der Begleiterstand konnte nicht sicher übernommen werden. Deine gespeicherten Daten bleiben erhalten. Bitte Speicherplatz bzw. App-Version prüfen und neu laden.</p>';
   const p=dragon,c=p.companion,current=p.stage;
-  const button=(act,label,id="",disabled=false,selected=null)=>'<button class="eg-btn" data-act="'+act+'" data-id="'+esc(id)+'"'+(disabled?' disabled':'')+(selected===null?'':' aria-pressed="'+selected+'"')+'>'+label+'</button>';
+  const button=(act,label,id="",disabled=false,selected=null)=>eggSymbolButton(act,label,id,disabled,selected);
   let h='<div class="eg-pane">';
   h+='<p class="eg-moment" role="status" aria-live="polite">'+esc(companionMoment())+'</p>';
   h+='<p class="eg-dim">'+(p.krank?'Ruht sich aus · erholt sich nach der Rückkehr von selbst':p.hunger<50?'Gemütlich und etwas hungrig':'Fühlt sich wohl')+' · '+esc(companionCharacter())+(p.prestige?' · Ei '+(p.prestige+1):'')+'</p>';
   h+='<div class="eg-companion-nav">'+button("nudge",p.expActive?"Unterwegs":"Begrüßen","",p.expActive)+button("album","Album")+'</div>';
   const toys=TOY_ITEMS.filter(x=>p.unlocked[x.id]),deko=SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS).filter(x=>p.unlocked[x.id]),costumes=COSTUMES.filter(x=>p.unlocked[x.id]||p.costumes[x.id]);
-  h+='<details data-panel="room"><summary>Raum und Spielzeug</summary><p class="eg-dim">Dein Begleiter nutzt seine Spielsachen auch selbstständig.</p>';
+  h+='<details data-panel="room"><summary><span class="eg-panel-label">'+eggIcon("room")+'<span>Raum und Spielzeug</span></span></summary><p class="eg-dim">Dein Begleiter nutzt seine Spielsachen auch selbstständig.</p>';
   if(toys.length){h+='<h4 class="eg-group-title">Spielzeug</h4><div class="eg-grid">';
     for(const it of toys)h+=button("toy",esc(eggItemLabel(it))+'<small>'+(p.toys[it.id]?(p.expActive?'Nach der Rückkehr':p.stage<2?'Zeigen':'Gemeinsam spielen'):it.cost+' Sterne')+'</small>',it.id,p.expActive || (!p.toys[it.id]&&p.stardust<it.cost));h+='</div>';}
   if(deko.length){h+='<h4 class="eg-group-title">Einrichtung</h4><div class="eg-grid">';
-    for(const it of deko)h+=button("deko",esc(eggItemLabel(it))+'<small>'+(p.deko[it.id]?(c.world.favorite===it.id?'Lieblingsplatz':'Im Raum'):it.cost+' Sterne')+'</small>',it.id,!p.deko[it.id]&&p.stardust<it.cost);h+='</div>';}
+    for(const it of deko)h+=button("deko",esc(eggItemLabel(it))+'<small>'+(p.deko[it.id]?((it.months&&!inSeason(it))?'Für die Saison verstaut':c.world.favorite===it.id?'Lieblingsplatz':'Im Raum'):it.cost+' Sterne')+'</small>',it.id,!p.deko[it.id]&&p.stardust<it.cost);h+='</div>';}
   if(costumes.length){h+='<h4 class="eg-group-title">Kostüme</h4><div class="eg-grid">';
     for(const it of costumes)h+=button("costume",esc(eggItemLabel(it))+'<small>'+(p.costumes[it.id]?(c.world.equippedCostume===it.id?'Angezogen · ausziehen':'Anziehen'):it.cost+' Sterne')+'</small>',it.id,!p.costumes[it.id]&&p.stardust<it.cost,p.costumes[it.id]?c.world.equippedCostume===it.id:null);h+='</div>';}
   if(!toys.length&&!deko.length&&!costumes.length)h+='<p class="eg-dim">Mit der Zeit findet es neue Dinge für sein Zuhause.</p>';
-  h+='</details><details data-panel="adventure"><summary>Abenteuer</summary>';
+  h+='</details><details data-panel="adventure"><summary><span class="eg-panel-label">'+eggIcon("adventure")+'<span>Abenteuer</span></span></summary>';
   if(p.expActive){const ex=c.expedition;h+='<p>'+esc(COMPANION_TRIPS[ex.type].label)+' · Rückkehr ungefähr '+esc(new Date(ex.returnAt).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}))+'</p><p class="eg-dim">Die Rückkehr und der Fund werden automatisch gespeichert.</p>';}
   else if(p.stage>=2){h+='<div class="eg-grid">';for(const [id,it] of Object.entries(COMPANION_TRIPS))h+=button('exp',it.label+'<small>Etwa '+it.hours+' Stunden</small>',id);h+='</div>';}
   else h+='<p class="eg-dim">Sobald es laufen kann, erkundet es die Umgebung.</p>';
-  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten</summary><div class="eg-grid">'+button('feed',p.stage<2?'Befeuchten':'Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
-  h+='<details data-panel="history"><summary>Erinnerungen und Verlauf</summary><p class="eg-dim">'+(p.statLog.acts||0)+' bisherige Aktionen · '+(p.statLog.plays||0)+' gemeinsame Spielrunden · '+(c.journey.spontaneous||0)+' selbstständige Spielmomente · '+(p.statLog.exps||0)+' Abenteuer. Aktivitätstage: '+p.streak+'.</p>'+(p.lastReview?button('review','Rückblick herunterladen'):'')+'</details>';
+  h+='</details><details data-panel="care"><summary><span class="eg-panel-label">'+eggIcon("care")+'<span>Kleine Aufmerksamkeiten</span></span></summary><div class="eg-grid">'+button('feed',p.stage<2?'Befeuchten':'Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
+  h+='<details data-panel="history"><summary><span class="eg-panel-label">'+eggIcon("history")+'<span>Erinnerungen und Verlauf</span></span></summary><p class="eg-dim">'+(p.statLog.acts||0)+' bisherige Aktionen · '+(p.statLog.plays||0)+' gemeinsame Spielrunden · '+(c.journey.spontaneous||0)+' selbstständige Spielmomente · '+(p.statLog.exps||0)+' Abenteuer. Aktivitätstage: '+p.streak+'.</p>'+(p.lastReview?button('review','Rückblick herunterladen'):'')+'</details>';
   if(p.xp>=5500)h+=button('prestige',prestigeConfirm?'Neues Ei wirklich beginnen?':'Durchs Portal · neues Ei','',p.expActive);
   return h+'</div>';
 }
@@ -2299,15 +2357,25 @@ function eggAlbumEntry(it, owned, note) {
   return { html, len: Math.max(it.label.length - 3, 12) };
 }
 function eggAlbumHtml() {
-  const p=dragon,c=p.companion;
-  let h='<div class="eg-album"><p>Einige Entdeckungen bleiben noch im Verborgenen.</p>';
-  const section=(title,rows)=>'<h3>'+title+'</h3><div class="eg-grid">'+rows.map(x=>'<div class="eg-album-entry">'+x+'</div>').join('')+'</div>';
-  for(const [title,items,map] of [["Spielzeuge",TOY_ITEMS,p.toys],["Dekoration",SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),p.deko],["Kostüme",COSTUMES,p.costumes]]) {
-    h+=section(title,items.map(it=>p.unlocked[it.id]||map[it.id]?esc(eggItemLabel(it))+'<small>'+(map[it.id]?(title==='Dekoration'?'Besitzt du · im Raum':'Besitzt du'):'Entdeckt · im Raum erhältlich')+'</small>':'<span class="eg-dim">Ein unbekannter '+(title==='Spielzeuge'?'Spielgefährte':'Gegenstand')+'</span>'));
-  }
-  for(const [key,title] of [["finds","Fundstücke"],["events","Besondere Ereignisse"],["forms","Entwicklungsformen"],["moments","Erinnerungen"]])h+=section(title,c.collection[key].length?c.collection[key].map(x=>esc(x.label)):['Noch eine verborgene Geschichte']);
-  return h+'</div>';
+ const p=dragon,c=p.companion;
+ let h='<div class="eg-album eg-icon-album"><p id="eggAlbumSelection" class="eg-album-selection" role="status" aria-live="polite">Tippe auf ein Symbol.</p>';
+ const tile=(icon,label)=>'<button type="button" class="eg-album-tile" data-egg-album-info="'+esc(label)+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+eggIcon(icon)+'</button>';
+ const section=(icon,title,rows)=>rows.length?'<section aria-label="'+title+'"><h3 title="'+title+'" aria-label="'+title+'">'+eggIcon(icon)+'</h3><div class="eg-album-grid">'+rows.join('')+'</div></section>':'';
+ for(const [title,icon,items,map] of [["Spielzeuge","ball",TOY_ITEMS,p.toys],["Dekoration","room",SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),p.deko],["Kostüme","ghost",COSTUMES,p.costumes]]){
+  h+=section(icon,title,items.filter(it=>p.unlocked[it.id]||map[it.id]).map(it=>tile(it.id,eggItemLabel(it)+' · '+(map[it.id]?(it.months&&!inSeason(it)&&title==='Dekoration'?'Für die Saison verstaut':'In deiner Sammlung'):'Entdeckt · im Raum erhältlich'))));
+ }
+ const finds=['pebble','feather','button','stars','leaf','shell','amber','events'];
+ for(const [key,title] of [["finds","Fundstücke"],["events","Besondere Ereignisse"],["forms","Entwicklungsformen"],["moments","Erinnerungen"]]){
+  h+=section(key==='forms'?'form:'+p.stage:key,title,c.collection[key].map(x=>tile(key==='forms'?x.id:key==='finds'?finds[Number(x.id.split(':')[1])]||'finds':key,x.label)));
+ }
+ return h+'</div>';
 }
+document.addEventListener('click',event=>{
+ const tile=event.target.closest?.('[data-egg-album-info]');if(!tile)return;
+ const album=tile.closest('.eg-icon-album');if(!album)return;
+ album.querySelectorAll('.eg-album-tile').forEach(x=>x.removeAttribute('aria-pressed'));
+ tile.setAttribute('aria-pressed','true');album.querySelector('#eggAlbumSelection').textContent=tile.dataset.eggAlbumInfo;
+});
 
 function eggHandleClick(e) {
   try { eggHandleClickInner(e); } catch (err) { console.warn('[Ei] Aktion:', err); }

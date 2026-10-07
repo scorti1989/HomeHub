@@ -1,3 +1,25 @@
+## Version 53 – Symbolalbum ohne offene Plätze
+
+- Nur entdeckte Inhalte als Symbolkacheln, keine unbekannten Platzhalter oder Gesamtzahlen.
+- Leere Kategorien ausgeblendet, Bezeichnung und Moment erst nach Auswahl.
+- Einheitliche SVG-Symbole für Gegenstände und Ei-Menü; zugängliche Beschriftungen.
+- Preise, Reisedauer und wichtige Bestätigungen bleiben lesbar.
+
+## Version 52 – Gesamte Gegenstandsprüfung
+
+- Alle Dekorationen, Kostüme, Spielzeuge und vier Saisonräume geprüft.
+- Eigene Plätze für saisonale Bodenobjekte; Wandobjekte und Deckenketten entzerrt.
+- Spinnennetz innerhalb der sichtbaren Szene, Kostümdetails überarbeitet.
+- Saisonale Deko außerhalb ihrer Zeit korrekt als verstaut bezeichnet.
+- Mehrere Animationsphasen sowie unveränderte gespeicherte Daten in Regressionen geprüft.
+
+## Version 51 – Geistergewand und geschnitzter Kürbis
+
+- Vollständiges Stoffgewand mit Falten und Saum statt weißer Kopfhaube.
+- Vertraute Augen mit passenden Stoffausschnitten ohne Schalenrisse.
+- Größerer gerippter Kürbis mit geschnitztem Gesicht, Bodenschatten und ruhigem Licht auf eigenem Bodenplatz.
+- Statisches Kerzenlicht bei reduzierter Bewegung; vorhandener Besitz unverändert.
+
 ## Version 50 – Einheitliche Schnellzugriffe
 
 - Alle drei Buttons gleich groß, mit identischen Rundungen und Abständen.
