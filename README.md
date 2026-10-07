@@ -1,4 +1,4 @@
-# HomeHub 44
+# HomeHub 47
 
 Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sichtbare HomeHub-Reaktionen, Persönlichkeit, mehrphasige Entdeckungen und zeitbasierte Abenteuer.
 
@@ -6,21 +6,39 @@ Das bestehende Ei bleibt erhalten und wird zum Begleiter: entspannte Pflege, sic
 
 1. In der laufenden App den Online-Abgleich prüfen. Ein zusätzlicher manueller Export bleibt optional.
 2. Alle Dateien aus dem Hauptordner dieser ZIP gemeinsam auf dem bisherigen Hosting ersetzen: index.html, sämtliche JavaScript-/CSS-Dateien, manifest.json und Icons. Neue Fachdateien gehören zwingend dazu. Die Ordner legacy/, tests/, server/ und docs/ sowie Markdown-Dateien sind für den Betrieb nicht erforderlich und müssen nicht veröffentlicht werden.
-3. Die App einmal online neu laden. Der Service Worker installiert Version 44. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
+3. Die App einmal online neu laden. Der Service Worker installiert Version 47. Wenn noch die alte Oberfläche erscheint, die App vollständig schließen und erneut online öffnen.
 4. Die App verwendet die bisherigen Speicherschlüssel. Ein Import ist für die Aktualisierung bestehender lokaler Daten nicht notwendig. Bekannte Datenfehler werden bei noch passenden Originalwerten gezielt korrigiert. Der Stand davor lässt sich in den Einstellungen unter „Stand vor Datenkorrektur herunterladen“ sichern.
 5. Das separat bereitgestellte korrigierte Backup ist der Datenstand vom 06.10.2026. Importiere es nur, wenn du genau diesen Stand wiederherstellen möchtest. Ein Import ersetzt den gesamten lokalen Datenstand und ist daher ungeeignet, um später erfasste Einträge zu erhalten.
 
 Eine Veröffentlichung auf deinem Hosting wurde hier nicht durchgeführt. Für einen Rückwechsel zuerst den Stand vor dem Begleiter-Umbau sichern: alte Spielversionen berücksichtigen die neuen Ereignisse und Zeitregeln nicht. Die bisherigen Speicherschlüssel bleiben erhalten. Wiederkehrende Ablesungen sind eine neue optionale Einstellung und werden von alten Versionen nicht fortgeschrieben.
 
-## Begleiter in Version 44
+## Begleiter ab Version 44
 
 Beim ersten Öffnen wird der vorhandene Spielstand automatisch übernommen. XP, Sterne, Besitz, Freischaltungen und bisherige Statistiken bleiben erhalten. Der gelieferten Stand mit 1.352 XP bleibt ein Watschelndes Ei; zur nächsten Form bei 1.600 XP fehlen 248 XP. Für diesen Stand sind Ball, Pflanze und Teppich sofort nutzbar.
 
 Hunger und Sauberkeit sinken langsam bis zu weichen Untergrenzen. Energie erholt sich selbst. Pflege gibt keine XP und sperrt weder HomeHub-Aktionen noch Spielzeug, Raum oder Album. Das ganze Nest wird mit einem Aufräumen sauber. Abwesenheit kostet keine Entwicklungsstufe. Erst nach 28 Tagen ohne Kontakt kann sich das Ei ausruhen müssen; nach der Rückkehr erholt es sich binnen 24 Stunden oder durch eine freiwillige Aufmerksamkeit.
 
-Die Momentzeile und ein dezenter Hinweis im Kopfbereich zeigen, was es erlebt. Ereignisse behalten ihren Fortschritt über Neustarts. Persönlichkeit entsteht ab jetzt aus Nutzung, Spiel, Ruhe und Erkundung. Abenteuer dauern etwa 3, 10 oder 22 Stunden und enden automatisch beim nächsten Öffnen oder während sichtbarer Nutzung. Funde, Besitz, Formen und besondere Momente erscheinen im Album. Online-Sicherungen erzeugen eine Reaktion nur nach einem neu angelegten und überprüften Sicherungspunkt; ein manueller Export ist dafür nicht erforderlich.
+Die Momentzeile direkt unter dem Ei zeigt, was es erlebt. Im Kopfbereich gibt es nur noch einen kleinen Sicherungspunkt neben dem Logo. Grün bedeutet bestätigte Online-Sicherung, Gelb einen laufenden/ausstehenden Abgleich und Rot fehlende Absicherung mit Empfehlung zum manuellen Export. Die XP-Anzeige und der Fortschrittsbalken sind ausgeblendet; die Entwicklung läuft intern weiter. Ereignisse behalten ihren Fortschritt über Neustarts. Persönlichkeit entsteht ab jetzt aus Nutzung, Spiel, Ruhe und Erkundung. Abenteuer dauern etwa 3, 10 oder 22 Stunden und enden automatisch beim nächsten Öffnen oder während sichtbarer Nutzung. Funde, Besitz, Formen und besondere Momente erscheinen im Album. Online-Sicherungen erzeugen eine Reaktion nur nach einem neu angelegten und überprüften Sicherungspunkt; ein manueller Export ist dafür nicht erforderlich.
 
 Unter Einstellungen lässt sich das Ei vor dem Umbau herunterladen. Diese Datei verbindet den gesicherten alten Ei-Zustand mit den übrigen aktuellen App-Daten; sie ist kein historischer Gesamtstand. Die vorhandene allgemeine Wiederherstellung sichert weiterhin komplette Datenstände. Details und Prüfungen: docs/BEGLEITER.md.
+
+## Stromanzeige ab Version 47
+
+Die Batterie im Raum und der numerische Energiewert im Pflegemenü sind ausgeblendet. Automatische Energieversorgung, Licht und bestehende Backup-Felder bleiben erhalten.
+
+## Menü und Animationen in Version 46
+
+Das Ei-Menü verwendet größere, gut lesbare Schrift, klare Gruppen für Spielzeug, Einrichtung und Kostüme sowie sichtbare Auswahlzustände. Geöffnete Bereiche und der Tastaturfokus bleiben beim Aktualisieren erhalten.
+
+Begrüßen und Spielen laufen vollständig durch und werden nicht mehr von Fliegen oder anderen Leerlaufgesten unterbrochen. Spielzeuge werden zur Raummitte geführt; der Kreisel bleibt beim Ei und klingt ruhig aus. Schlaf und Ruhe passen zur Tageszeit und Gesundheit. Während eines Abenteuers zeigen die Menüs passende Zustände. Kostüme wurden in allen Formen geprüft; das Geisterkostüm verwendet die ursprünglichen Augen. Bei reduzierter Bewegung aktualisieren Aktionen die statische Darstellung sofort.
+
+Die vorhandenen Spielstände und die kompakte Sicherungsanzeige bleiben erhalten. Die Pixelbilder wurden mit der echten Zeichenlogik geprüft; ein vollständiger Handy-Layouttest bleibt ausstehend.
+
+## Darstellungsanpassungen in Version 45
+
+Die zusätzlichen Statuszeilen im Kopfbereich wurden entfernt. Der Ei-Status bleibt beim Ei. Ein Tipp auf den Sicherungspunkt öffnet die Einstellungen; dort lässt sich auch eine manuelle Sicherung herunterladen.
+
+Beim laufenden Ei ohne Arme wird der Ball am Fuß geführt und mit Bodenschatten, Rollbewegung und kurzen Sprüngen gezeichnet. Andere Spielzeuge haben passende Darstellungen ohne Arme. Die Ballbewegung mit Armen beschleunigt zum Boden und bremst auf dem Rückweg. Neuzeichnen setzt die Spielzeit nicht mehr zurück; Laufen, Fliegen und Blasen berücksichtigen die Bildrate. Beim Portal wird die alte Form nur während der Animation dargestellt, während die neue Generation bereits sicher gespeichert ist. Reduzierte Bewegung zeigt Abreise und Rückkehr direkt im passenden statischen Zustand.
 
 ## Rezeptimport in Version 43
 

@@ -32,6 +32,7 @@ const PAL = {
   shadow: "rgba(0,0,0,0.4)",
 };
 const CW = 180, CH = 156, FLOOR = 130;
+var eggFrameScale=1,eggPreviousFrameTime=null;
 
 /* ---------- Pixel-Primitive ---------- */
 function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
@@ -869,14 +870,14 @@ function updateFly(t, stage) {
   if (fly.spawn) { fly.spawn = false; fly.st = "buzz"; fly.x = Math.random() < 0.5 ? -8 : CW + 8; fly.y = 16 + Math.random() * 46; fly.until = t + 8000 + Math.random() * 7000; newWP(t); }
   const f = fly;
   if (f.st === "idle") { if (t > f.until) { f.st = "buzz"; f.x = Math.random() < 0.5 ? -8 : CW + 8; f.y = 16 + Math.random() * 46; f.until = t + 8000 + Math.random() * 7000; newWP(t); } return; }
-  if (f.st === "leave") { f.x += (f.tx - f.x) * 0.05; f.y += (f.ty - f.y) * 0.05; if (f.x < -12 || f.x > CW + 12) { f.st = "idle"; f.until = t + 9000 + Math.random() * 16000; } return; }
+  if (f.st === "leave") { f.x += (f.tx-f.x)*(1-Math.pow(.95,eggFrameScale)); f.y += (f.ty-f.y)*(1-Math.pow(.95,eggFrameScale)); if (f.x < -12 || f.x > CW + 12) { f.st = "idle"; f.until = t + 9000 + Math.random() * 16000; } return; }
   if (f.st === "land") { if (t > f.landUntil) { f.st = "buzz"; newWP(t); } return; }
-  f.x += (f.wx - f.x) * 0.06 + (Math.random() - 0.5) * 1.8;       // wuseln
-  f.y += (f.wy - f.y) * 0.06 + (Math.random() - 0.5) * 1.8;
+  f.x += (f.wx-f.x)*(1-Math.pow(.94,eggFrameScale))+(Math.random()-.5)*1.8*Math.sqrt(eggFrameScale);       // wuseln
+  f.y += (f.wy-f.y)*(1-Math.pow(.94,eggFrameScale))+(Math.random()-.5)*1.8*Math.sqrt(eggFrameScale);
   if (Math.hypot(f.wx - f.x, f.wy - f.y) < 6 || t > f.wpUntil) {
     if (Math.random() < 0.15 && f.y < FLOOR - 50) { f.st = "land"; f.landUntil = t + 1400 + Math.random() * 2600; } else newWP(t);
   }
-  if (stage === 5 && t > f.until - 5000 && Math.random() < 0.012) { laser.st = "draw"; laser.until = t + 600; return; } // Laser ziehen
+  if (stage === 5 && idle.act!=="play" && !idle.invited && t > f.until - 5000 && Math.random() < 1-Math.pow(1-.012,eggFrameScale)) { laser.st = "draw"; laser.until = t + 600; return; } // Laser ziehen
   if (t > f.until) { f.st = "leave"; f.tx = Math.random() < 0.5 ? -14 : CW + 14; f.ty = 16 + Math.random() * 44; }
 }
 function drawFly(ctx, t) {
@@ -916,7 +917,7 @@ function updateRoll(t, canRoll) {
     if (t - roll.startT > dur) { roll.phase = "idle"; roll.nextT = t + 18000 + Math.random() * 22000; }
     return;
   }
-  if (t > roll.nextT && Math.random() < 0.0005) {
+  if (t > roll.nextT && Math.random() < 1-Math.pow(1-.0005,eggFrameScale)) {
     roll.phase = Math.random() < 0.38 ? "hop" : "wobble";
     roll.startT = t;
   }
@@ -925,7 +926,8 @@ function updateRoll(t, canRoll) {
 /* ---------- Herumlaufen (ab Beinen): Ziel suchen, hinwatscheln, mal stehen bleiben ---------- */
 let walk = { x: 92, tx: 92, until: 0, face: 0 };
 let expAnim = { st: "in" };   // in | leaving | away | returning
-let prestigeAnim = { st: "none", startT: 0 };   // none | walk | suck | flash | wait
+let prestigeAnim = { st: "none", startT: 0 };
+var prestigeVisual=null;   // none | walk | suck | flash | wait
 function updateWalk(t, canWalk) {
   let target = 0;
   if (canWalk) {
@@ -941,16 +943,16 @@ function updateWalk(t, canWalk) {
       }
     } else {
       const hp = (t % 520) / 520;                                     // Hop-Zyklus: 72% Flug, 28% Boden
-      if (hp < 0.72) walk.x += Math.sign(walk.tx - walk.x) * 0.66;    // bewegt sich nur im Flug
+      if (hp < 0.72) walk.x += Math.sign(walk.tx - walk.x) * 0.66 * eggFrameScale;    // bewegt sich nur im Flug
       target = Math.sign(walk.tx - walk.x);
     }
   }
-  walk.face += (target - walk.face) * 0.16;                                                  // sanft zur Seite drehen / zurück nach vorne
+  walk.face += (target-walk.face)*(1-Math.pow(.84,eggFrameScale));                                                  // sanft zur Seite drehen / zurück nach vorne
 }
 /* ---------- Leerlauf-Gesten: nervöses Fußwippen / auf imaginäre Uhr schauen ---------- */
-let idle = { act: "none", until: 0, next: 4000, toy: null, startT: 0 };
+let idle = { act: "none", until: 0, next: 4000, toy: null, startT: 0, invited:false };
 function updateIdle(t, canIdle, hasArms, toys) {
-  if (!canIdle && !(idle.act==="play" && t<idle.until)) { idle.act = "none"; return; }
+  if (!canIdle && !((idle.act==="play" || idle.invited) && t<idle.until)) { idle.act = "none"; idle.invited=false; return; }
   if (idle.act === "none") {
     if (t > idle.next) {
       const opts = ["tap", "tap", "wobble"];
@@ -964,7 +966,7 @@ function updateIdle(t, canIdle, hasArms, toys) {
       idle.startT = t;
       idle.until = t + (idle.act === "watch" ? 2800 : idle.act === "play" ? (idle.toy === "top" ? 9500 : idle.toy === "balloon" ? 5400 : 3600 + Math.random() * 2000) : idle.act === "wobble" ? 4200 : 1600 + Math.random() * 1600);
     }
-  } else if (t > idle.until) { idle.act = "none"; idle.next = t + 3000 + Math.random() * 7000; }
+  } else if (t > idle.until) { idle.act = "none"; idle.invited=false; idle.next = t + 3000 + Math.random() * 7000; }
 }
 function drawWatchArm(ctx, sx, sy, sign, P, t) {
   const wx = sx - sign * 12, wy = sy - 3;                          // Handgelenk vor die Brust, leicht angehoben
@@ -981,8 +983,11 @@ let flyEnabled = true;
 const BALL_CYCLE = 580;   // ms pro Auf-/Ab-Bewegung
 function ballY(t) {
   if (!ball.active) return ball.armY;
-  const phase = ((t - ball.startT) % BALL_CYCLE) / BALL_CYCLE;
-  return ball.armY + (ball.floorY - ball.armY - 5) * Math.abs(Math.sin(phase * Math.PI));
+  const floor=ball.floorY-4.5,top=Math.min(ball.armY,floor-5);
+  const phase=Math.max(0,(t-ball.startT)%BALL_CYCLE)/BALL_CYCLE;
+  // Accelerate towards the floor, then slow while returning to the hand.
+  const q=phase<.5?phase*2:(phase-.5)*2;
+  return phase<.5?top+(floor-top)*q*q:floor-(floor-top)*(1-(1-q)*(1-q));
 }
 function updateBall(t, armX, armY, floorY) {
   const should = idle.act === "play" && idle.toy === "ball";
@@ -991,6 +996,7 @@ function updateBall(t, armX, armY, floorY) {
     ball.active = true; ball.startT = t; ball.done = false;
     ball.bx = armX; ball.armX = armX; ball.armY = armY + 5; ball.floorY = floorY;   // dribbelt direkt unter der Hand
   }
+  ball.bx=armX;ball.armX=armX;ball.armY=armY+5;ball.floorY=floorY;
   const totalBounces = Math.floor((t - ball.startT) / BALL_CYCLE);
   if (totalBounces >= ball.maxB && !ball.done) {
     ball.done = true; ball.active = false;
@@ -1000,11 +1006,46 @@ function updateBall(t, armX, armY, floorY) {
 function drawBall(ctx, t) {
   if (!ball.active) return;
   const by = ballY(t), floorY = ball.floorY;
-  const sh = Math.max(0, 0.5 * (1 - (floorY - by) / (floorY - ball.armY)));
+  const sh = clampI(1-(floorY-4.5-by)/Math.max(1,floorY-4.5-ball.armY),0,1);
   ctx.globalAlpha = sh * 0.6; pe(ctx, ball.bx, floorY - 2, Math.max(1, 4 - sh * 2), 1, "#000"); ctx.globalAlpha = 1;
   pe(ctx, ball.bx, by, 4.5, 4.5, "#b89018");
   pe(ctx, ball.bx, by, 3.5, 3.5, "#e8c030");
   rect(ctx, Math.round(ball.bx) - 1, Math.round(by) - 2, 2, 1, "#fffcc0");
+}
+/* Spiel ohne Arme: am Fuß geführt, auf dem Boden statt frei schwebend. */
+function groundToyPose(cx,floorY,t,toy) {
+  const elapsed=Math.max(0,t-idle.startT),phase=(elapsed%1400)/1400;
+  const radius=toy==='top'?4:4.5;
+  const roll=toy==='ball'||toy==='yoyo'?12*Math.sin(phase*Math.PI)**2:0;
+  const bounce=toy==='ball'&&phase<.32?5*4*(phase/.32)*(1-phase/.32):0;
+  return {x:cx-16-roll,y:floorY-radius-bounce,radius,phase};
+}
+function drawGroundToy(ctx,cx,floorY,t,toy) {
+  const p=groundToyPose(cx,floorY,t,toy);
+  if(toy==='ball'||toy==='yoyo') {
+    const lift=floorY-p.radius-p.y;
+    ctx.globalAlpha=.28*(1-lift/9);pe(ctx,p.x,floorY,4,1,'#302737');ctx.globalAlpha=1;
+    pe(ctx,p.x,p.y,p.radius,p.radius,toy==='ball'?'#b89018':'#801060');
+    pe(ctx,p.x,p.y,p.radius-1,p.radius-1,toy==='ball'?'#e8c030':'#c02090');
+    const angle=(cx-p.x)/p.radius;
+    rect(ctx,p.x+Math.cos(angle)*2,p.y+Math.sin(angle)*2,1,1,toy==='ball'?'#fffcc0':'#ffd8f4');
+    if(p.phase<.13){rect(ctx,cx-14,floorY-3,4,2,LIMB.hand);}
+  } else if(toy==='top') {
+    const x=p.x+Math.sin((t-idle.startT)/90)*1.5;
+    pe(ctx,x,floorY-4,4,3,'#7952a6');rect(ctx,x-1,floorY-8,2,3,'#c9a5e8');rect(ctx,x,floorY-1,1,1,'#49305e');
+    rect(ctx,x+Math.sin((t-idle.startT)/70)*2,floorY-4,1,2,'#ead9fb');
+  } else if(toy==='balloon') {
+    const x=p.x-2+Math.sin((t-idle.startT)/500)*2,y=floorY-24;
+    ctx.strokeStyle='#c8b088';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-12,floorY-2);ctx.lineTo(x,y+5);ctx.stroke();
+    pe(ctx,x,y,5,7,'#4080e0');rect(ctx,x-2,y-3,2,2,'#9ac0ff');
+  } else if(toy==='bubbles') {
+    rect(ctx,p.x-2,floorY-8,4,8,'#8ecfef');rect(ctx,p.x-1,floorY-10,2,2,'#c8b060');
+    for(let i=0;i<3;i++){
+      const age=((t-idle.startT+i*700)%2400+2400)%2400;
+      const x=p.x+Math.sin(age/450+i)*3,y=floorY-12-age/85;
+      ctx.globalAlpha=.6*(1-age/2600);pe(ctx,x,y,2,2,'#c9e9fb');rect(ctx,x-1,y-1,1,1,'#fff');ctx.globalAlpha=1;
+    }
+  }
 }
 const BAL_COLS = [
   { d: "#8a1830", m: "#d84060", h: "#ff9ab0" },   // rot
@@ -1030,15 +1071,13 @@ function drawCostume(ctx, cx, topY, t, P, id) {
     pe(ctx, cx - 1, topY - 2, 5.5, 3, "#f4dc94");
     rect(ctx, Math.round(cx) - 7, topY + 1, 14, 2, "#a05828");       // Hutband
   } else if (id === "ghost") {
-    const hw = Math.round(P.rb * 0.92), hy = topY + Math.round(P.ht * 0.42);
-    pe(ctx, cx, topY + 6, hw, Math.round(P.ht * 0.5), "#f2f2f0");    // Laken-Kapuze
-    pe(ctx, cx - 2, topY + 4, hw * 0.8, Math.round(P.ht * 0.4), "#fbfbfa");
-    for (let k = 0; k < 6; k++) {                                    // Zackenrand
-      const zx = Math.round(cx - hw + 2 + k * (hw * 2 - 4) / 5);
-      tri(ctx, zx - 2, hy, zx + 2, hy, zx, hy + 4, "#f2f2f0");
-    }
-    rect(ctx, Math.round(cx) - 5, topY + 8, 2, 3, "#2a2430");        // Gucklöcher
-    rect(ctx, Math.round(cx) + 3, topY + 8, 2, 3, "#2a2430");
+    // A hood on the shell, with the egg's own eyes; no second floating face.
+    const hw=Math.round(P.rb*.97),cy=topY+Math.round(P.ht*.45),ry=Math.round(P.ht*.55),hem=topY+Math.round(P.ht*.82);
+    pe(ctx,cx,cy,hw,ry,'#c9cbd0');
+    pe(ctx,cx,cy,hw-1,ry-1,'#f2f2f0');
+    pe(ctx,cx-2,cy-1,hw*.78,ry*.86,'#fbfbfa');
+    for(let k=0;k<6;k++){const x=Math.round(cx-hw+4+k*(hw*2-8)/5);tri(ctx,x-3,hem,x+3,hem,x,hem+4,'#f2f2f0');}
+    rect(ctx,cx-hw+4,hem-6,1,6,'#dfe0e3');rect(ctx,cx+hw-5,hem-5,1,5,'#dfe0e3');
   } else if (id === "santahat") {
     const bob = Math.sin(t / 500) * 1;                               // Bommel wippt
     pe(ctx, cx, topY + 3, 10, 3, "#f4f0ea");                          // Pelzrand
@@ -1056,8 +1095,8 @@ function updateBubbles(t, ox, oy) {
   }
   for (const b of bubbles) {
     if (b.pop) continue;
-    if (b.r < 4) b.r += 0.06;                                     // wächst am Ring
-    else { b.y -= 0.28; b.x += Math.sin(t / 300 + b.drift) * 0.25; }   // steigt & wobbelt
+    if (b.r < 4) b.r += 0.06*eggFrameScale;                                     // wächst am Ring
+    else { b.y -= 0.28*eggFrameScale; b.x += Math.sin(t / 300 + b.drift) * 0.25*eggFrameScale; }   // steigt & wobbelt
     if (t - b.born > 2600 + (b.drift * 300) || b.y < 14) b.pop = t;
   }
   bubbles = bubbles.filter(b => !b.pop || t - b.pop < 220);
@@ -1102,8 +1141,8 @@ function drawPlayArm(ctx, sx, sy, sign, t, toy, P) {
       drawHand(ctx, dwx, dwy, sign, catching ? 1 : 3);  // offen beim Fangen, leicht geschlossen beim Patchen
     } else {
       // Ball liegt in der Hand (Startposition)
-      pe(ctx, dwx + sign * 4, dwy - 3, 4.5, 4.5, "#b89018");
-      pe(ctx, dwx + sign * 4, dwy - 4, 3.5, 3.5, "#e8c030");
+      pe(ctx, dwx, Math.min(FLOOR-5.5,dwy+5), 4.5, 4.5, "#b89018");
+      pe(ctx, dwx, Math.min(FLOOR-5.5,dwy+5), 3.5, 3.5, "#e8c030");
       drawHand(ctx, dwx, dwy, sign, 1);
     }
     return;
@@ -1184,15 +1223,15 @@ function drawPlayArm(ctx, sx, sy, sign, t, toy, P) {
     else {
       spinFast = true;
       const w = (el - 1130) / 1000;
-      tx0 += sign * Math.round(Math.pow(w, 1.3) * 16) + Math.round(Math.sin(el / 260) * 6);   // driftet beschleunigend + Zickzack
+      tx0 += sign*Math.round(8*(1-Math.exp(-w)))+Math.round(Math.sin(el/320)*3*Math.exp(-w/5));   // driftet beschleunigend + Zickzack
       tilt = Math.sin(t / 130) * 0.12;
       if (tx0 < -14 || tx0 > CW + 14) { idle.act = "none"; idle.next = t + 5000; return; }    // aus dem Bild -> Geste endet
     }
     topPos = { x: tx0, y: topY - 6 };
     ctx.save();
     ctx.translate(tx0, topY); ctx.rotate(tilt); ctx.translate(-tx0, -topY);
-    const c1 = spinFast ? (Math.floor(t / 55) % 2 ? "#e04040" : "#f0c030") : "#e04040";
-    const c2 = spinFast ? (Math.floor(t / 55) % 2 ? "#f0c030" : "#e04040") : "#f0c030";
+    const c1 = spinFast ? (Math.floor(t / 180) % 2 ? "#e04040" : "#f0c030") : "#e04040";
+    const c2 = spinFast ? (Math.floor(t / 180) % 2 ? "#f0c030" : "#e04040") : "#f0c030";
     rect(ctx, Math.round(tx0) - 1, Math.round(topY) - 2, 2, 2, "#5a4028");           // Spitze
     rect(ctx, Math.round(tx0) - 4, Math.round(topY) - 5, 8, 3, c1);
     rect(ctx, Math.round(tx0) - 5, Math.round(topY) - 8, 10, 3, c2);
@@ -1285,7 +1324,7 @@ function playTrackPoint(cx, armY, t) {
   if (idle.toy === "bubbles" && bubbles.length) { const b = bubbles[bubbles.length - 1]; return { x: Math.round(b.x), y: Math.round(b.y) }; }
   if (idle.toy === "balloon") return { x: Math.round(balloonPos.x), y: Math.round(balloonPos.y) };
   if (idle.toy === "top") return { x: Math.round(topPos.x), y: Math.round(topPos.y) };
-  return { x: cx - 22, y: armY - 4 };
+  return { x: cx+(cx<CW/2?22:-22), y: armY-4 };
 }
 /* ---------- Durchleuchten (Schieren): Blick ins glühende Ei ---------- */
 function drawCandling(ctx, S, t, cx, eb, P, k) {
@@ -1338,6 +1377,10 @@ var candleAnim = { on: false, startT: 0 };
 function drawEgg(ctx, S, t) {
   lastT = t;
   const floorY = FLOOR - 1, P = EGG_PAL[stg(S.stage)], lit = S.power > 0;
+  if(companionReducedMotion()){
+    if(S.expActive){expAnim.st="away";return;}
+    if(expAnim.st!=="in"){expAnim.st="in";walk.x=92;walk.tx=92;walk.face=0;}
+  }
   if (S.expActive) {                                                   // Expedition: Ei hüpft aus dem Bild
     if (expAnim.st === "in" || expAnim.st === "returning") {
       expAnim.st = "leaving";
@@ -1366,13 +1409,14 @@ function drawEgg(ctx, S, t) {
   const rollAngle = onStand && roll.phase === "wobble" ? Math.sin(rollEl / 220) * 0.025 * Math.max(0, 1 - rollEl / 1800) : 0;
   const eb = onStand ? floorY - 12 - Math.round(rollYOff) : floorY - 11;
   updateFly(t, S.stage);
-  const flyActive = fly.st !== "idle", watching = flyActive && S.stage >= 1 ;
+  const flyActive = fly.st !== "idle", watching = flyActive && S.stage >= 1 && idle.act!=="play" && !idle.invited && !isNightTime() && !S.krank;
   const lasering = S.stage === 5 && laser.st !== "none";
   const expMoving = expAnim.st === "leaving" || expAnim.st === "returning" || prestigeAnim.st === "walk";
-  updateWalk(t, (!onStand && P.feet && !watching && !lasering && idle.act !== "wobble") || expMoving);
+  const resting=(isNightTime() || S.krank) && !idle.invited;
+  updateWalk(t, (!resting && !onStand && P.feet && !watching && !lasering && idle.act !== "wobble" && idle.act !== "play") || expMoving);
   const cx = onStand ? 92 : Math.round(walk.x);
   const ownedToys = S.toys ? Object.keys(S.toys).filter(k => S.toys[k]) : [];
-  updateIdle(t, !onStand && P.feet && Math.abs(walk.face) < 0.1 && !watching && !lasering , P.arms, ownedToys);
+  updateIdle(t, !resting && !onStand && P.feet && Math.abs(walk.face) < 0.1 && !watching && !lasering , P.arms, ownedToys);
   if (lit) stageGlow(ctx, cx, eb - Math.round(P.rb + P.ht * 0.5), S.stage, t);
   if (onStand) drawStandBack(ctx, cx, floorY, floorY - 12);
   else {
@@ -1452,7 +1496,7 @@ function drawEgg(ctx, S, t) {
   if (P.arms && limbK > 0.5) {
     const flySide = fly.x < cx ? -1 : 1;
     const shooing = watching && (S.stage === 3 || S.stage === 4) && (t % 2600) > 2100;
-    const watching2 = idle.act === "watch", playing = idle.act === "play" && idle.toy, pSign = -1;
+    const watching2 = idle.act === "watch", playing = idle.act === "play" && idle.toy, pSign = cx<CW/2?1:-1;
     const skip = (lasering || shooing) ? flySide : (watching2 ? 1 : (playing ? pSign : 0));
     drawArms(ctx, cx, armY, t, P, skip, 0);
     const ssx = cx + flySide * Math.round(P.rb * 0.86);
@@ -1461,10 +1505,11 @@ function drawEgg(ctx, S, t) {
     else if (watching2) drawWatchArm(ctx, cx + Math.round(P.rb * 0.86), armY, 1, P, t);
     else if (playing) drawPlayArm(ctx, cx + pSign * Math.round(P.rb * 0.86), armY, pSign, t, idle.toy, P);
   }
-  if (P.arms && idle.act === "play" && idle.toy === "ball") { const hx = cx - Math.round(P.rb * 0.86) - 7; updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
+  if (P.arms && idle.act === "play" && idle.toy === "ball") { const sign=cx<CW/2?1:-1;const hx = cx + sign*(Math.round(P.rb * 0.86)+7); updateBall(t, hx, armY + 13, floorY); drawBall(ctx, t); }
+  if (P.feet && !P.arms && idle.act === "play") drawGroundToy(ctx,cx,floorY,t,idle.toy);
   if (P.eyes) {
-    const sleeping = isNightTime() && !S.krank && !S.expActive;
-    const track = sleeping ? null : (watching ? { x: fly.x, y: fly.y } : (idle.act === "watch" ? { x: cx, y: armY - 2 } : (idle.act === "play" ? playTrackPoint(cx, armY, t) : null)));
+    const sleeping = isNightTime() && !S.krank && !S.expActive && idle.act!=="play" && !idle.invited;
+    const track = sleeping ? null : (watching ? { x: fly.x, y: fly.y } : (idle.act === "watch" ? { x: cx, y: armY - 2 } : (idle.act === "play" ? (!P.arms ? groundToyPose(cx,floorY,t,idle.toy) : playTrackPoint(cx, armY, t)) : null)));
     let eyeDrawX = cx, eyeDrawY = eyeY;
     const bodyRot = rot + rollAngle;
     if (Math.abs(bodyRot) > 0.001) {                      // Augen-Loch rotiert mit der Schale (auch beim Gehen)
@@ -1816,7 +1861,9 @@ function loadDragon(d) {
   // Import and cloud hydration are pure: time advances only on a real contact/tick.
   uiDirty=true; dragonDirty=false;
   lastSavedDragonJson=JSON.stringify(dragon);
-  prestigeAnim={st:"none",startT:0};expAnim={st:"in",startT:0};idle.act="none";ball.active=false;
+  const sameScene=previous.companion?.generationId===dragon.companion.generationId && previous.stage===dragon.stage && previous.expActive===dragon.expActive && prestigeAnim.st==="none";
+  prestigeAnim={st:"none",startT:0};prestigeVisual=null;
+  if(!sameScene){expAnim={st:"in",startT:0};idle.act="none";idle.invited=false;ball.active=false;bubbles=[];laser.st="none";walk.x=92;walk.tx=92;walk.face=0;walk.until=lastT+2000;}
   } catch(err){dragon=previous;window.dragon=previous;throw err;}
 }
 
@@ -1827,7 +1874,7 @@ function flash(msg) {
   if (!el) return;
   el.textContent = msg; el.classList.add("on");
   clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => el.classList.remove("on"), 2600);
+  flashTimer = setTimeout(() => {el.classList.remove("on");el.textContent="";}, 2600);
 }
 
 /* ---------- Kernlogik ---------- */
@@ -1848,7 +1895,7 @@ function companionNormalize(p) {
       events:[],reactions:[],world:{objects:{},favorite:"",equippedCostume:""},
       collection:{finds:[],events:[],forms:[{id:"form:"+p.stage,label:EGG_PAL[p.stage].name}],moments:[]},
       journey:{days:[],weeklyAt:0,highestStage:p.stage,generations:[],spontaneous:0},
-      ledger:{processed:[],day:"",xp:0,counts:{},seq:0,backupAt:sameLocalDay(p.lastBackupReward,localDayKey())?now:0},
+      ledger:{processed:[],day:"",xp:0,counts:{},seq:0,backupAt:/^\d{4}-\d{2}-\d{2}$/.test(String(p.lastBackupReward))?Math.min(now,Date.parse(p.lastBackupReward+"T23:59:59"))||0:0},
       expedition:p.expActive?{id:"legacy-exp",type:"near",startedAt:now,returnAt:now+remaining,originalDuration:remaining,result:{find:0,item:"ball",stars:3,xp:20},status:"away"}:null};
     p.hunger=Math.max(65,p.hunger);p.sauberkeit=Math.max(70,p.sauberkeit);p.power=Math.max(75,p.power);
     p.krank=false;p.krankSeit=0;p.hungerZeroSince=0;p.sauberkeitZeroSince=0;
@@ -1894,7 +1941,8 @@ function companionCommit(fn,silent=false) {
     if(result===false){dragon=previous;window.dragon=dragon;return false;}
     sanitizeDragon();companionNormalize(dragon);markDirty();
     if(!saveDragon({force:true,silent}))throw new Error("Speichern fehlgeschlagen");
-    companionHint();return true;
+    try{updateEggUI();if(companionReducedMotion()&&eggCtx)eggFrame();}catch(err){console.warn("[Begleiter] Anzeige nach Speicherung:",err.message);}
+    return true;
   } catch(err){dragon=previous;window.dragon=dragon;lastSavedDragonJson=oldJson;dragonDirty=oldDirty;uiDirty=true;console.warn("[Begleiter] Änderung zurückgenommen:",err.message);return false;}
 }
 function companionRemember(category,id,label,at=Date.now()) {
@@ -2028,8 +2076,14 @@ function rewardDragon(action,meta={}) {
   });
 }
 function companionInteract(type="nudge") {
-  if(companionCommit(p=>{companionAdvance(Date.now(),true);companionTrait("anhänglich");if(type!=="nudge")companionTrait("verspielt");companionReact("interaction",type==="knock"?"Es antwortet mit einem leisen Klopfen.":"Es rückt ein Stück näher zu dir.");})){
-    idle.act="wobble";idle.startT=lastT;idle.until=lastT+2200;
+  if(companionCommit(p=>{companionAdvance(Date.now(),true);companionTrait("anhänglich");if(type!=="nudge")companionTrait("verspielt");companionReact("interaction",p.expActive?"Es ist unterwegs und bringt bald eine Geschichte mit.":type==="knock"?"Es antwortet mit einem leisen Klopfen.":type==="toy"?"Es reagiert neugierig auf sein Spielzeug.":"Es freut sich, dich zu sehen.");})){
+    if(dragon.expActive)return;
+    walk.tx=walk.x;walk.until=lastT+4600;walk.face=0;laser.st="none";
+    if(companionReducedMotion())return;
+    if(type==="candle"){candleAnim.on=true;candleAnim.startT=lastT;}
+    else if(type==="turn"){turnAnim.on=true;turnAnim.startT=lastT;}
+    else if(dragon.stage<2 || type==="knock"){knockAnim.on=true;knockAnim.startT=lastT;}
+    else {idle.act="wobble";idle.invited=true;idle.startT=lastT;idle.until=lastT+4200;}
   }
 }
 function eggNudge(){companionInteract();}
@@ -2038,10 +2092,11 @@ function eggKnock(){companionInteract("knock");}
 function eggCandle(){companionInteract("candle");}
 function eggFeed(id){
   const food=FOOD_ITEMS.concat(BROOD_FOOD).find(x=>x.id===id);if(!food)return;
-  companionCommit(p=>{if(p.stardust<food.cost)return false;p.stardust-=food.cost;p.hunger=Math.min(100,p.hunger+(food.hunger||25));p.power=Math.min(100,p.power+(food.power||0));p.statLog.feeds=(Number(p.statLog.feeds)||0)+1;companionReact("care","Es genießt die kleine Aufmerksamkeit.");});
+  const ok=companionCommit(p=>{if(p.stardust<food.cost)return false;p.stardust-=food.cost;p.hunger=Math.min(100,p.hunger+(food.hunger||25));p.power=Math.min(100,p.power+(food.power||0));p.statLog.feeds=(Number(p.statLog.feeds)||0)+1;companionReact("care",p.expActive?"Eine kleine Aufmerksamkeit wartet auf seine Rückkehr.":"Es genießt die kleine Aufmerksamkeit.");});
+  if(ok&&!dragon.expActive&&!companionReducedMotion()){if(dragon.stage<2){sprayAnim.on=true;sprayAnim.startT=lastT;}else{knockAnim.on=true;knockAnim.startT=lastT;}}
 }
 function eggCharge(){companionCommit(p=>{p.power=100;companionReact("care","Es macht es sich im warmen Licht gemütlich.");});}
-function eggClean(){companionCommit(p=>{p.mess=[];p.shards=0;p.sauberkeit=100;p.statLog.cleans=(Number(p.statLog.cleans)||0)+1;companionReact("care","Das ganze Nest ist wieder aufgeräumt.");});}
+function eggClean(){const pile=dragon.mess[0];const ok=companionCommit(p=>{p.mess=[];p.shards=0;p.sauberkeit=100;p.statLog.cleans=(Number(p.statLog.cleans)||0)+1;companionReact("care","Das ganze Nest ist wieder aufgeräumt.");});if(ok&&!dragon.expActive&&!companionReducedMotion()){cleanAnim={on:true,startT:lastT,x:clampI(pile?.x||92,16,164),pileType:pile?.type||null};}}
 function eggCleanShells(){eggClean();}
 function eggHeal(){companionCommit(p=>{p.krank=false;p.krankSeit=0;delete p.companion.recoveryAt;companionReact("care","Es fühlt sich wieder wohl.");});}
 function eggFix(){companionCommit(p=>{p.integrity=100;});}
@@ -2049,23 +2104,24 @@ function companionBuy(id,kind) {
   const catalogs={toys:TOY_ITEMS,deko:SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),costumes:COSTUMES},item=catalogs[kind].find(x=>x.id===id);
   if(!item)return false;
   return companionCommit(p=>{
-    if(p[kind][id]){if(kind==="costumes")p.companion.world.equippedCostume=p.companion.world.equippedCostume===id?"":id;else if(kind==="deko"){p.companion.world.objects[id]={state:"Lieblingsplatz",since:Date.now()};p.companion.world.favorite=id;companionReact("room",companionEventText(id,0));}return;}
+    if(p[kind][id]){if(kind==="costumes")p.companion.world.equippedCostume=p.companion.world.equippedCostume===id?"":id;else if(kind==="deko"){p.companion.world.objects[id]={state:"Lieblingsplatz",since:Date.now()};p.companion.world.favorite=id;companionReact("room",p.expActive?"Sein Zuhause wartet auf die Rückkehr.":["plant","rug","poster","nightlight"].includes(id)?companionEventText(id,0):"Es hat einen neuen Lieblingsplatz in seinem Zuhause.");}return;}
     if(!p.unlocked[id] || p.stardust<item.cost)return false;
     p.stardust-=item.cost;p[kind][id]=true;recordStatBucket("starsSpent",kind,item.cost);
     if(kind==="costumes")p.companion.world.equippedCostume=id;
-    companionReact("room","Ein neuer Gegenstand macht sein Zuhause vertrauter.");
+    companionReact("room",p.expActive?"Sein Zuhause wird für die Rückkehr vorbereitet.":"Ein neuer Gegenstand macht sein Zuhause vertrauter.");
   });
 }
 function eggBuyToy(id){return companionBuy(id,"toys");}
 function eggBuyDeko(id){return companionBuy(id,"deko");}
 function eggBuyCostume(id){return companionBuy(id,"costumes");}
 function companionSceneToy(id) {
-  id=id||Object.keys(dragon.toys).find(x=>dragon.toys[x]);if(!id)return;
+  id=id||Object.keys(dragon.toys).find(x=>dragon.toys[x]);if(!id || dragon.expActive)return;
   walk.tx=walk.x;walk.face=0;walk.until=lastT+6000;
-  idle.act="play";idle.toy=id;idle.startT=lastT;idle.until=lastT+5000;ball.active=false;ball.done=false;
+  idle.act="play";idle.invited=true;laser.st="none";idle.toy=id;idle.startT=lastT;idle.until=lastT+(id==="top"?6200:5400);ball.active=false;ball.done=false;
 }
 function eggPlay(id) {
-  if(!dragon.toys[id]||dragon.stage<2)return;
+  if(!dragon.toys[id] || dragon.expActive)return false;
+  if(dragon.stage<2){companionInteract("toy");return true;}
   if(companionCommit(p=>{p.statLog.plays=(Number(p.statLog.plays)||0)+1;companionTrait("verspielt");companionReact("play","Es freut sich über eure gemeinsame Spielidee.");}))companionSceneToy(id);
 }
 function eggStartExp(type="near") {
@@ -2093,6 +2149,7 @@ function eggPrestige() {
   if(dragon.xp<5500 || dragon.expActive || prestigeAnim.st!=="none")return;
   if(!prestigeConfirm){prestigeConfirm=true;uiDirty=true;updateEggUI();return;}
   prestigeConfirm=false;
+  const visual=JSON.parse(JSON.stringify(dragon));
   const ok=companionCommit(p=>{
     const now=Date.now(),n=p.prestige+1,c=p.companion;
     p.lastReview=buildReview(p,n);c.journey.generations.push({generation:c.generationId,stage:p.stage,xp:p.xp,character:companionCharacter()});c.journey.generations=c.journey.generations.slice(-10);
@@ -2102,7 +2159,7 @@ function eggPrestige() {
     for(const k of COMPANION_TRAITS)c.personality.scores[k]=Math.round(c.personality.scores[k]*.2);
     c.personality.evidence={};companionReact("generation","Ein neues Ei ist da. Sein Zuhause und eure Erinnerungen bleiben.");
   });
-  if(ok){const generation=dragon.companion.generationId;prestigeAnim={st:"walk",startT:lastT};walk.tx=40;walk.until=lastT+30000;setTimeout(()=>{if(dragon.companion.generationId!==generation)return;prestigeAnim={st:"none",startT:0};walk.x=92;walk.tx=92;walk.face=0;uiDirty=true;},5200);}
+  if(ok){if(companionReducedMotion()){walk.x=92;walk.tx=92;walk.face=0;uiDirty=true;return;}prestigeVisual=visual;const generation=dragon.companion.generationId;prestigeAnim={st:"walk",startT:lastT};walk.tx=40;walk.until=lastT+30000;setTimeout(()=>{if(dragon.companion.generationId!==generation)return;prestigeAnim={st:"none",startT:0};prestigeVisual=null;walk.x=92;walk.tx=92;walk.face=0;uiDirty=true;},5200);}
 }
 window.rewardDragon=rewardDragon;window.loadDragon=loadDragon;window.saveDragon=saveDragon;
 
@@ -2128,6 +2185,9 @@ function eggDownloadReview() {
 
 /* ---------- UI ---------- */
 var eggCanvas = null, eggCtx = null, eggRafId = 0, eggStart = 0, eggElapsed = 0;
+var eggOpenPanels=new Set();
+function eggRememberPanel(e){const target=e.target;if(target?.tagName!=="DETAILS" || !document.getElementById("eggSections")?.contains(target))return;target.open?eggOpenPanels.add(target.dataset.panel):eggOpenPanels.delete(target.dataset.panel);}
+function eggItemLabel(item){return String(item.label||"").replace(/^[^\p{L}\p{N}]+/u,"");}
 
 // Ist die Ei-Karte tatsächlich sichtbar? (Home-Seite aktiv, Element im Layout)
 function eggCardVisible() {
@@ -2175,29 +2235,35 @@ function eggGrid(entries) {
   return '<div class="eg-grid" style="--eg-mincol:' + minPx + 'px">' + entries.map(en => en.html).join("") + "</div>";
 }
 
-function companionMoment(){const r=dragon.companion.reactions;return r.length?r[r.length-1].text:"Es sieht sich in seinem Zuhause um.";}
-function companionHint(){const el=document.getElementById("companionHint");if(el)el.textContent=companionMoment();}
+function companionMoment(){
+  const r=dragon.companion.reactions,last=r[r.length-1];if(!last)return "Es sieht sich in seinem Zuhause um.";
+  const development=r.find(x=>x.type==="development" && x.at===last.at);
+  return development && development!==last?development.text+" "+last.text:last.text;
+}
 function eggSections() {
   if(companionSaveBlocked)return '<p class="eg-warn">Der Begleiterstand konnte nicht sicher übernommen werden. Deine gespeicherten Daten bleiben erhalten. Bitte Speicherplatz bzw. App-Version prüfen und neu laden.</p>';
-  const p=dragon,c=p.companion,current=p.stage,next=EGG_XP[current+1],progress=next===undefined?100:clampI((p.xp-EGG_XP[current])/(next-EGG_XP[current])*100,0,100);
-  const button=(act,label,id="",disabled=false)=>'<button class="eg-btn" data-act="'+act+'" data-id="'+esc(id)+'"'+(disabled?' disabled':'')+'>'+label+'</button>';
+  const p=dragon,c=p.companion,current=p.stage;
+  const button=(act,label,id="",disabled=false,selected=null)=>'<button class="eg-btn" data-act="'+act+'" data-id="'+esc(id)+'"'+(disabled?' disabled':'')+(selected===null?'':' aria-pressed="'+selected+'"')+'>'+label+'</button>';
   let h='<div class="eg-pane"><div class="eg-row"><strong>'+esc(EGG_PAL[current].name)+'</strong><span>'+p.stardust+' Sterne</span></div>';
   h+='<p class="eg-moment" role="status" aria-live="polite">'+esc(companionMoment())+'</p>';
   h+='<p class="eg-dim">'+(p.krank?'Ruht sich aus · erholt sich nach der Rückkehr von selbst':p.hunger<50?'Gemütlich und etwas hungrig':'Fühlt sich wohl')+' · '+esc(companionCharacter())+(p.prestige?' · Ei '+(p.prestige+1):'')+'</p>';
-  h+='<div class="eg-dim">'+Math.round(p.xp)+' XP'+(next===undefined?' · Voll entwickelt':' · Noch '+Math.max(0,next-p.xp)+' bis zur nächsten Form')+'</div><progress aria-label="Entwicklung" max="100" value="'+progress+'"></progress>';
-  h+='<div class="eg-companion-nav">'+button("nudge","Interagieren")+button("album","Album")+'</div>';
+  h+='<div class="eg-companion-nav">'+button("nudge",p.expActive?"Unterwegs":"Begrüßen","",p.expActive)+button("album","Album")+'</div>';
   const toys=TOY_ITEMS.filter(x=>p.unlocked[x.id]),deko=SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS).filter(x=>p.unlocked[x.id]),costumes=COSTUMES.filter(x=>p.unlocked[x.id]||p.costumes[x.id]);
-  h+='<details data-panel="room"><summary>Raum und Spielzeug</summary><p class="eg-dim">Gekauftes Spielzeug nutzt es auch selbstständig. Gefundene Gegenstände aus Abenteuern gehören dir direkt.</p><div class="eg-grid">';
-  for(const it of toys)h+=button("toy",esc(it.label)+'<small>'+ (p.toys[it.id]?'Gemeinsam spielen':it.cost+' Sterne')+'</small>',it.id,!p.toys[it.id]&&p.stardust<it.cost);
-  for(const it of deko)h+=button("deko",esc(it.label)+'<small>'+(p.deko[it.id]?'Im Raum · '+esc(c.world.objects[it.id]?.state||"vertraut"):it.cost+' Sterne')+'</small>',it.id,!p.deko[it.id]&&p.stardust<it.cost);
-  for(const it of costumes)h+=button("costume",esc(it.label)+'<small>'+(p.costumes[it.id]?(c.world.equippedCostume===it.id?'Ausziehen':'Anziehen'):it.cost+' Sterne')+'</small>',it.id,!p.costumes[it.id]&&p.stardust<it.cost);
-  h+='</div></details><details data-panel="adventure"><summary>Abenteuer</summary>';
+  h+='<details data-panel="room"><summary>Raum und Spielzeug</summary><p class="eg-dim">Dein Begleiter nutzt seine Spielsachen auch selbstständig.</p>';
+  if(toys.length){h+='<h4 class="eg-group-title">Spielzeug</h4><div class="eg-grid">';
+    for(const it of toys)h+=button("toy",esc(eggItemLabel(it))+'<small>'+(p.toys[it.id]?(p.expActive?'Nach der Rückkehr':p.stage<2?'Zeigen':'Gemeinsam spielen'):it.cost+' Sterne')+'</small>',it.id,p.expActive || (!p.toys[it.id]&&p.stardust<it.cost));h+='</div>';}
+  if(deko.length){h+='<h4 class="eg-group-title">Einrichtung</h4><div class="eg-grid">';
+    for(const it of deko)h+=button("deko",esc(eggItemLabel(it))+'<small>'+(p.deko[it.id]?(c.world.favorite===it.id?'Lieblingsplatz':'Im Raum'):it.cost+' Sterne')+'</small>',it.id,!p.deko[it.id]&&p.stardust<it.cost);h+='</div>';}
+  if(costumes.length){h+='<h4 class="eg-group-title">Kostüme</h4><div class="eg-grid">';
+    for(const it of costumes)h+=button("costume",esc(eggItemLabel(it))+'<small>'+(p.costumes[it.id]?(c.world.equippedCostume===it.id?'Angezogen · ausziehen':'Anziehen'):it.cost+' Sterne')+'</small>',it.id,!p.costumes[it.id]&&p.stardust<it.cost,p.costumes[it.id]?c.world.equippedCostume===it.id:null);h+='</div>';}
+  if(!toys.length&&!deko.length&&!costumes.length)h+='<p class="eg-dim">Mit der Zeit findet es neue Dinge für sein Zuhause.</p>';
+  h+='</details><details data-panel="adventure"><summary>Abenteuer</summary>';
   if(p.expActive){const ex=c.expedition;h+='<p>'+esc(COMPANION_TRIPS[ex.type].label)+' · Rückkehr ungefähr '+esc(new Date(ex.returnAt).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}))+'</p><p class="eg-dim">Die Rückkehr und der Fund werden automatisch gespeichert.</p>';}
   else if(p.stage>=2){h+='<div class="eg-grid">';for(const [id,it] of Object.entries(COMPANION_TRIPS))h+=button('exp',it.label+'<small>Etwa '+it.hours+' Stunden</small>',id);h+='</div>';}
   else h+='<p class="eg-dim">Sobald es laufen kann, erkundet es die Umgebung.</p>';
-  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten · freiwillig</summary><div class="eg-grid">'+button('feed','Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+' · Energie '+Math.round(p.power)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
+  h+='</details><details data-panel="care"><summary>Kleine Aufmerksamkeiten · freiwillig</summary><div class="eg-grid">'+button('feed',p.stage<2?'Befeuchten':'Kleine Mahlzeit',p.stage<2?BROOD_FOOD[0].id:'ei')+button('clean','Ganzes Nest aufräumen')+button('charge','Warmes Licht')+(p.krank?button('heal','Erholung unterstützen'):'')+'</div><p class="eg-dim">Hunger '+Math.round(p.hunger)+' · Sauberkeit '+Math.round(p.sauberkeit)+'. Pflege ist keine Voraussetzung für Entwicklung oder Abenteuer.</p></details>';
   h+='<details data-panel="history"><summary>Erinnerungen und Verlauf</summary><p class="eg-dim">'+(p.statLog.acts||0)+' bisherige Aktionen · '+(p.statLog.plays||0)+' gemeinsame Spielrunden · '+(c.journey.spontaneous||0)+' selbstständige Spielmomente · '+(p.statLog.exps||0)+' Abenteuer. Aktivitätstage: '+p.streak+'.</p>'+(p.lastReview?button('review','Rückblick herunterladen'):'')+'</details>';
-  if(p.xp>=5500)h+=button('prestige',prestigeConfirm?'Neues Ei wirklich beginnen?':'Durchs Portal · neues Ei');
+  if(p.xp>=5500)h+=button('prestige',prestigeConfirm?'Neues Ei wirklich beginnen?':'Durchs Portal · neues Ei','',p.expActive);
   return h+'</div>';
 }
 
@@ -2212,11 +2278,13 @@ function updateEggUI() {
 function updateEggUIInner() {
   const se = document.getElementById("eggSections");
   if (!se) return;
-  const open=new Set(Array.from(se.querySelectorAll("details[open]")).map(x=>x.dataset.panel));
-  const focus=document.activeElement, act=focus && focus.dataset && focus.dataset.act, id=focus && focus.dataset && focus.dataset.id;
+  const open=eggOpenPanels;
+  se.querySelectorAll("details").forEach(x=>{x.open?open.add(x.dataset.panel):open.delete(x.dataset.panel);});
+  const focus=document.activeElement, panel=focus?.tagName==="SUMMARY"?focus.parentElement.dataset.panel:null, act=focus && focus.dataset && focus.dataset.act, id=focus && focus.dataset && focus.dataset.id;
   se.innerHTML = eggSections();
   se.querySelectorAll("details").forEach(x=>{x.open=open.has(x.dataset.panel);});
   if(act){const target=Array.from(se.querySelectorAll("[data-act]")).find(x=>x.dataset.act===act&&x.dataset.id===id);if(target)target.focus({preventScroll:true});}
+  if(panel){const summary=Array.from(se.querySelectorAll("details")).find(x=>x.dataset.panel===panel)?.querySelector("summary");if(summary)summary.focus({preventScroll:true});}
   uiDirty = false;
 }
 
@@ -2232,7 +2300,7 @@ function eggAlbumHtml() {
   let h='<div class="eg-album"><p>Einige Entdeckungen bleiben noch im Verborgenen.</p>';
   const section=(title,rows)=>'<h3>'+title+'</h3><div class="eg-grid">'+rows.map(x=>'<div class="eg-album-entry">'+x+'</div>').join('')+'</div>';
   for(const [title,items,map] of [["Spielzeuge",TOY_ITEMS,p.toys],["Dekoration",SHOP_ITEMS.concat(SEASON_ITEMS,WALL_ITEMS,WALL_SEASON_ITEMS),p.deko],["Kostüme",COSTUMES,p.costumes]]) {
-    h+=section(title,items.map(it=>p.unlocked[it.id]||map[it.id]?esc(it.label)+'<small>'+(map[it.id]?(title==='Dekoration'?'Besitzt du · im Raum':'Besitzt du'):'Entdeckt · im Raum erhältlich')+'</small>':'<span class="eg-dim">Ein unbekannter '+(title==='Spielzeuge'?'Spielgefährte':'Gegenstand')+'</span>'));
+    h+=section(title,items.map(it=>p.unlocked[it.id]||map[it.id]?esc(eggItemLabel(it))+'<small>'+(map[it.id]?(title==='Dekoration'?'Besitzt du · im Raum':'Besitzt du'):'Entdeckt · im Raum erhältlich')+'</small>':'<span class="eg-dim">Ein unbekannter '+(title==='Spielzeuge'?'Spielgefährte':'Gegenstand')+'</span>'));
   }
   for(const [key,title] of [["finds","Fundstücke"],["events","Besondere Ereignisse"],["forms","Entwicklungsformen"],["moments","Erinnerungen"]])h+=section(title,c.collection[key].length?c.collection[key].map(x=>esc(x.label)):['Noch eine verborgene Geschichte']);
   return h+'</div>';
@@ -2279,15 +2347,14 @@ function renderDragonCardInner() {
   eggStopLoop();
   card.removeEventListener("click", eggHandleClick);   // doppelte Listener vermeiden
   card.addEventListener("click", eggHandleClick);
+  card.removeEventListener("toggle",eggRememberPanel,true);card.addEventListener("toggle",eggRememberPanel,true);
   updateEggUI();
-  companionHint();
   eggCanvas = document.getElementById("eggCanvas");
   if (!eggCanvas || !eggCanvas.getContext) { eggCtx = null; return; }
   eggCtx = eggCanvas.getContext("2d");
   if (!eggCtx) return;
   eggCtx.imageSmoothingEnabled = false;
-  eggElapsed = 0;                                       // frische Zeitbasis für dieses Canvas
-  updateEggUI();
+  // Keep elapsed animation time: transient toy phases must not jump backwards.
   eggStartLoop();                                       // genau eine Schleife
 }
 window.renderDragonCard = renderDragonCard;
@@ -2298,7 +2365,7 @@ function eggStartLoop() {
   if (eggRafId) return;                       // schon aktiv → keine zweite Schleife
   if (typeof document !== "undefined" && document.hidden) return;
   if (!eggCtx || !document.getElementById("eggCanvas")) return;
-  eggRenderErrors = 0;
+  eggRenderErrors = 0;eggPreviousFrameTime=null;
   eggStart = (typeof performance !== "undefined" ? performance.now() : Date.now()) - (eggElapsed || 0);
   if(companionReducedMotion()){eggFrame();return;}
   eggRafId = requestAnimationFrame(eggLoop);
@@ -2336,8 +2403,9 @@ function eggFrame() {
   }
   if (!eggCardVisible()) { eggStopLoop(); return; }
   const t = companionReducedMotion() ? 0 : (typeof performance !== "undefined" ? performance.now() : Date.now()) - eggStart;
-  eggElapsed = t;
-  const St = dragon;
+  eggFrameScale=companionReducedMotion()?0:eggPreviousFrameTime===null?1:clampI((t-eggPreviousFrameTime)/(1000/60),0,3);
+  eggPreviousFrameTime=t;eggElapsed = t;
+  const St = prestigeVisual && prestigeAnim.st!=="none" ? prestigeVisual : dragon;
   eggCtx.clearRect(0, 0, CW, CH);
   {
     drawRoom(eggCtx, t, St.stage, St.power);
@@ -2346,7 +2414,6 @@ function eggFrame() {
     if ((St.xp || 0) >= 5500) drawPrestigePortal(eggCtx, t);
     drawEgg(eggCtx, St, t);
     drawDim(eggCtx, St.power, t, St.deko);
-    drawPowerTube(eggCtx, St.power, t);
     drawCompanionScene(eggCtx, St, t);
   }
   if (uiDirty) updateEggUI();
@@ -2389,6 +2456,14 @@ function eggStartTimers() {
     if(companionReducedMotion()&&eggCtx)eggFrame();
   });
 }
+function eggApplyMotionPreference(){
+  eggStopLoop();
+  if(companionReducedMotion()){
+    prestigeVisual=null;prestigeAnim={st:"none",startT:0};idle.act="none";idle.invited=false;ball.active=false;bubbles=[];laser.st="none";
+    knockAnim.on=false;turnAnim.on=false;cleanAnim.on=false;sprayAnim.on=false;candleAnim.on=false;roll.phase="idle";roll.nextT=10000;fly.st="idle";fly.until=4500;walk.until=2000;walk.x=92;walk.tx=92;walk.face=0;
+  }
+  if(eggCtx)eggStartLoop();
+}
 function companionReducedMotion(){return typeof matchMedia==="function" && matchMedia("(prefers-reduced-motion: reduce)").matches;}
 function drawCompanionScene(ctx,p,t) {
   const c=p.companion,r=c.reactions[c.reactions.length-1],type=r?.type;
@@ -2401,9 +2476,6 @@ function drawCompanionScene(ctx,p,t) {
     else if(type==='backup'||type==='meter'){ctx.fillRect(148,114,8,5);ctx.fillStyle="#8ddd9f";ctx.fillRect(150,116,4,2);}
     else {ctx.fillRect(149,115,6,1);ctx.fillRect(149,118,5,1);if(type!=='expense')ctx.fillRect(150,110,4,3);}
   }
-  if(p.stage===2&&idle.act==="play"){ctx.fillStyle="#b3d45f";ctx.fillRect(118+Math.round(Math.sin(t/260)*6),120,6,6);}
-  ctx.fillStyle="#beafd6";ctx.font="5px monospace";ctx.fillText(companionCharacter(),7,146);
-  ctx.fillText(p.stardust+" Sterne",140,146);
 }
 
 function eggHandleVisibility() {
@@ -2428,7 +2500,7 @@ if (window.__HOMEHUB_EGG_MODULE_INITIALIZED__) {
   window.__HOMEHUB_EGG_MODULE_INITIALIZED__ = true;
 
   document.addEventListener("visibilitychange", eggHandleVisibility);
-  if(window.matchMedia){const motion=window.matchMedia("(prefers-reduced-motion: reduce)");if(motion.addEventListener)motion.addEventListener("change",()=>{eggStopLoop();if(eggCtx)eggStartLoop();});}
+  if(window.matchMedia){const motion=window.matchMedia("(prefers-reduced-motion: reduce)");if(motion.addEventListener)motion.addEventListener("change",eggApplyMotionPreference);}
 
   // Boot: gespeicherten Stand laden (loadDragon säubert selbst)
   (function eggBoot() {

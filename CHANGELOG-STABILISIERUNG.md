@@ -1,3 +1,29 @@
+## Version 47 – Stromanzeige entfernt
+
+- Batterie im Raum und Energiewert im Ei-Menü entfernt.
+- Automatische Versorgung, Lichtdarstellung und Spielstände bleiben erhalten.
+
+## Version 46 – Ei-Menü und Animationsübergänge
+
+- Lesbare Menüschrift, klare Raumgruppen, ausgewählte Kostüme und stabile geöffnete Bereiche samt Fokus.
+- Vollständige Begrüßungs- und Spielgesten ohne konkurrierendes Fliegen; Tageszeit und Gesundheit beeinflussen Ruhe.
+- Spielzeug zur Raummitte, begrenzte Kreiselbewegung und Geisterkostüm mit ursprünglichen Augen.
+- Passende Aktionen und Texte während Expeditionen; frühe Formen reagieren auf gezeigtes Spielzeug.
+- Statische Darstellung reagiert sofort bei reduzierter Bewegung; Bewegungseinstellungen räumen laufende Effekte auf.
+- Unveränderte Szenen bleiben bei Datenübernahme stabil, andere werden sauber zentriert.
+- Wöchentliche Sicherungsbelohnung berücksichtigt auch ältere Datumswerte im importierten Stand.
+- Alle sechs Formen, Spielzeuge und Kostüme mit echter Canvas-Zeichenlogik visuell geprüft; Funktions- und DOM-Prüfungen ergänzt.
+
+## Version 45 – Kompakter Kopfbereich und korrigierte Spielanimationen
+
+- Große Sicherungs-/Begleiterzeilen im Header entfernt; Sicherungsstatus als kleiner Punkt neben dem Logo.
+- Grün für bestätigte Sicherung, Gelb für den Abgleich, Rot für fehlende Absicherung mit manuellem Export in den Einstellungen.
+- Ei-Status bleibt beim Ei; XP-Zahl und Fortschrittsbalken ausgeblendet, interner Fortschritt unverändert.
+- Ball ohne Arme am Fuß mit Rollen, Sprung und Bodenschatten; passende Darstellungen für weitere Spielzeuge.
+- Dribbelbogen, Blickrichtung, Animationszeit beim Neuzeichnen und Bildratenabhängigkeit korrigiert.
+- Portal zeigt die vorherige Form während der bereits sicher gespeicherten Generationenübergabe; Reduced Motion berücksichtigt Abenteuer.
+- Echte Canvas-Frames gerendert und visuell geprüft; ergänzte Geometrie- und DOM-Regressionen bestanden.
+
 ## Version 44 – Persönlicher Begleiter
 
 - Vorhandene Pixel-Identität und sechs Entwicklungsstufen erhalten; neue XP-Schwellen und sichere automatische Migration.

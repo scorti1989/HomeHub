@@ -22,13 +22,16 @@ const hhSync = (function () {
   function renderStatus() {
     const el=document.getElementById('onlineSaveStatus'); if(!el)return;
     const b=backupState(); let text,kind;
-    if(!active()){text='Online-Sicherung nicht eingerichtet';kind='pending';}
-    else if(navigator.onLine===false){text=changedAt()?'Offline: Änderungen warten auf Upload':'Offline: Daten auf diesem Gerät verfügbar';kind='pending';}
-    else if(b.error){text=b.verifiedAt && !changedAt()?'Online gespeichert; Sicherungspunkt ausstehend':'Online-Sicherung prüfen';kind='error';}
-    else if(changedAt()){text=busy?'Wird online gespeichert …':'Änderungen warten auf Online-Sicherung';kind='pending';}
-    else if(isBackedUp()){text='Online gespeichert · Sicherungspunkt vorhanden';kind='ok';}
+    const dirty=changedAt(),dirtyTime=Number(String(dirty).split('-')[0]),waiting=dirty&&Number.isFinite(dirtyTime)&&Date.now()-dirtyTime<5*60000;
+    if(isBackedUp()){text='Alles online gespeichert; Sicherungspunkt bestätigt';kind='ok';}
+    else if(!active()){text='Keine automatische Online-Sicherung eingerichtet. Bitte eine manuelle Sicherung exportieren';kind='error';}
+    else if(b.error){text='Online-Sicherung nicht bestätigt. Bitte eine manuelle Sicherung exportieren und den Abgleich prüfen';kind='error';}
+    else if(navigator.onLine===false){text='Offline: aktueller Stand nicht online abgesichert. Bitte eine manuelle Sicherung exportieren';kind='error';}
+    else if(b.snapshotVerifiedAt && Date.now()-Date.parse(b.snapshotVerifiedAt)>=36*60*60*1000){text='Der letzte Sicherungspunkt ist nicht mehr aktuell bestätigt. Bitte abgleichen oder eine manuelle Sicherung exportieren';kind='error';}
+    else if(dirty){text=busy?'Wird automatisch online gespeichert':'Änderungen warten auf automatische Online-Sicherung';kind=waiting||busy?'pending':'error';if(kind==='error')text+='; bitte eine manuelle Sicherung exportieren';}
     else {text='Online-Sicherung wird geprüft';kind='pending';}
-    el.textContent=text;el.dataset.state=kind;
+    el.textContent='';el.dataset.state=kind;el.title=text;el.setAttribute('aria-label',text+'. Sicherungseinstellungen öffnen.');
+
   }
   function retryLater() {
     clearTimeout(retryTimer);

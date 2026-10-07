@@ -248,4 +248,25 @@
 .eg-album .eg-grid {--eg-mincol:130px;}
 .eg-album h3 {font-size:14px;margin:18px 0 8px;}
 .eg-album-entry {padding:10px;border:1px solid var(--eg-edge);border-radius:8px;font-size:12px;overflow-wrap:anywhere;}
-.companion-hint {display:block;width:100%;border:0;background:transparent;color:var(--muted);text-align:left;font:inherit;font-size:11px;line-height:1.4;padding:6px 2px;min-height:44px;cursor:pointer;}
+
+/* Version 46: lesbares Menü, ruhige Flächen, Pixelgrafik bleibt unverändert. */
+.dragon-card{border-radius:8px;box-shadow:0 0 0 1px var(--eg-edge),0 4px 16px rgba(30,35,45,.12)}
+.eg-pane,.eg-album{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5}
+.eg-pane{padding:14px 12px;border-radius:0 0 5px 5px}
+.eg-row{font-size:14px;align-items:baseline;flex-wrap:wrap}
+.eg-row>span{font-size:12px;color:var(--eg-dim);white-space:nowrap}
+.eg-moment{font-size:14px;min-height:0;margin:10px 0 8px;line-height:1.55}
+.eg-dim,.eg-warn{font-size:12px;line-height:1.5}
+.eg-btn{font-family:inherit;font-size:13px;padding:11px 10px;border:1px solid var(--eg-edge);border-radius:7px;box-shadow:none;min-height:46px;word-break:normal}
+.eg-btn small{font-size:11px;color:var(--eg-dim);opacity:1}
+.eg-btn[aria-pressed="true"]{border-color:var(--eg-good);background:#e3f3e9;color:var(--eg-good)}
+.eg-companion-nav{gap:10px;margin:14px 0}
+.dragon-card summary{font-size:13px;gap:10px;justify-content:space-between;list-style:none;min-height:46px}
+.dragon-card summary::-webkit-details-marker{display:none}
+.dragon-card summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--eg-dim);border-bottom:2px solid var(--eg-dim);transform:rotate(45deg);flex:none;margin:0 4px 4px 0}
+.dragon-card details[open]>summary::after{transform:rotate(225deg);margin-top:5px}
+.dragon-card summary:focus-visible{outline:2px solid var(--eg-gold);outline-offset:2px;border-radius:4px}
+.eg-group-title{font-size:12px;font-weight:650;color:var(--eg-dim);margin:14px 0 7px}
+.dragon-card details .eg-grid,.eg-album .eg-grid{grid-template-columns:repeat(auto-fit,minmax(min(125px,100%),1fr));gap:9px}
+.eg-album-entry{font-size:13px;line-height:1.5;background:#fff}
+.eg-head{letter-spacing:.5px;font-size:10px}
