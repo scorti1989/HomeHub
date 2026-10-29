@@ -211,7 +211,8 @@ function contractPrimaryLine(c) {
 // Zu einem Energievertrag verknüpften Zähler finden
 function meterForContract(cid) {
   if (!Array.isArray(meters)) return null;
-  return meters.find(m => m && m.energy && m.energy.linkedContractId === cid) || null;
+  const c = contracts.find(x => x.id === cid);
+  return meters.find(m => m && (m.id === c?.energyMeterId || m.energy?.linkedContractId === cid)) || null;
 }
 
 // ════════════════════════════════════════════
@@ -226,6 +227,8 @@ function renderContracts() {
 
   const allContracts = Array.isArray(contracts) ? contracts.filter(c => c && typeof c === 'object') : [];
   const activeContracts = allContracts.filter(c => !isContractArchived(c));
+  const runningCount = activeContracts.filter(c => !isContractPlanned(c)).length;
+  const plannedCount = activeContracts.length - runningCount;
   const archived = allContracts.filter(c => isContractArchived(c));
 
   // ── Kopfbereich ──
@@ -237,7 +240,7 @@ function renderContracts() {
   }).length;
   document.getElementById('ctHeader').innerHTML = activeContracts.length ? `
     <div class="ct-head-card">
-      <div class="ct-head-row"><b>${activeContracts.length}</b> aktive Verträge</div>
+      <div class="ct-head-row"><b>${runningCount}</b> aktive Verträge${plannedCount ? ` · ${plannedCount} geplant` : ''}</div>
       <div class="ct-head-row"><b>${fmtEurPlain(monthlyGesamt)}</b> monatlich gesamt</div>
       <div class="ct-head-row"><b>${fmtEurPlain(meineBelastung)}</b> deine monatliche Belastung <span class="ct-head-note">(${Math.round(split)} % Anteil an Gemeinsamem)</span></div>
       <div class="ct-head-row${fristen90 ? ' warn' : ''}"><b>${fristen90}</b> wichtige Frist${fristen90 === 1 ? '' : 'en'} <span class="ct-head-note">(90 Tage)</span></div>
@@ -290,8 +293,8 @@ function renderContracts() {
     return effectiveMonthly(c, cv === 'anteil' ? 'anteil' : 'gesamt');
   }
   function renderContractItem(c, isArch) {
-    const prim = isArch ? { text: '', after: '', urgent: false } : contractPrimaryLine(c);
-    const eff = cardCost(c);
+    const prim = isArch ? { text: '', after: '', urgent: false } : isContractPlanned(c) ? { text: 'Geplant ab ' + fmtDate(c.startDate), after: '', urgent: false } : contractPrimaryLine(c);
+    const eff = isContractPlanned(c) ? effectiveMonthly(c, cv === 'anteil' ? 'anteil' : 'gesamt', new Date(c.startDate + 'T12:00:00')) : cardCost(c);
     const avgFull = averageMonthly(c, 'gesamt');
     const effFull = effectiveMonthly(c, 'gesamt');
     const ownLabel = c.ownership === 'shared' ? 'Gemeinsam' : 'Persönlich';
@@ -320,17 +323,17 @@ function renderContracts() {
     if (!isArch && (c.freeMonths || c.discountMonths)) rhythmHtml += `<div class="ct-rhythm">Durchschnitt im ersten Vertragsjahr: ${fmtEurPlain(avgFull)} pro Monat</div>`;
 
     // Energieverträge: Zähler-Verknüpfung
-    let energyHtml = '';
+    let energyHtml = contractSwitchSummary(c);
     if (!isArch && (c.category === 'strom' || c.category === 'gas')) {
       const m = meterForContract(c.id);
       if (m) {
-        const en = m.energy || {};
+        const en = c.energyTariff || m.energy || {};
         const parts = [];
         if (Number.isFinite(Number(en.unitPrice)) && Number(en.unitPrice) > 0) parts.push(`Arbeitspreis ${String(en.unitPrice).replace('.', ',')} ct/kWh`);
         if (Number.isFinite(Number(en.basePrice)) && Number(en.basePrice) > 0) parts.push(`Grundpreis ${fmtEurPlain(en.basePrice)}/Monat`);
-        energyHtml = `<div class="ct-energy">${parts.length ? parts.join(' · ') + '<br>' : ''}<button class="tk-link-mini" data-ctact="tometer" data-mtype="${esc(m.type)}">Zum Zähler</button> · <button class="tk-link-mini" data-ctact="follow" data-cid="${esc(c.id)}">Neuen Folgevertrag anlegen</button></div>`;
+        energyHtml += `<div class="ct-energy">${parts.length ? parts.join(' · ') + '<br>' : ''}<button class="tk-link-mini" data-ctact="tometer" data-mtype="${esc(m.type)}">Zum Zähler</button> · <button class="tk-link-mini" data-ctact="follow" data-cid="${esc(c.id)}">Neuen Folgevertrag anlegen</button></div>`;
       } else {
-        energyHtml = `<div class="ct-energy">Noch nicht mit einem Zähler verbunden. · <button class="tk-link-mini" data-ctact="follow" data-cid="${esc(c.id)}">Neuen Folgevertrag anlegen</button></div>`;
+        energyHtml += `<div class="ct-energy">Noch nicht mit einem Zähler verbunden. · <button class="tk-link-mini" data-ctact="follow" data-cid="${esc(c.id)}">Neuen Folgevertrag anlegen</button></div>`;
       }
     }
 
@@ -487,7 +490,8 @@ function openCancelContractDialog(id) {
   const c = contracts.find(x => x && x.id === id);
   if (!c) return;
   cancelFlowId = id;
-  const suggestedEnd = c.cancelledUntil || latestCancelDate(c) || c.endDate || '';
+  if (contracts.some(x => x.previousContractId === id)) { alert('Der Übergang ist bereits mit einem Folgevertrag verknüpft. Bitte zuerst den Wechsel zurücknehmen, wenn der Termin geändert werden soll.'); return; }
+  const suggestedEnd = c.cancelledUntil || c.endDate || ''; // Kündigungsfrist ist kein Vertragsende
   const h = `
     <div style="font-size:13px;margin-bottom:12px"><b>${esc(c.name)}</b>${c.provider ? ' · ' + esc(c.provider) : ''}</div>
     <div class="fg"><label for="cf-on">Gekündigt am</label><input autocomplete="off" id="cf-on" type="date" value="${today()}"></div>
@@ -502,11 +506,14 @@ function openCancelContractDialog(id) {
 function saveCancelFlow() {
   const c = contracts.find(x => x && x.id === cancelFlowId);
   if (!c) { closeKasseModal(); return; }
+  const oldState = {...c};
+  const until = document.getElementById('cf-until')?.value || '';
+  if (!validDate(until) || (c.startDate && until < c.startDate)) { alert('Bitte ein gültiges Vertragsende eintragen.'); return; }
   c.cancelledStatus = true;
   c.cancelledOn = document.getElementById('cf-on')?.value || today();
   c.cancelledUntil = document.getElementById('cf-until')?.value || '';
   c.cancelNote = document.getElementById('cf-note')?.value.trim() || '';
-  save('vh_contracts', contracts);
+  if (!save('vh_contracts', contracts)) { Object.assign(c, oldState); return; }
   closeKasseModal();
   closeModal('contractModal');
   renderContracts(); renderAmpel();
@@ -516,6 +523,7 @@ function saveCancelFlow() {
 function useContractAsTemplate(id, isFollowUp) {
   const c = contracts.find(x => x && x.id === id);
   if (!c) return;
+  if (isFollowUp && contracts.some(x => x.previousContractId === id)) { alert('Für diesen Vertrag gibt es bereits einen Folgevertrag. Bitte diesen bearbeiten.'); return; }
   openAddContractModal(); // setzt alles zurück, neue ID, kein Kündigungsstatus
   document.getElementById('f-name').value = c.name || '';
   document.getElementById('f-category').value = c.category || 'sonstiges';
@@ -523,7 +531,10 @@ function useContractAsTemplate(id, isFollowUp) {
   setOwnership(c.ownership === 'shared' ? 'shared' : 'solo');
   document.getElementById('f-start').value = today();
   if (isFollowUp) {
-    // Folgevertrag: Anbieter & Kundennummer bewusst NICHT übernehmen
+    switchFromId = id;
+    const end = c.cancelledUntil || c.endDate;
+    if (end) document.getElementById('f-start').value = shiftContractDate(end, 1);
+    showContractSwitch(c);
   } else {
     // Vorlage: Grunddaten inkl. Kosten übernehmen
     document.getElementById('f-provider').value = c.provider || '';
@@ -590,6 +601,8 @@ document.getElementById('own-shared').addEventListener('click', () => setOwnersh
 
 function openAddContractModal() {
   editContractId = null;
+  switchFromId = null;
+  document.getElementById('contractSwitchFields').hidden = true;
   document.getElementById('ctModalTitle').textContent = 'Vertrag hinzufügen';
   document.getElementById('deleteContractBtn').style.display = 'none';
   ['f-name', 'f-provider', 'f-custno', 'f-cancelurl', 'f-notes', 'f-cancelNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -610,6 +623,7 @@ function openAddContractModal() {
   document.getElementById('cancelDatePreview').textContent = '';
   document.getElementById('mintermHint').textContent = '';
   setOwnership('solo');
+  document.getElementById('switchContractBtn').style.display = 'none';
   setCancelledStatus(false);
   const fav = document.getElementById('f-fav'); if (fav) fav.checked = false;
   const scb = document.getElementById('startCancelBtn'); if (scb) scb.style.display = 'none';
@@ -621,6 +635,10 @@ function openEditContractModal(id) {
   const c = contracts.find(x => x.id === id);
   if (!c) return;
   editContractId = id;
+  switchFromId = null;
+  document.getElementById('contractSwitchFields').hidden = true;
+  document.getElementById('switchContractBtn').style.display = 'block';
+  document.getElementById('switchContractBtn').dataset.cid = id;
   document.getElementById('ctModalTitle').textContent = 'Vertrag bearbeiten';
   document.getElementById('deleteContractBtn').style.display = 'block';
   document.getElementById('f-name').value = c.name || '';
@@ -654,6 +672,7 @@ function openEditContractModal(id) {
   const scb = document.getElementById('startCancelBtn'); if (scb) scb.style.display = c.cancelledStatus ? 'none' : 'block';
   document.querySelectorAll('#contractModal details.cf-sec').forEach((d, i) => { d.open = i < 2; });
   if (c.cancelledStatus) { const st = document.getElementById('cf-status-sec'); if (st) st.open = true; }
+  if (c.energyTariff && c.energyMeterId) showEnergyTariffEditor(c);
   updateCostPreview();
   updateCancelPreview();
   openModal('contractModal');
@@ -663,6 +682,7 @@ document.getElementById('saveContractBtn').addEventListener('click', () => {
   if (!name) { alert('Bitte Vertragsname eingeben.'); return; }
   const existing = editContractId ? contracts.find(c => c.id === editContractId) : null;
   const entry = {
+    ...existing,
     id: editContractId || uid(), name,
     provider: document.getElementById('f-provider').value.trim(),
     category: document.getElementById('f-category').value,
@@ -693,16 +713,30 @@ document.getElementById('saveContractBtn').addEventListener('click', () => {
     cancelledUntil: currentCancelledStatus ? (document.getElementById('f-cancelledUntil').value || '') : '',
     cancelNote: currentCancelledStatus ? (document.getElementById('f-cancelNote').value.trim() || '') : '',
   };
-  if (editContractId) contracts = contracts.map(c => c.id === editContractId ? entry : c);
-  else contracts.push(entry);
-  if(!save('vh_contracts', contracts))return;
+  if (entry.startDate && entry.endDate && entry.endDate < entry.startDate) { alert('Das Vertragsende liegt vor dem Beginn.'); return; }
+  if (existing?.energyTariff && !readEnergyTariffEditor(entry)) return;
+  let next = editContractId ? contracts.map(c => c.id === editContractId ? entry : c) : [...contracts, entry];
+  if (switchFromId) {
+    const result = prepareContractSwitch(entry, switchFromId);
+    if (!result) return;
+    next = [...contracts.map(c => c.id === switchFromId ? result : c), entry];
+  }
+  // Verknüpfte Übergänge bleiben konsistent. Datum über den Wechselvertrag ändern.
+  if (existing?.previousContractId && entry.startDate !== existing.startDate) { alert('Der Wechselbeginn ist bereits verknüpft. Für eine Terminänderung bitte den Wechsel neu anlegen.'); return; }
+  if (existing && contracts.some(c => c.previousContractId === existing.id) && (entry.endDate !== existing.endDate || entry.cancelledUntil !== existing.cancelledUntil || entry.cancelledStatus !== existing.cancelledStatus)) { alert('Dieser Vertrag ist mit einem Folgevertrag verknüpft. Das hinterlegte Übergangsdatum muss erhalten bleiben.'); return; }
+  const before = contracts;
+  contracts = next;
+  if (!save('vh_contracts', contracts)) { contracts = before; return; }
+  switchFromId = null;
   // HOMEHUB DRAGON
   if (editContractId) rewardDragon('contractUpdate', { id: entry.id }); else rewardDragon('contractCreate', { id: entry.id });
   closeModal('contractModal');
   renderContracts(); renderAmpel(); renderHome();
 });
 document.getElementById('deleteContractBtn').addEventListener('click', () => {
-  if (!editContractId || !confirm('Vertrag löschen?')) return;
+  if (!editContractId) return;
+  if (contracts.some(c => c.previousContractId === editContractId) || contracts.find(c => c.id === editContractId)?.previousContractId) { alert('Verknüpfte Wechselverträge bitte erhalten, damit Tarifhistorie und Übergang nachvollziehbar bleiben.'); return; }
+  if (!confirm('Vertrag löschen?')) return;
   contracts = contracts.filter(c => c.id !== editContractId);
   save('vh_contracts', contracts);
   closeModal('contractModal');

@@ -119,13 +119,8 @@ function isContractCancelled(c) {
   return c.cancelledStatus === true;
 }
 function isContractArchived(c) {
-  // Abgelaufen
-  if (isContractExpired(c)) return true;
-  // Manuell gekündigt UND Wirksamkeitsdatum vergangen
-  if (isContractCancelled(c) && c.cancelledUntil) {
-    return diffDays(c.cancelledUntil) !== null && diffDays(c.cancelledUntil) < 0;
-  }
-  return false;
+  const end = contractEndDate(c);
+  return !!end && end < today();
 }
 
 function updateCostPreview() {

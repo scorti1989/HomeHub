@@ -100,7 +100,8 @@ function calculateEnergyContractStats(meter, linkedContractId, opts) {
   const usingDefaultGasFactor = meter.type === 'gas' && !en.gasKwhPerM3;
 
   const fromDate = en.startDate || c?.startDate || readings[0].date;
-  const endDate  = en.endDate   || c?.endDate   || null;
+  const successor = c && contracts.find(x => x.previousContractId === c.id);
+  const endDate  = successor?.startDate || en.endDate || c?.endDate || null;
 
   // ── Basis: letzte echte Ablesung ──────────────────────────────────────
   // Keine Mischung mit today(). Alle Berechnungen enden hier.
@@ -112,6 +113,8 @@ function calculateEnergyContractStats(meter, linkedContractId, opts) {
   // toDate = currentDate (nicht today()), damit alle Zeit- und Kostenberechnungen
   // exakt mit den real vorhandenen Messdaten übereinstimmen.
   const toDate = currentDate;
+  if (readings.length < 2) return null;
+  if (!readings.some(r => r.date === fromDate) && en.startReading == null) return {error: 'Anfangsstand fehlt. Bitte eine Ablesung vom Vertragsbeginn ergänzen; der Verbrauch wird nicht geschätzt.'};
   if(!validDate(fromDate) || !validDate(toDate) || fromDate>=toDate || (endDate && (!validDate(endDate) || endDate<=fromDate))) return {error:"Bitte Startdatum und Ablesedatum prüfen. Für diesen Zeitraum ist keine Energieprognose möglich."};
 
   // Startwert: explizit gepflegt > interpoliert > erste Ablesung
@@ -432,23 +435,28 @@ function renderMeters() {
 
   if (latest) {
     // Energie-Vertrags-Auswertung (wenn Tarifdaten vorhanden)
-    const linkedId = meter.energy?.linkedContractId || null;
+    const chain = meterEnergyContracts(meter);
+    const switched = chain.some(c => c.previousContractId);
+    const current = switched ? chain.filter(c => !isContractPlanned(c) && !isContractArchived(c)).at(-1) : null;
+    const analysisMeter = current ? energyMeterPeriod(meter, current) : meter;
+    const linkedId = analysisMeter.energy?.linkedContractId || null;
     const hasEnergyData = meter.energy && (
       meter.energy.unitPrice || meter.energy.monthlyPayment || meter.energy.startReading !== undefined
     );
-    const energyStats = (hasEnergyData || linkedId) ? calculateEnergyContractStats(meter, linkedId) : null;
+    const energyStats = switched && !current ? null : (hasEnergyData || linkedId) ? calculateEnergyContractStats(analysisMeter, linkedId) : null;
     const energyHtml  = energyStats ? renderEnergyCard(energyStats, meter.type) : '';
 
     html += `<div class="card" style="text-align:center;padding:18px 14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
         <div></div>
-        <div class="card-label" style="margin:0">${esc(meter.name || meter.type)}${meter.provider ? ' · ' + esc(meter.provider) : ''}</div>
+        <div class="card-label" style="margin:0">${esc(meter.name || meter.type)}${(current?.provider || meter.provider) ? ' · ' + esc(current?.provider || meter.provider) : ''}</div>
         <button id="editMeterBtn" style="background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;padding:0;min-height:28px" title="Zähler bearbeiten">✏️</button>
       </div>
       <div style="font-size:44px;font-weight:800;letter-spacing:-2px;color:var(--accent)">${Number(latest.value).toLocaleString('de-DE')}</div>
       <div style="font-size:14px;color:var(--muted)">${meter.unit} · ${fmtDate(latest.date)}</div>
     </div>
     ${energyHtml}
+    ${renderMeterSwitches(meter)}
     <div class="stat-grid">
       <div class="stat-box">
         <div class="stat-lbl">Letzter Zeitraum</div>
@@ -519,7 +527,12 @@ let editMeterId = null;
 function openMeterModal(type) {
   const ex = type ? meters.find(m => m.type === type) : null;
   editMeterId = ex?.id || null;
+  const switched = ex && meterEnergyContracts(ex).some(c => c.previousContractId);
+  let hint = document.getElementById('meterSwitchTariffHint');
+  if (!hint) { hint = document.createElement('p'); hint.id = 'meterSwitchTariffHint'; document.getElementById('m-linked-contract').parentElement.appendChild(hint); }
+  hint.textContent = switched ? 'Tarife sind pro Vertrag gespeichert. Änderungen unter Vertragswechsel & Tarifhistorie → Vertrag bearbeiten vornehmen.' : '';
   const en = ex?.energy || {};
+  for (const id of ['m-unit-price','m-base-price','m-monthly-pay','m-start-reading','m-gas-factor','m-linked-contract']) document.getElementById(id).disabled = !!switched;
   document.getElementById('m-type').value = type || 'strom';
   document.getElementById('m-name').value = ex?.name || '';
   document.getElementById('m-provider').value = ex?.provider || '';

@@ -17,6 +17,8 @@ function myShare(c, amt, viewMode) {
   return c.ownership === 'shared' ? amt * (settings.splitPct / 100) : amt;
 }
 function effectiveMonthly(c, viewMode, at = new Date()) {
+  const atDay = localDateStr(at);
+  if ((c.startDate && c.startDate > atDay) || (contractEndDate(c) && contractEndDate(c) < atDay)) return 0;
   const base = toMonthly(c.cost, c.interval);
   const extra = c.extraCost && c.extraInterval !== 'einmalig' ? toMonthly(c.extraCost, c.extraInterval) : 0;
   let inFree = false;

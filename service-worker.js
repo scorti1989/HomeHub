@@ -18,7 +18,7 @@
    (dragon-game-balanced.js?v=…, dragon-game-balanced.css?v=…).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const APP_VERSION        = '56';
+const APP_VERSION        = '57';
 const APP_CACHE_NAME     = `homehub-app-v${APP_VERSION}`;
 const RUNTIME_CACHE_NAME = `homehub-runtime-v${APP_VERSION}`;
 
@@ -42,6 +42,7 @@ const CRITICAL_PATHS = ['./', './index.html', './manifest.json',
   `./contracts-helpers.js?v=${APP_VERSION}`,
   `./navigation-home.js?v=${APP_VERSION}`,
   `./expenses.js?v=${APP_VERSION}`,
+  `./contract-switch.js?v=${APP_VERSION}`,
   `./contracts.js?v=${APP_VERSION}`,
   `./expense-forms.js?v=${APP_VERSION}`,
   `./shopping.js?v=${APP_VERSION}`,

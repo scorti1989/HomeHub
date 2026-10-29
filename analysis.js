@@ -3,12 +3,13 @@
 // ════════════════════════════════════════════
 // ── Hilfsfunktion: Aktive Verträge für Analyse ──
 function activeContractsOnly() {
-  return contracts.filter(c => !isContractArchived(c));
+  return contracts.filter(c => !isContractArchived(c) && !isContractPlanned(c));
 }
 
 // ── Hilfsfunktion: Vertrags-Status-Badge HTML ──
 function contractStatusBadge(c) {
   if (isContractArchived(c)) return '<span class="st-badge st-archiv">ARCHIV</span>';
+  if (isContractPlanned(c)) return '<span class="st-badge st-testphase">GEPLANT</span>';
   if (c.cancelledStatus) return '<span class="st-badge st-gekuendigt">GEKÜNDIGT</span>';
   const now = new Date();
   if (c.freeMonths && c.startDate) {
@@ -44,7 +45,13 @@ function contractCostForMonth(month) {
     return true;
   });
   const [y, m] = month.split('-').map(Number);
-  return relevant.reduce((s, c) => s + effectiveMonthly(c, undefined, new Date(y, m - 1, 1)), 0);
+  const days = new Date(y, m, 0).getDate();
+  // Verteilte Monatsbelastung: im Wechselmonat zählen nur die aktiven Tage.
+  return relevant.reduce((sum, c) => {
+    let total = 0;
+    for (let day = 1; day <= days; day++) total += effectiveMonthly(c, undefined, new Date(y, m - 1, day, 12));
+    return sum + total / days;
+  }, 0);
 }
 
 function renderAnalysis() {

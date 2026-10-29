@@ -84,6 +84,10 @@ function prepareAppSnapshot(input) {
     }
     for (const key of ['maps','sourceUrl','cancelUrl','imageUrl']) if (row[key] != null) row[key]=safeWebUrl(row[key],key==='imageUrl');
   }
+  for (const c of d.contracts) {
+    if (c.energyTariff != null) { if (!obj(c.energyTariff)) throw new Error('Ungültiger Vertragstarif.'); fields(c.energyTariff, 'Vertragstarif'); }
+    if (c.switchReading != null && (typeof c.switchReading !== 'number' || !Number.isFinite(c.switchReading) || c.switchReading < 0)) throw new Error('Ungültiger Wechselzählerstand.');
+  }
   for (const [key,label] of [['contracts','Vertrag'],['expenses','Ausgabe'],['recurring','Wiederholung'],['transfers','Transfer'],['concerts','Konzert']]) d[key].forEach(r=>fields(r,label));
   d.shopLists.items ??= [];
   if (!Array.isArray(d.shopLists.items) || d.shopLists.items.some(r=>!obj(r))) throw new Error('Ungültige Einkaufsliste.');

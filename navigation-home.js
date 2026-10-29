@@ -4,7 +4,7 @@
 function renderAmpel() {
   // Vertrags-Warnungen (Kündigungsfristen)
   const contractUrgent = contracts
-    .filter(c => !isContractArchived(c))
+    .filter(c => !isContractArchived(c) && !isContractPlanned(c))
     .map(c => ({ ...c, cd: latestCancelDate(c), tl: trafficLight(c) }))
     .filter(c => c.cd && diffDays(c.cd) !== null && diffDays(c.cd) <= 90)
     .sort((a, b) => new Date(a.cd) - new Date(b.cd));
@@ -30,7 +30,7 @@ function renderAmpel() {
   const totalUrgent = contractUrgent.length + meterReminders.length;
 
   if (!totalUrgent) {
-    const total = contracts.filter(c => !isContractArchived(c)).length;
+    const total = contracts.filter(c => !isContractArchived(c) && !isContractPlanned(c)).length;
     strip.innerHTML = `<div class="ampel-dot ampel-ok"></div><div class="ampel-all-ok">${total ? 'Alle Verträge OK' : 'Keine Verträge'}</div>`;
     return;
   }
